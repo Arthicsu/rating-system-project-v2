@@ -1,0 +1,139 @@
+{
+  "faculties": [
+    {"short_name": "ИЭИ", "name": "Инженерно-экономический институт"},
+    {"short_name": "ЭиЭБ", "name": "Экономика и экономическая безопасность"}
+  ],
+  "teachers": [
+    {
+      "username": "nosov@ya.ru",
+      "first_name": "Дмитрий",
+      "last_name": "Носов",
+      "patronymic": "Александрович",
+      "faculty_short_name": "ИЭИ",
+      "password": "ZAQ123wsx"
+    },
+    {
+      "username": "petrova@ya.ru",
+      "first_name": "Анна",
+      "last_name": "Петрова",
+      "patronymic": "Александровна",
+      "faculty_short_name": "ИЭИ",
+      "password": "ZAQ123wsx"
+    }
+  ],
+  "groups": [
+    {
+      "name": "ИВТ-301",
+      "faculty_short_name": "ИЭИ",
+      "course": 3,
+      "curator_username": "nosov@ya.ru"
+    },
+    {
+      "name": "ПИ-201",
+      "faculty_short_name": "ИЭИ",
+      "course": 2,
+      "curator_username": "petrova@ya.ru"
+    }
+  ],
+  "students": [
+    {
+      "username": "student1@ya.ru",
+      "first_name": "Иван",
+      "last_name": "Иванов",
+      "patronymic": "Иванович",
+      "group_name": "ИВТ-301",
+      "faculty_short_name": "ИЭИ",
+      "record_book": "23-01-5"
+    },
+    {
+      "username": "student2@ya.ru",
+      "first_name": "Алексей",
+      "last_name": "Смирнов",
+      "patronymic": "Алексеевич",
+      "group_name": "ИВТ-301",
+      "faculty_short_name": "ИЭИ",
+      "record_book": "23-01-6"
+    },
+    {
+      "username": "student3@ya.ru",
+      "first_name": "Екатерина",
+      "last_name": "Кузнецова",
+      "patronymic": "Александровна",
+      "group_name": "ИВТ-301",
+      "faculty_short_name": "ИЭИ",
+      "record_book": "23-01-7"
+    },
+    {
+      "username": "student4@ya.ru",
+      "first_name": "Михаил",
+      "last_name": "Попов",
+      "patronymic": "Александрович",
+      "group_name": "ИВТ-301",
+      "faculty_short_name": "ИЭИ",
+      "record_book": "23-01-8"
+    },
+    {
+      "username": "student5@ya.ru",
+      "first_name": "Ольга",
+      "last_name": "Васильева",
+      "patronymic": "Александровна",
+      "group_name": "ИВТ-301",
+      "faculty_short_name": "ИЭИ",
+      "record_book": "23-01-9"
+    },
+    {
+      "username": "student6@ya.ru",
+      "first_name": "Денис",
+      "last_name": "Соколов",
+      "patronymic": "Владимирович",
+      "group_name": "ПИ-201",
+      "faculty_short_name": "ИЭИ",
+      "record_book": "24-02-1"
+    },
+    {
+      "username": "student7@ya.ru",
+      "first_name": "Анна",
+      "last_name": "Михайлова",
+      "patronymic": "Владимировна",
+      "group_name": "ПИ-201",
+      "faculty_short_name": "ИЭИ",
+      "record_book": "24-02-2"
+    },
+    {
+      "username": "student8@ya.ru",
+      "first_name": "Павел",
+      "last_name": "Федоров",
+      "patronymic": "Федорович",
+      "group_name": "ПИ-201",
+      "faculty_short_name": "ИЭИ",
+      "record_book": "24-02-3"
+    },
+    {
+      "username": "student9@ya.ru",
+      "first_name": "Татьяна",
+      "last_name": "Морозова",
+      "patronymic": "Федоровна",
+      "group_name": "ПИ-201",
+      "faculty_short_name": "ИЭИ",
+      "record_book": "24-02-4"
+    },
+    {
+      "username": "student10@ya.ru",
+      "first_name": "Сергей",
+      "last_name": "Волков",
+      "patronymic": "Никитич",
+      "group_name": "ПИ-201",
+      "faculty_short_name": "ИЭИ",
+      "record_book": "24-02-5"
+    },
+    {
+      "username": "student11@ya.ru",
+      "first_name": "Мария",
+      "last_name": "Алексеева",
+      "patronymic": "Алексеевна",
+      "group_name": "ИВТ-301",
+      "faculty_short_name": "ИЭИ",
+      "record_book": "23-01-10"
+    }
+  ]
+}
