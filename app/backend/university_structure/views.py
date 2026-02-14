@@ -11,9 +11,10 @@ from university_structure.models import Faculty, Group
 from students.models import Document, Student
 
 
-@authentication_classes([SessionAuthentication])
-@permission_classes([IsAuthenticated])  
+
 class ReviewDocumentAPIView(APIView):
+    @authentication_classes([SessionAuthentication])
+    @permission_classes([IsAuthenticated])  
     def post(self, request, doc_id):
         if not getattr(request.user, 'is_teacher', False):
              return Response({"error": "Только для преподавателей"}, status=status.HTTP_403_FORBIDDEN)

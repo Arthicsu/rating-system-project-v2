@@ -17,6 +17,9 @@ from students.serializers import DocumentSerializer, StudentProfileSerializer, S
 
 User = get_user_model()
 
+
+@permission_classes([IsAuthenticated])
+@authentication_classes([SessionAuthentication])  
 def get_student_profile_data(user, request, is_own_profile, is_teacher):
     serializer_context = {'request': request, 'is_own_profile': is_own_profile}
     student_data = StudentProfileSerializer(user.student_profile, context=serializer_context).data
@@ -39,8 +42,8 @@ def get_student_profile_data(user, request, is_own_profile, is_teacher):
     }
     return student_data
 
-@permission_classes([AllowAny()])  
 class RegistrationAPIView(APIView):
+    @permission_classes([AllowAny])  
     def post(self, request):
         serializer = StudentRegistrationSerializer(data=request.data)
         if serializer.is_valid():
@@ -62,8 +65,8 @@ class RegistrationAPIView(APIView):
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@permission_classes([AllowAny])  
 class LoginAPIView(APIView):
+    @permission_classes([AllowAny])  
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
@@ -87,8 +90,8 @@ class LoginAPIView(APIView):
         else:
             return Response({"detail": "Неверный логин или пароль"}, status=status.HTTP_401_UNAUTHORIZED)
 
-@permission_classes([AllowAny])  
 class CheckAuthAPIView(APIView):
+    @permission_classes([AllowAny])  
     def get(self, request):
         if request.user.is_authenticated:
             record_book = None
@@ -105,30 +108,30 @@ class CheckAuthAPIView(APIView):
         
         return Response({"isAuthenticated": False}, status=status.HTTP_401_UNAUTHORIZED)
 
-@permission_classes([IsAuthenticated])
-@authentication_classes([SessionAuthentication])  
 class LogoutAPIView(APIView):
+    @permission_classes([IsAuthenticated])
+    @authentication_classes([SessionAuthentication])  
     def post(self, request):
         logout(request)
         return Response(status=status.HTTP_200_OK)
 
-@permission_classes([AllowAny])  
 class GroupListView(APIView): 
+    @permission_classes([AllowAny])  
     def get(self, request):
         groups = Group.objects.all().values('id', 'name', 'course', 'faculty')
         return Response(list(groups))
 
-@permission_classes([AllowAny])  
 class RatingAPIView(APIView):
+    @permission_classes([AllowAny]) 
     def get(self, request):
         students = Student.objects.select_related('group', 'faculty').all()
         serializer = StudentRatingSerializer(students, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 # Всё же надо разделить, а то это ужас какой-то 
-@permission_classes([IsAuthenticated])
-@authentication_classes([SessionAuthentication])  
 class PublicProfileAPIView(APIView):
+    @permission_classes([IsAuthenticated])
+    @authentication_classes([SessionAuthentication])  
     def get(self, request, user_id=None):
         target_user_id = user_id if user_id else request.user.id
         target_user = get_object_or_404(User, id=target_user_id)
@@ -202,7 +205,7 @@ class PublicProfileAPIView(APIView):
 
         return Response(response_data)
 
-@authentication_classes([SessionAuthentication])
 class ProfileAPIView(PublicProfileAPIView):
+    @authentication_classes([SessionAuthentication])
     def get(self, request):
         return super().get(request, user_id=request.user.id)
