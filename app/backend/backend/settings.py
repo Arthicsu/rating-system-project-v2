@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'drf_spectacular',
     'main',
     'users',
     'students',
@@ -93,6 +94,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 ROOT_URLCONF = 'backend.urls'
@@ -163,6 +165,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'rating-system-project-v2 API',
+    'DESCRIPTION': 'BGITU-Tracking-Student-Performance-for-Scholarships',
+    'VERSION': '1.0.1',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/

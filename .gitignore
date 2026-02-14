@@ -15,7 +15,9 @@ venv.bak/
 
 static/uploads
 TODO.md
-README.md
+README-prod.md
+app/backend/requirements-old.txt
+
 __pycache__/
 *.py[cod]
 *$py.class

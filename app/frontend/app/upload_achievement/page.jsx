@@ -88,7 +88,7 @@ const handleSubmit = async () => {
     }
 
     try {
-      const response = await api.post('/api/v1/upload/', formData, {
+      const response = await api.post('/student/api/v1/upload/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       alert('Достижение успешно загружено!');
