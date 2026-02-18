@@ -76,23 +76,3 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score', 'total_score',
             'documents',
         ]
-
-def to_representation(self, instance):
-        data = super().to_representation(instance)
-        request = self.context.get('request')
-        is_own_profile = self.context.get('is_own_profile', False)
-        
-        is_teacher = False
-        if request and request.user.is_authenticated:
-            is_teacher = getattr(request.user, 'is_teacher', False)
-
-        if not (is_own_profile or is_teacher):
-            data.pop('record_book', None)
-            data.pop('phone', None)
-            if 'documents' in data:
-                data['documents'] = [
-                    doc for doc in data['documents'] 
-                    if doc.get('status') == 'approved'
-                ]
-        
-        return data

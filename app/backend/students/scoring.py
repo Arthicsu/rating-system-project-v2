@@ -1,10 +1,27 @@
 from django.conf import settings
 import json
-from students.models import Document
 
 config_path = settings.SCORING_CONFIG_PATH
 
 def load_rules() -> dict:
+    """
+    Загружает и возвращает конфигурацию правил начисления баллов из JSON-файла.
+
+    Функция читает файл, путь к которому определён в переменной `config_path`,
+    и преобразует его содержимое в словарь. 
+    
+    Конфигурация используется для определения баллов за достижения в зависимости от категории, подтипа, уровня и результата.
+
+    Возвращает:
+        dict: Словарь с правилами начисления баллов из конфига. 
+        При ошибках возвращается пустой словарь.
+
+    Обрабатываемые ошибки:
+        FileNotFoundError: Если файл по указанному пути не найден.
+                           Выводится сообщение об ошибке, возвращается {}.
+        json.JSONDecodeError: Если содержимое файла некорректно (не валидный JSON).
+                            Выводится сообщение об ошибке, возвращается {}.
+    """
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -61,6 +78,57 @@ def calculate_achievement_score(category, sub_type, level='none', result='none')
 
     return 0
 
+def get_choices_from_config(key_path) -> list[tuple] | list:
+    """
+    Возвращает список значений для использования в полях модели Django с параметром choices.
+
+    Функция извлекает данные из scoring_config.json (загружается через load_rules) и форматирует их в виде списка кортежей.
+
+    Параметры:
+        key_path (str): Путь к данным в конфигурации. Поддерживаемые значения:
+            - 'metadata.levels' — уровни достижений (например, Международный (Мир), Всероссийский / РФ).
+            - 'metadata.results' — возможные результаты (1 место / Победитель, «Хорошо» и «отлично» и т.п.).
+            - 'categories' — категории достижений (Учебная, Научно-исследовательская и т.д.).
+            - 'sub_types' — все подтипы достижений по всем категориям (без дубликатов).
+
+    Возвращает:
+        list[tuple]: Список кортежей (ключ, метка) для использования в choices.
+                     Возвращает пустой список, если секция не найдена или путь неверен.
+
+    Примеры:
+        get_choices_from_config('metadata.levels')  # → [('international', 'Международный'), ...]
+        get_choices_from_config('categories')       # → [('academic', 'Учебная'), ...]
+        get_choices_from_config('sub_types')        # → [('olympiad', 'Олимпиада / Конкурс'), ('grades', 'Успеваемость'), ...]
+
+    Особенности:
+        - Для 'metadata.*' извлекаются плоские словари из раздела metadata конфигурации.
+        - Для 'categories' берётся основной уровень конфигурации (кроме 'metadata').
+        - Для 'sub_types' проходится вся структура, извлекаются все подтипы, удаляются дубликаты.
+        - Если метка отсутствует в данных, используется ключ как значение по умолчанию.
+
+    Используется для динамического формирования выпадающих списков в формах и моделях из scoring_config.json.
+    """
+    rules = load_rules()
+    
+    if key_path.startswith('metadata.'):
+        section = key_path.split('.')[1]
+        data = rules.get('metadata', {}).get(section, {})
+        return [(k, v) for k, v in data.items()]
+
+    if key_path == 'categories':
+        return [(k, v['label']) for k, v in rules.items() if k != 'metadata']
+
+    if key_path == 'sub_types':
+        sub_types = []
+        for cat_key, cat_data in rules.items():
+            if cat_key == 'metadata': continue
+            for sub_key, sub_data in cat_data.items():
+                if sub_key == 'label': continue
+                sub_types.append((sub_key, sub_data.get('label', sub_key)))
+        return list(set(sub_types))
+
+    return []
+
 def get_scoring_structure() -> dict:
     """
     Формирует структуру правил начисления баллов для клиентской части приложения.
@@ -102,30 +170,32 @@ def get_scoring_structure() -> dict:
     """
     
     rules: dict = load_rules()
-    
-    cat_map: dict[str, str] = dict(Document.CATEGORY_CHOICES)
-    sub_map: dict[str, str] = dict(Document.SUB_TYPE_CHOICES)
-
     structure: dict = {}
 
-    for cat_key, sub_types in rules.items():
-        sub_types_list: list = []
-        for sub_key, sub_content in sub_types.items():
-            has_levels: bool = isinstance(sub_content, dict) and any(
-                isinstance(v, dict) for v in sub_content.values()
-            )
+    for cat_key, cat_content in rules.items():
+        if cat_key == 'metadata':
+            continue
+
+        sub_types_list = []
+        for sub_key, sub_content in cat_content.items():
+            if sub_key == 'label':
+                continue
+
+            logic_data = {k: v for k, v in sub_content.items() if k != 'label'}
             
-            has_results: bool = isinstance(sub_content, dict) and 'default' not in sub_content
+            has_levels = any(isinstance(v, dict) for v in logic_data.values())
+            
+            has_results = 'default' not in logic_data
 
             sub_types_list.append({
                 "value": sub_key,
-                "label": sub_map.get(sub_key, sub_key),
+                "label": sub_content.get('label', sub_key),
                 "needsLevel": has_levels,
                 "needsResult": has_results
             })
 
         structure[cat_key] = {
-            "label": cat_map.get(cat_key, cat_key),
+            "label": cat_content.get('label', cat_key),
             "sub_types": sub_types_list
         }
     
