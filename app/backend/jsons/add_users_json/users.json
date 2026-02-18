@@ -1,38 +1,75 @@
 {
   "faculties": [
     {"short_name": "ИЭИ", "name": "Инженерно-экономический институт"},
-    {"short_name": "ЭиЭБ", "name": "Экономика и экономическая безопасность"}
+    {"short_name": "ЭиЭБ", "name": "Экономика и экономическая безопасность"},
+    {"short_name": "СИ", "name": "Строительный институт"},
+    {"short_name": "ИЛКЛАТиЭ", "name": "Институт лесного комплекса, ландшафтной архитектуры, транспорта и экологии"},
+    {"short_name": "ФОПиПК", "name": "Факультет общенаучной подготовки и повышения квалификации"}
   ],
-  "teachers": [
+  "departments": [
+    {"short_name": "ГиГ", "name": "Графика и геодезия", "faculty_short_name": "СИ"},
+    {"short_name": "АД", "name": "Автомобильные дороги", "faculty_short_name": "СИ"},
+    {"short_name": "СК", "name": "Строительные конструкции", "faculty_short_name": "СИ"},
+    {"short_name": "ПСК", "name": "Производство строительных конструкций", "faculty_short_name": "СИ"},
+    {"short_name": "СП", "name": "Строительное производство", "faculty_short_name": "СИ"},
+    {"short_name": "ИТ", "name": "Информационные технологии", "faculty_short_name": "ИЭИ"},
+    {"short_name": "Мат", "name": "Математики", "faculty_short_name": "ФОПиПК"},
+    {"short_name": "ПЭиТБ", "name": "Промышленная экология и техносферная безопасность", "faculty_short_name": "ИЭИ"},
+    {"short_name": "ФиС", "name": "Философии, истории и социологии", "faculty_short_name": "ФОПиПК"},
+    {"short_name": "ЛД", "name": "Лесное дело и технологии деревообработки", "faculty_short_name": "ИЛКЛАТиЭ"},
+    {"short_name": "ОТД", "name": "Общетехнических дисциплин и физики", "faculty_short_name": "ФОПиПК"},
+    {"short_name": "РиИЯ", "name": "Русского и иностранного языка", "faculty_short_name": "ФОПиПК"},
+    {"short_name": "ЭиЭБ", "name": "Экономики и экономической безопасности", "faculty_short_name": "ЭиЭБ"},
+    {"short_name": "ФВ", "name": "Физического воспитания", "faculty_short_name": "ФОПиПК"},
+    {"short_name": "ТТМиС", "name": "Транспортно-технологических машин и сервиса", "faculty_short_name": "СИ"}
+  ],
+  "staffs": [
+    {
+      "username": "rector@ya.ru",
+      "first_name": "Александр",
+      "last_name": "Ректоров",
+      "patronymic": "Петрович",
+      "password": "ZAQ123wsx",
+      "email": "rector@ya.ru",
+      "role": "Проректор",
+      "faculty_short_name": "ИЭИ"
+    },
     {
       "username": "nosov@ya.ru",
       "first_name": "Дмитрий",
       "last_name": "Носов",
       "patronymic": "Александрович",
-      "faculty_short_name": "ИЭИ",
-      "password": "ZAQ123wsx"
+      "password": "ZAQ123wsx",
+      "email": "nosov@ya.ru",
+      "role": "Кафедра",
+      "department_short_name": "ИТ"
     },
     {
       "username": "petrova@ya.ru",
       "first_name": "Анна",
       "last_name": "Петрова",
       "patronymic": "Александровна",
-      "faculty_short_name": "ИЭИ",
-      "password": "ZAQ123wsx"
+      "password": "ZAQ123wsx",
+      "email": "petrova@ya.ru",
+      "role": "Кафедра",
+      "department_short_name": "Мат"
     }
   ],
   "groups": [
     {
       "name": "ИВТ-301",
-      "faculty_short_name": "ИЭИ",
-      "course": 3,
-      "curator_username": "nosov@ya.ru"
+      "department_short_name": "ИТ",
+      "course": 3
     },
     {
       "name": "ПИ-201",
-      "faculty_short_name": "ИЭИ",
-      "course": 2,
-      "curator_username": "petrova@ya.ru"
+      "department_short_name": "ИТ",
+      "course": 2
+    },
+    {
+      "name": "ТБ-101",
+      "department_short_name": "ЛД",
+      "course": 1
     }
   ],
   "students": [
@@ -42,8 +79,8 @@
       "last_name": "Иванов",
       "patronymic": "Иванович",
       "group_name": "ИВТ-301",
-      "faculty_short_name": "ИЭИ",
-      "record_book": "23-01-5"
+      "record_book": "23-01-5",
+      "phone": "+7(999)444-55-66"
     },
     {
       "username": "student2@ya.ru",
@@ -51,8 +88,8 @@
       "last_name": "Смирнов",
       "patronymic": "Алексеевич",
       "group_name": "ИВТ-301",
-      "faculty_short_name": "ИЭИ",
-      "record_book": "23-01-6"
+      "record_book": "23-01-6",
+      "phone": "+7(999)555-66-77"
     },
     {
       "username": "student3@ya.ru",
@@ -60,8 +97,8 @@
       "last_name": "Кузнецова",
       "patronymic": "Александровна",
       "group_name": "ИВТ-301",
-      "faculty_short_name": "ИЭИ",
-      "record_book": "23-01-7"
+      "record_book": "23-01-7",
+      "phone": "+7(999)666-77-88"
     },
     {
       "username": "student4@ya.ru",
@@ -69,8 +106,8 @@
       "last_name": "Попов",
       "patronymic": "Александрович",
       "group_name": "ИВТ-301",
-      "faculty_short_name": "ИЭИ",
-      "record_book": "23-01-8"
+      "record_book": "23-01-8",
+      "phone": "+7(999)777-88-99"
     },
     {
       "username": "student5@ya.ru",
@@ -78,8 +115,8 @@
       "last_name": "Васильева",
       "patronymic": "Александровна",
       "group_name": "ИВТ-301",
-      "faculty_short_name": "ИЭИ",
-      "record_book": "23-01-9"
+      "record_book": "23-01-9",
+      "phone": "+7(999)888-99-00"
     },
     {
       "username": "student6@ya.ru",
@@ -87,8 +124,8 @@
       "last_name": "Соколов",
       "patronymic": "Владимирович",
       "group_name": "ПИ-201",
-      "faculty_short_name": "ИЭИ",
-      "record_book": "24-02-1"
+      "record_book": "24-02-1",
+      "phone": "+7(999)999-00-11"
     },
     {
       "username": "student7@ya.ru",
@@ -96,8 +133,8 @@
       "last_name": "Михайлова",
       "patronymic": "Владимировна",
       "group_name": "ПИ-201",
-      "faculty_short_name": "ИЭИ",
-      "record_book": "24-02-2"
+      "record_book": "24-02-2",
+      "phone": "+7(999)000-11-22"
     },
     {
       "username": "student8@ya.ru",
@@ -105,8 +142,8 @@
       "last_name": "Федоров",
       "patronymic": "Федорович",
       "group_name": "ПИ-201",
-      "faculty_short_name": "ИЭИ",
-      "record_book": "24-02-3"
+      "record_book": "24-02-3",
+      "phone": "+7(999)111-22-44"
     },
     {
       "username": "student9@ya.ru",
@@ -114,8 +151,8 @@
       "last_name": "Морозова",
       "patronymic": "Федоровна",
       "group_name": "ПИ-201",
-      "faculty_short_name": "ИЭИ",
-      "record_book": "24-02-4"
+      "record_book": "24-02-4",
+      "phone": "+7(999)222-33-55"
     },
     {
       "username": "student10@ya.ru",
@@ -123,8 +160,8 @@
       "last_name": "Волков",
       "patronymic": "Никитич",
       "group_name": "ПИ-201",
-      "faculty_short_name": "ИЭИ",
-      "record_book": "24-02-5"
+      "record_book": "24-02-5",
+      "phone": "+7(999)333-44-66"
     },
     {
       "username": "student11@ya.ru",
@@ -132,8 +169,8 @@
       "last_name": "Алексеева",
       "patronymic": "Алексеевна",
       "group_name": "ИВТ-301",
-      "faculty_short_name": "ИЭИ",
-      "record_book": "23-01-10"
+      "record_book": "23-01-10",
+      "phone": "+7(999)444-55-77"
     }
   ]
 }
