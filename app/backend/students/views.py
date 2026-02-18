@@ -4,10 +4,10 @@ from rest_framework.decorators import api_view
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import authentication_classes, permission_classes
+from students.serializers import DocumentSerializer, StudentProfileSerializer
 
-from django.views.decorators.csrf import csrf_exempt
 from students.models import Document, Student
-from .scoring import calculate_achievement_score, get_scoring_structure
+from .scoring import calculate_achievement_score, get_scoring_structure, get_choices_from_config
 
 import json, uuid
 from supabase import create_client, Client
@@ -15,6 +15,61 @@ from backend.settings import SUPABASE_KEY, SUPABASE_URL, SUPABASE_BUCKET_NAME
 
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_student_radar_data(student):
+    """Динамическое формирование данных радара из конфига"""
+    categories = get_choices_from_config('categories')
+    labels = []
+    values = []
+    
+    for key, label in categories:
+        labels.append(label)
+        values.append(getattr(student, f"{key}_score", 0))
+        
+    return {"labels": labels, "data": values}
+
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_student_full_profile(student, request, is_own_profile):
+    """
+    Возвращает данные профиля студента для отображения в интерфейсе.
+
+    Формирует сериализованные данные профиля с учётом контекста запроса (владелец профиля или преподаватель),
+    а также добавляет структуру данных для отображения радарной диаграммы активности студента.
+
+    Параметры:
+        user (User): Объект пользователя, чей профиль запрашивается.
+            Ожидается, что у пользователя есть связанный профиль студента (user.student_profile).
+        request (Request): Объект HTTP-запроса. Используется для передачи контекста сериализатору.
+        is_own_profile (bool): Флаг, указывающий, запрашивает ли пользователь собственный профиль.
+            Влияет на доступность и отображение некоторых полей в сериализаторе.
+
+    Возвращает:
+        dict: Словарь с данными профиля студента, включающий:
+            - Основные поля из StudentProfileSerializer.
+            - Дополнительное поле "radar_stats" с метками и значениями баллов по пяти направлениям:
+                * Общественная - social_score
+                * Учебная - academic_score
+                * Спорт - sport_score
+                * Творческая - cultural_score
+                * Научная - research_score
+
+    Особенности:
+        - Доступ к функции разрешён только аутентифицированным пользователям (IsAuthenticated).
+        - Используется сессионная аутентификация (SessionAuthentication).
+    """
+    serializer = StudentProfileSerializer(student, context={'request': request, 'is_own_profile': is_own_profile})
+    data = serializer.data
+    data["radar_stats"] = get_student_radar_data(student)
+    
+    if is_own_profile or request.user.groups.filter(name__in=['Department', 'Dean', 'Rectorate']).exists():
+        data["email"] = student.user.email
+        data["phone"] = getattr(student, 'phone', None)
+        
+    return data
 
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication])
@@ -81,12 +136,12 @@ def get_achievement_config(request) -> Response:
         Значения 'none' исключаются из списков уровней и результатов,
         т.к они используются как заглушки в модели, но не предназначены для выбора пользователями.
     """
-    
+
     data = {
         "structure": get_scoring_structure(),
-        "levels": [{"value": v, "label": l} for v, l in Document.LEVEL_CHOICES if v != 'none'],
-        "results": [{"value": v, "label": l} for v, l in Document.RESULT_CHOICES if v != 'none'],
-        "doc_types": [{"value": v, "label": l} for v, l in Document.DOC_TYPE_CHOICES]
+        "levels": [{"value": v, "label": l} for v, l in get_choices_from_config('metadata.levels') if v != 'none'],
+        "results": [{"value": v, "label": l} for v, l in get_choices_from_config('metadata.results') if v != 'none'],
+        "doc_types": [{"value": v, "label": l} for v, l in get_choices_from_config('metadata.doc_types')]
     }
     return Response(data)
 

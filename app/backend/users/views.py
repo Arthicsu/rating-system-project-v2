@@ -4,76 +4,22 @@ from drf_spectacular.types import OpenApiTypes
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from django.db.models import Avg, F, Count
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
 
 
+from students.views import get_student_full_profile
 from university_structure.models import Faculty, Group
 from students.models import Document, Student
 from .serializers import StudentRegistrationSerializer
 from students.serializers import DocumentSerializer, StudentProfileSerializer, StudentRatingSerializer
 
 User = get_user_model()
-
-
-@permission_classes([IsAuthenticated])
-@authentication_classes([SessionAuthentication])  
-def get_student_profile_data(user, request, is_own_profile, is_teacher):
-    """
-    Возвращает данные профиля студента для отображения в интерфейсе.
-
-    Формирует сериализованные данные профиля с учётом контекста запроса (владелец профиля или преподаватель),
-    а также добавляет структуру данных для отображения радарной диаграммы активности студента.
-
-    Параметры:
-        user (User): Объект пользователя, чей профиль запрашивается.
-            Ожидается, что у пользователя есть связанный профиль студента (user.student_profile).
-        request (Request): Объект HTTP-запроса. Используется для передачи контекста сериализатору.
-        is_own_profile (bool): Флаг, указывающий, запрашивает ли пользователь собственный профиль.
-            Влияет на доступность и отображение некоторых полей в сериализаторе.
-        is_teacher (bool): Флаг, указывающий, является ли текущий пользователь преподавателем.
-            Может использоваться в сериализаторе для расширенного отображения данных.
-
-    Возвращает:
-        dict: Словарь с данными профиля студента, включающий:
-            - Основные поля из StudentProfileSerializer.
-            - Дополнительное поле "radar_stats" с метками и значениями баллов по пяти направлениям:
-                * Общественная - social_score
-                * Учебная - academic_score
-                * Спорт - sport_score
-                * Творческая - cultural_score
-                * Научная - research_score
-
-    Особенности:
-        - Доступ к функции разрешён только аутентифицированным пользователям (IsAuthenticated).
-        - Используется сессионная аутентификация (SessionAuthentication).
-    """
-    
-    serializer_context = {'request': request, 'is_own_profile': is_own_profile}
-    student_data = StudentProfileSerializer(user.student_profile, context=serializer_context).data
-    
-    student_data["radar_stats"] = {
-        "labels": [
-            "Общественная", 
-            "Учебная", 
-            "Cпорт", 
-            "Творческая", 
-            "Научная"
-        ],
-        "data": [
-            user.student_profile.social_score,
-            user.student_profile.academic_score,
-            user.student_profile.sport_score,
-            user.student_profile.cultural_score,
-            user.student_profile.research_score
-        ]
-    }
-    return student_data
 
 class RegistrationAPIView(APIView):
     """
@@ -85,7 +31,8 @@ class RegistrationAPIView(APIView):
     автоматически выполняет вход и возвращает базовую информацию о пользователе.
     """
 
-    @permission_classes([AllowAny])
+    permission_classes = [AllowAny]
+    authentication_classes = []
     def post(self, request):
         """
         Обрабатывает POST-запрос на регистрацию нового студента.
@@ -126,9 +73,6 @@ class RegistrationAPIView(APIView):
             - Поле full_name берётся из кастомного метода get_full_username() модели пользователя.
             - Если у пользователя есть профиль студента, в ответ включается его record_book.
         """
-    
-    @permission_classes([AllowAny])  
-    def post(self, request):
         serializer = StudentRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
@@ -144,13 +88,15 @@ class RegistrationAPIView(APIView):
                 "user_id": user.id,
                 "record_book": record_book,
                 "isAuthenticated": user.is_authenticated,
+                "isStaff": user.is_staff,
                 "full_name": user.get_full_username(),
             }, status=status.HTTP_201_CREATED)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginAPIView(APIView):
-    @permission_classes([AllowAny])  
+    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]  
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
@@ -169,13 +115,15 @@ class LoginAPIView(APIView):
                 "user_id": user.id,
                 "record_book": record_book,
                 "isAuthenticated": user.is_authenticated,
+                "isStaff": user.is_staff,
                 "full_name": user.get_full_username(),
             }, status=status.HTTP_200_OK)
         else:
             return Response({"detail": "Неверный логин или пароль"}, status=status.HTTP_401_UNAUTHORIZED)
 
 class CheckAuthAPIView(APIView):
-    @permission_classes([AllowAny])  
+    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
     def get(self, request):
         if request.user.is_authenticated:
             record_book = None
@@ -193,265 +141,40 @@ class CheckAuthAPIView(APIView):
         return Response({"isAuthenticated": False}, status=status.HTTP_401_UNAUTHORIZED)
 
 class LogoutAPIView(APIView):
-    @permission_classes([IsAuthenticated])
-    @authentication_classes([SessionAuthentication])  
+    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
     def post(self, request):
         logout(request)
         return Response(status=status.HTTP_200_OK)
 
 class GroupListView(APIView): 
-    @permission_classes([AllowAny])  
+    permission_classes = [AllowAny]
+    authentication_classes = []
     def get(self, request):
         groups = Group.objects.all().values('id', 'name', 'course', 'faculty')
         return Response(list(groups))
 
 class RatingAPIView(APIView):
-    @permission_classes([AllowAny]) 
+    permission_classes = [AllowAny]
+    authentication_classes = []
     def get(self, request):
         students = Student.objects.select_related('group', 'faculty').all()
         serializer = StudentRatingSerializer(students, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-# Всё же надо разделить, а то это ужас какой-то 
-class PublicProfileAPIView(APIView):
-    """
-    API-представление для получения публичного профиля пользователя.
-
-    Возвращает данные о пользователе в зависимости от его роли (студент или преподаватель)
-    и прав текущего залогиненного пользователя. Поддерживает просмотр как своего, так и чужого профиля,
-    с ограничением чувствительной информации (например, достижения со статусом pending) только для владельца или преподавателя.
-    """
-
-    @extend_schema(
-            summary="Получение публичного профиля",
-            description="API-представление для получения публичного профиля пользователя. " \
-            "Возвращает данные о пользователе в зависимости от его роли (студент или преподаватель)" \
-            "    и прав текущего залогиненного пользователя. Поддерживает просмотр как своего, так и чужого профиля," \
-            "    с ограничением чувствительной информации (например, достижения со статусом pending) только для владельца или преподавателя.",
-            responses={200: OpenApiTypes.OBJECT},
-            examples=[
-                OpenApiExample(
-                    "Пример для студента",
-                    value={
-                        "id": 1,
-                        "full_name": "Иванов Иван Иванович",
-                        "is_student": True,
-                        "is_teacher": False,
-                        "is_own_profile": True,
-                        "email": "student1@ya.ru",
-                        "phone": "89621370605",
-                        "user_id": 4,
-                        "record_book": "23-01-5",
-                        "group": "ИВТ-301",
-                        "group_id": "1",
-                        "course": 3,
-                        "faculty": "ИЭИ",
-                        "academic_score": 4,
-                        "research_score": 3,
-                        "sport_score": 4,
-                        "social_score": 4,
-                        "cultural_score": 7,
-                        "total_score": 22,
-                        "documents": [
-                            {
-                                "id": 1,
-                                "category": "academic",
-                                "category_display": "Учебная",
-                                "sub_type": "grades",
-                                "sub_type_display": "Успеваемость",
-                                "level": "none",
-                                "level_display": "Не применимо",
-                                "result": "excellent",
-                                "result_display": "Только \"отлично\"",
-                                "achievement": "Тестовое достижение (Успеваемость)",
-                                "rejection_reason": None,
-                                "score": 2,
-                                "status": "pending",
-                                "doc_type": "diploma",
-                                "doc_type_display": "Диплом",
-                                "file_url": "https://wzmtxnmpqenmirlgdouy.supabase.co/storage/v1/object/public/achievement/23-01-5/d5391730-dec8-461f-90a7-d997d58f9296.pdf",
-                                "original_file_name": "diplom2026.pdf",
-                                "uploaded_at": "2026-02-14T16:34:20.133223Z"
-                            }
-                        ],
-                        "radar_stats": {
-                            "labels": [
-                                "Общественная",
-                                "Учебная",
-                                "Cпорт",
-                                "Творческая",
-                                "Научная"
-                            ],
-                            "data": [
-                                4,
-                                4,
-                                4,
-                                7,
-                                3
-                            ]
-                        }
-                    },
-                    response_only=True,
-                ),
-                OpenApiExample(
-                    "Пример для кафедры",
-                    value={
-                        "id": 2,
-                        "full_name": "Носов Дмитрий Александрович",
-                        "is_student": False,
-                        "is_teacher": True,
-                        "is_own_profile": False,
-                        "faculty": "Инженерно-экономический институт",
-                        "position": "Преподаватель",
-                        "curated_groups": [
-                            {
-                                "id": 1,
-                                "name": "ИВТ-301",
-                                "course": 3
-                            }
-                        ],
-                        "students_list": [
-                            {
-                                "id": 2,
-                                "user_id": 5,
-                                "full_name": "Смирнов Алексей Алексеевич",
-                                "phone": "",
-                                "record_book": "23-01-6",
-                                "group": "ИВТ-301",
-                                "group_id": "1",
-                                "course": 3,
-                                "faculty": "ИЭИ",
-                                "academic_score": 0,
-                                "research_score": 0,
-                                "sport_score": 0,
-                                "social_score": 0,
-                                "cultural_score": 0,
-                                "total_score": 0,
-                                "documents": []
-                            },],
-                        "pending_documents": [],
-                        "stats": {
-                            "total_students": 6,
-                            "avg_score": 3.7
-                        },
-                    },
-                    response_only=True,
-                ),
-            ]
-        )
-
-    @permission_classes([IsAuthenticated])
-    @authentication_classes([SessionAuthentication])  
-    def get(self, request, user_id=None):
-        """
-        Обрабатывает GET-запрос на получение данных профиля.
-
-        Если user_id не указан, возвращается профиль текущего пользователя.
-        Определяет, является ли запрашиваемый профиль своим или чужим, а также роль пользователя.
-        Для студентов возвращает их профиль с баллами и статистикой.
-        Для преподавателей - информацию о курируемых группах, списках студентов, ожидающих документах и общей статистике.
-
-        Параметры:
-            request (Request): Объект HTTP-запроса с данными сессии и аутентификации.
-            user_id (int, optional): ID пользователя, чей профиль запрашивается. По умолчанию - текущий пользователь.
-
-        Возвращает:
-            Response: JSON-ответ с полями:
-                - id, full_name, is_student, is_teacher - общедоступные данные.
-                - is_own_profile - флаг, указывающий, принадлежит ли профиль текущему пользователю.
-                - email, phone - только если это свой профиль или текущий пользователь - преподаватель.
-                - Данные студента (включая radar_stats) - если пользователь является студентом.
-                - Информация о кураторских группах, студентах, документах и статистике - если пользователь - преподаватель.
-
-        Особенности:
-            - Доступ разрешён только аутентифицированным пользователям.
-            - Используется сессионная аутентификация.
-            - Чувствительные данные показываются только владельцу или преподавателю.
-            - Для преподавателя собирается расширенная информация по курируемым группам и их студентам.
-            - Статистика включает общее количество студентов и средний рейтинг.
-        """
-
-        target_user_id = user_id if user_id else request.user.id
-        target_user = get_object_or_404(User, id=target_user_id)
-        
-        is_own_profile = (request.user.id == target_user.id)
-        is_teacher = getattr(request.user, 'is_teacher', False)
-
-        response_data = {
-            "id": target_user.id,
-            "full_name": target_user.get_full_username(),
-            "is_student": target_user.is_student,
-            "is_teacher": target_user.is_teacher,
-            "is_own_profile": is_own_profile,
-        }
-
-        if is_own_profile or is_teacher:
-            response_data["email"] = target_user.email
-            phone = None
-            if hasattr(target_user, 'student_profile'):
-                phone = target_user.student_profile.phone
-            elif hasattr(target_user, 'teacher_profile'):
-                phone = target_user.teacher_profile.phone
-            response_data["phone"] = phone
-
-        if target_user.is_student and hasattr(target_user, 'student_profile'):
-            student_full_data = get_student_profile_data(target_user, request, is_own_profile, is_teacher)
-            response_data.update(student_full_data)
-
-        elif target_user.is_teacher and hasattr(target_user, 'teacher_profile'):
-            teacher = target_user.teacher_profile
-            
-            curated_groups = Group.objects.filter(curator=target_user)
-            curated_groups_data = list(curated_groups.values('id', 'name', 'course'))
-            
-            students_list_data = []
-            pending_docs_data = []
-            stats = {}
-
-            students_queryset = Student.objects.filter(group__in=curated_groups).select_related('group', 'faculty')
-            students_list_data = StudentProfileSerializer(students_queryset, many=True).data
-            
-            total_students = students_queryset.count()
-            avg_score = 0
-            if total_students > 0:
-                total_sum = sum(s.total_score for s in students_queryset)
-                avg_score = round(total_sum / total_students, 1)
-            
-            stats = {"total_students": total_students, "avg_score": avg_score}
-
-            pending_docs = Document.objects.filter(
-                student__in=students_queryset, 
-                status='pending'
-            ).select_related('student', 'student__group')
-            
-            for doc in pending_docs:
-                doc_data = DocumentSerializer(doc).data
-                doc_data['student_id'] = doc.student.id
-                doc_data['student_name'] = doc.student.full_name
-                doc_data['group_id'] = doc.student.group.id
-                doc_data['record_book'] = doc.student.record_book
-                pending_docs_data.append(doc_data)
-
-            response_data.update({
-                "faculty": teacher.faculty.name if teacher.faculty else "Не указан",
-                "position": teacher.position,
-                "curated_groups": curated_groups_data,
-                "students_list": students_list_data, 
-                "pending_documents": pending_docs_data,
-                "stats": stats
-            })
-
-        return Response(response_data)
-
-class ProfileAPIView(PublicProfileAPIView):
+class ProfileAPIView(APIView):
     """
     API-представление для получения профиля текущего пользователя.
 
-    Наследует функциональность из PublicProfileAPIView, но фиксирует user_id
-    как ID текущего аутентифицированного пользователя. Используется для получения
-    полных данных о собственном профиле — студента или преподавателя.
+    Используется для получения полных данных о собственном профиле - студента или сотрудника вуза.
+    
+    В зависимости от роли пользователя возвращает соответствующий набор информации:
+        - Для студента: личные данные, баллы, документы, статистику активности.
+        - Для сотрудника (кафедра, проректор, декан): статистику по подведомственным студентам, 
+        список ожидающих модерации документов и списки студентов с ограниченным объёмом данных.
     """
-
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
     @extend_schema(
             summary="Получение профиля пользователя",
             description="",
@@ -462,185 +185,321 @@ class ProfileAPIView(PublicProfileAPIView):
                     value={
                         "id": 1,
                         "full_name": "Иванов Иван Иванович",
-                        "is_student": True,
-                        "is_teacher": False,
-                        "is_own_profile": True,
                         "email": "student1@ya.ru",
-                        "phone": "89621370605",
-                        "user_id": 4,
+                        "roles": [
+                            "Student"
+                        ],
+                        "is_own_profile": True,
+                        "user_id": 5,
+                        "phone": "+7(999)444-55-66",
                         "record_book": "23-01-5",
                         "group": "ИВТ-301",
                         "group_id": "1",
                         "course": 3,
                         "faculty": "ИЭИ",
-                        "academic_score": 4,
-                        "research_score": 3,
-                        "sport_score": 4,
-                        "social_score": 4,
-                        "cultural_score": 7,
-                        "total_score": 22,
+                        "academic_score": 0,
+                        "research_score": 0,
+                        "sport_score": 0,
+                        "social_score": 0,
+                        "cultural_score": 0,
+                        "total_score": 0,
                         "documents": [
                             {
                                 "id": 1,
                                 "category": "academic",
                                 "category_display": "Учебная",
-                                "sub_type": "grades",
-                                "sub_type_display": "Успеваемость",
-                                "level": "none",
-                                "level_display": "Не применимо",
-                                "result": "excellent",
-                                "result_display": "Только \"отлично\"",
-                                "achievement": "Тестовое достижение (Успеваемость)",
+                                "sub_type": "olympiad",
+                                "sub_type_display": "Олимпиада / Конкурс",
+                                "level": "university",
+                                "level_display": "Вузовский",
+                                "result": "1",
+                                "result_display": "1 место / Победитель",
+                                "achievement": "Победитель олимпиады по математике",
                                 "rejection_reason": None,
-                                "score": 2,
+                                "score": 3,
                                 "status": "pending",
-                                "doc_type": "diploma",
-                                "doc_type_display": "Диплом",
-                                "file_url": "https://wzmtxnmpqenmirlgdouy.supabase.co/storage/v1/object/public/achievement/23-01-5/d5391730-dec8-461f-90a7-d997d58f9296.pdf",
+                                "doc_type": "certificate_of_participation",
+                                "doc_type_display": "Свидетельство об участии",
+                                "file_url": "https://wzmtxnmpqenmirlgdouy.supabase.co/storage/v1/object/public/achievement/23-01-5/4d4a5262-cdf2-472f-9b32-955150f4f179.pdf",
                                 "original_file_name": "diplom2026.pdf",
-                                "uploaded_at": "2026-02-14T16:34:20.133223Z"
-                            }    
+                                "uploaded_at": "2026-02-18T15:37:42.544718Z"
+                            }
                         ],
                         "radar_stats": {
                             "labels": [
-                                "Общественная",
                                 "Учебная",
-                                "Cпорт",
-                                "Творческая",
-                                "Научная"
+                                "Научно-исследовательская",
+                                "Культурно-творческая",
+                                "Спортивная",
+                                "Общественная"
                             ],
                             "data": [
-                                4,
-                                4,
-                                4,
-                                7,
-                                3
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
                             ]
-                        }
+                        },
+                        "type": "student"
                     },
                     response_only=True,
                 ),
                 OpenApiExample(
                     "Пример для кафедры",
                     value={
-                        "id": 2,
+                        "id": 3,
                         "full_name": "Носов Дмитрий Александрович",
-                        "is_student": False,
-                        "is_teacher": True,
-                        "is_own_profile": True,
                         "email": "nosov@ya.ru",
-                        "phone": "",
-                        "faculty": "Инженерно-экономический институт",
-                        "position": "Преподаватель",
-                        "curated_groups": [
-                            {
-                                "id": 1,
-                                "name": "ИВТ-301",
-                                "course": 3
-                            }
+                        "roles": [
+                            "Department"
                         ],
+                        "is_own_profile": True,
+                        "type": "staff",
+                        "faculty": "Инженерно-экономический институт",
+                        "scope": "department",
+                        "department": "Информационные технологии",
+                        "stats": {
+                            "total_students": 11,
+                            "avg_score": 0
+                        },
                         "students_list": [
                             {
                                 "id": 1,
-                                "user_id": 4,
+                                "user_id": 5,
                                 "full_name": "Иванов Иван Иванович",
-                                "phone": "89621370605",
+                                "phone": "+7(999)444-55-66",
                                 "record_book": "23-01-5",
                                 "group": "ИВТ-301",
                                 "group_id": "1",
                                 "course": 3,
                                 "faculty": "ИЭИ",
-                                "academic_score": 4,
-                                "research_score": 3,
-                                "sport_score": 4,
-                                "social_score": 4,
-                                "cultural_score": 7,
-                                "total_score": 22,
+                                "academic_score": 0,
+                                "research_score": 0,
+                                "sport_score": 0,
+                                "social_score": 0,
+                                "cultural_score": 0,
+                                "total_score": 0,
                                 "documents": [
                                     {
                                         "id": 1,
                                         "category": "academic",
                                         "category_display": "Учебная",
-                                        "sub_type": "grades",
-                                        "sub_type_display": "Успеваемость",
-                                        "level": "none",
-                                        "level_display": "Не применимо",
-                                        "result": "excellent",
-                                        "result_display": "Только \"отлично\"",
-                                        "achievement": "Тестовое достижение (Успеваемость)",
+                                        "sub_type": "olympiad",
+                                        "sub_type_display": "Олимпиада / Конкурс",
+                                        "level": "university",
+                                        "level_display": "Вузовский",
+                                        "result": "1",
+                                        "result_display": "1 место / Победитель",
+                                        "achievement": "Победитель олимпиады по математике",
                                         "rejection_reason": None,
-                                        "score": 2,
+                                        "score": 3,
                                         "status": "pending",
-                                        "doc_type": "diploma",
-                                        "doc_type_display": "Диплом",
-                                        "file_url": "https://wzmtxnmpqenmirlgdouy.supabase.co/storage/v1/object/public/achievement/23-01-5/d5391730-dec8-461f-90a7-d997d58f9296.pdf",
+                                        "doc_type": "certificate_of_participation",
+                                        "doc_type_display": "Свидетельство об участии",
+                                        "file_url": "https://wzmtxnmpqenmirlgdouy.supabase.co/storage/v1/object/public/achievement/23-01-5/4d4a5262-cdf2-472f-9b32-955150f4f179.pdf",
                                         "original_file_name": "diplom2026.pdf",
-                                        "uploaded_at": "2026-02-14T16:34:20.133223Z"
+                                        "uploaded_at": "2026-02-18T15:37:42.544718Z"
                                     }
                                 ]
-                            }
-                        ],
-                        "pending_documents": [
-                            {
-                                "id": 1,
-                                "category": "academic",
-                                "category_display": "Учебная",
-                                "sub_type": "grades",
-                                "sub_type_display": "Успеваемость",
-                                "level": "none",
-                                "level_display": "Не применимо",
-                                "result": "excellent",
-                                "result_display": "Только \"отлично\"",
-                                "achievement": "Тестовое достижение (Успеваемость)",
-                                "rejection_reason": None,
-                                "score": 2,
-                                "status": "pending",
-                                "doc_type": "diploma",
-                                "doc_type_display": "Диплом",
-                                "file_url": "https://wzmtxnmpqenmirlgdouy.supabase.co/storage/v1/object/public/achievement/23-01-5/d5391730-dec8-461f-90a7-d997d58f9296.pdf",
-                                "original_file_name": "diplom2026.pdf",
-                                "uploaded_at": "2026-02-14T16:34:20.133223Z",
-                                "student_id": 1,
-                                "student_name": "Иванов Иван Иванович",
-                                "group_id": 1,
-                                "record_book": "23-01-5"
-                            }
-                        ],
-                        "stats": {
-                            "total_students": 6,
-                            "avg_score": 3.7
-                        }
-                    },
+                            }],
+                            "pending_documents": [
+                                {
+                                    "id": 1,
+                                    "category": "academic",
+                                    "category_display": "Учебная",
+                                    "sub_type": "olympiad",
+                                    "sub_type_display": "Олимпиада / Конкурс",
+                                    "level": "university",
+                                    "level_display": "Вузовский",
+                                    "result": "1",
+                                    "result_display": "1 место / Победитель",
+                                    "achievement": "Победитель олимпиады по математике",
+                                    "rejection_reason": None,
+                                    "score": 3,
+                                    "status": "pending",
+                                    "doc_type": "certificate_of_participation",
+                                    "doc_type_display": "Свидетельство об участии",
+                                    "file_url": "https://wzmtxnmpqenmirlgdouy.supabase.co/storage/v1/object/public/achievement/23-01-5/4d4a5262-cdf2-472f-9b32-955150f4f179.pdf",
+                                    "original_file_name": "diplom2026.pdf",
+                                    "uploaded_at": "2026-02-18T15:37:42.544718Z",
+                                    "student_id": 1,
+                                    "student_name": "Иванов Иван Иванович",
+                                    "group_id": 1,
+                                    "record_book": "23-01-5"
+                                }
+                            ],
+                            "managed_groups": [
+                                {
+                                    "id": 1,
+                                    "name": "ИВТ-301",
+                                    "course": 3
+                                },
+                                {
+                                    "id": 2,
+                                    "name": "ПИ-201",
+                                    "course": 2
+                                }
+                            ]
+                        },
                     response_only=True,
                 ),
             ]
         )
     
-    @authentication_classes([SessionAuthentication])
     def get(self, request):
         """
         Обрабатывает GET-запрос на получение профиля текущего пользователя.
 
-        Автоматически подставляет ID текущего пользователя (request.user.id)
-        в качестве целевого user_id и вызывает родительский метод из PublicProfileAPIView.
-        Таким образом, пользователь всегда получает данные о себе.
+        Формирует детализированный ответ в зависимости от роли:
+        - Студент: возвращает свои данные, баллы, документы и radar-статистику.
+        - Сотрудник: возвращает статистику, список студентов и ожидающих документов
+          в рамках своей зоны доступа (вуз, факультет, кафедра).
 
         Параметры:
             request (Request): Объект HTTP-запроса с аутентифицированным пользователем.
 
         Возвращает:
-            Response: Ответ от родительского класса, содержащий полные данные профиля
-                     текущего пользователя, включая личную информацию, академические
-                     и внеучебные показатели, статистику и документы (в зависимости от роли).
+            Response: JSON-ответ с полями, зависящими от типа пользователя:
+                - Общие поля: id, full_name, email, роли, is_own_profile.
+                - Для студента: record_book, group, баллы, documents, radar_stats, type='student'.
+                - Для сотрудника: faculty, scope, department, stats, students_list, pending_documents,
+                  managed_groups, type='staff'.
 
         Особенности:
-            - Доступ разрешён только аутентифицированным пользователям (наследуется из родителя).
-            - Используется сессионная аутентификация.
-            - Поддерживает гибкое формирование ответа: для студентов - баллы и radar-статистика,
-              для преподавателей - данные по курируемым группам и ожидающим модерации документам.
+            - Для сотрудников применяется фильтрация студентов по иерархии: ректорат → деканат → кафедра.
+            - Список студентов ограничен 200 записями для производительности.
+        """
+
+
+        user = request.user
+
+        response_data = {
+            "id": user.id,
+            "full_name": user.get_full_username(),
+            "email": user.email,
+            "roles": list(user.groups.values_list('name', flat=True)),
+            "is_own_profile": True
+        }
+
+        # Студент
+        if user.is_student:
+            student = getattr(user, 'student_profile', None)
+            if student:
+                # Используем твою функцию формирования данных
+                student_data = get_student_full_profile(student, request, is_own_profile=True)
+                response_data.update(student_data)
+                response_data["type"] = "student"
+
+        # Сотрудник (Проректор / Декан / Кафедра)
+        elif hasattr(user, 'staff_profile'):
+            staff = user.staff_profile
+            response_data["type"] = "staff"
+            response_data["faculty"] = staff.faculty.name if staff.faculty else "Не указан"
+            
+            # Определяем зону видимости (scope)
+            students_queryset = Student.objects.all()
+            
+            if user.is_rectorate:
+                response_data["scope"] = "university"
+            elif user.is_dean:
+                response_data["scope"] = "faculty"
+                students_queryset = students_queryset.filter(faculty=staff.faculty)
+            elif user.is_dept_staff:
+                response_data["scope"] = "department"
+                students_queryset = students_queryset.filter(department=staff.department)
+                response_data["department"] = staff.department.name if staff.department else "Не указана"
+            
+            students_list_data = StudentProfileSerializer(students_queryset.select_related('group', 'faculty')[:200], many=True, context={'request': request}).data
+
+            stats_data = students_queryset.aggregate(
+                total_students=Count('id'),
+                avg_score=Avg(
+                    F('academic_score') + F('research_score') + 
+                    F('sport_score') + F('social_score') + F('cultural_score')
+                )
+            )
+            
+            stats = {
+                "total_students": stats_data['total_students'] or 0,
+                "avg_score": round(stats_data['avg_score'] or 0, 2)
+            }
+            
+            # Список документов на проверку
+            pending_docs = Document.objects.filter(
+                student__in=students_queryset,
+                status='pending'
+            ).select_related('student', 'student__group')
+
+            # Формируем список документов с данными студента
+            pending_docs_data = []
+            for doc in pending_docs:
+                doc_data = DocumentSerializer(doc).data
+                doc_data.update({
+                    'student_id': doc.student.id,
+                    'student_name': doc.student.full_name,
+                    'group_id': doc.student.group.id if doc.student.group else "—",
+                    'record_book': doc.student.record_book
+                })
+                pending_docs_data.append(doc_data)
+
+            response_data.update({
+                "stats": stats,
+                "students_list": students_list_data,
+                "pending_documents": pending_docs_data,
+                "managed_groups": list(Group.objects.filter(department=staff.department).values('id', 'name', 'course')) if staff.department else []
+            })
+
+        return Response(response_data)
+
+class PublicProfileAPIView(APIView):
+    """
+    API-представление для просмотра профиля студента.
+
+    Предоставляет доступ к полной информации о студенте. Просмотр чужого профиля
+    разрешён только пользователям с правами персонала (например, из отдела, деканата или ректората).
+    Обычные студенты могут просматривать только свой собственный профиль.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, student_id):
+        """
+        Обрабатывает GET-запрос на получение данных профиля студента по его ID.
+
+        Проверяет, имеет ли текущий пользователь право на просмотр профиля:
+        - Владелец профиля (свой профиль) — всегда может просматривать.
+        - Сотрудники (группы 'Department', 'Dean', 'Rectorate') — имеют расширенный доступ.
+        - Другие студенты — получают отказ.
+
+        Параметры:
+            request (Request): Объект HTTP-запроса с аутентифицированным пользователем.
+            student_id (int): Идентификатор студента, чей профиль запрашивается.
+
+        Возвращает:
+            Response:
+                - 200 OK: Если доступ разрешён. В теле — данные профиля, возвращаемые get_student_full_profile.
+                - 403 Forbidden: Если у пользователя нет прав на просмотр профиля.
+                - 404 Not Found: Если студент с указанным ID не существует.
+
+        Логика:
+            - Определяется, является ли пользователь сотрудником через проверку групп.
+            - Проверяется, принадлежит ли профиль текущему пользователю.
+            - При отсутствии прав возвращается ошибка 403.
+            - При успехе — вызывается функция формирования полного профиля.
 
         Примечание:
-            Метод не содержит собственной логики, а делегирует выполнение родительскому классу,
-            обеспечивая удобную и безопасную точку доступа к личному профилю.
-        """
-        return super().get(request, user_id=request.user.id)
+            - Используется централизованная функция get_student_full_profile для формирования ответа.
+            - Права доступа управляются через группы Django
+        """        
+
+        is_staff = request.user.groups.filter(name__in=['Department', 'Dean', 'Rectorate']).exists()
+        
+        target_student = get_object_or_404(Student, id=student_id)
+        
+        is_own_profile = (request.user.id == target_student.user.id)
+
+        if not is_own_profile and not is_staff:
+            return Response({"detail": "У вас нет прав для просмотра этого профиля."}, status=status.HTTP_403_FORBIDDEN)
+
+        response_data = get_student_full_profile(target_student, request, is_own_profile)
+        return Response(response_data)

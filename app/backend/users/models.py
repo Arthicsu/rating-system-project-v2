@@ -2,10 +2,23 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
-    is_student = models.BooleanField("Студент", default=False)
-    is_teacher = models.BooleanField("Преподаватель", default=False)
-
     patronymic = models.CharField("Отчество", max_length=150, blank=True)
+
+    @property
+    def is_student(self):
+        return self.groups.filter(name='Student').exists()
+
+    @property
+    def is_dean(self):
+        return self.groups.filter(name='Dean').exists()
+
+    @property
+    def is_dept_staff(self):
+        return self.groups.filter(name='Department').exists()
+
+    @property
+    def is_rectorate(self):
+        return self.groups.filter(name='Rectorate').exists()
 
     class Meta:
         verbose_name = "Пользователь"

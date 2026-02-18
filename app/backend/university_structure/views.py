@@ -3,7 +3,6 @@ from drf_spectacular.types import OpenApiTypes
 
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, serializers
@@ -23,6 +22,8 @@ class ReviewDocumentAPIView(APIView):
     подтверждающие достижения. 
     При подтверждении - начисляются баллы в соответствии с категорией.
     """
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]  
     @extend_schema(
             summary="Модерация документа",
             description="Подтверждение или отклонение документа. При подтверждении начисляются баллы.",
@@ -58,9 +59,7 @@ class ReviewDocumentAPIView(APIView):
                     response_only=True,
                 )
             ]
-        )  
-    @authentication_classes([SessionAuthentication])
-    @permission_classes([IsAuthenticated])  
+        )
     def post(self, request, doc_id):
         """
         Обрабатывает POST-запрос на модерацию документа (подтверждение или отклонение).
@@ -104,36 +103,21 @@ class ReviewDocumentAPIView(APIView):
             - Начисление баллов происходит строго по категории документа.
             - Повторное подтверждение уже подтверждённого документа игнорируется.
         """
-       
-        if not getattr(request.user, 'is_teacher', False):
-             return Response({"error": "Только для преподавателей"}, status=status.HTTP_403_FORBIDDEN)
+        
+        if not request.user.groups.filter(name='Department').exists():
+            return Response({"error": "Нет прав модерации"}, status=status.HTTP_403_FORBIDDEN)
 
         doc = get_object_or_404(Document, id=doc_id)
-    
         action = request.data.get('action')
         
         if action == 'approve':
-            if doc.status == 'approved':
-                return Response({"message": "Уже подтверждено"}, status=status.HTTP_200_OK)
-            
             doc.status = 'approved'
             doc.save()
-
+            
             student = doc.student
-            points = doc.score
-            
-            category_map = {
-                'academic': 'academic_score',
-                'research': 'research_score',
-                'sport': 'sport_score',
-                'social': 'social_score',
-                'cultural': 'cultural_score'
-            }
-            
-            field_name = category_map.get(doc.category)
-            if field_name:
-                current_score = getattr(student, field_name)
-                setattr(student, field_name, current_score + points)
+            field_name = f"{doc.category}_score"
+            if hasattr(student, field_name):
+                setattr(student, field_name, getattr(student, field_name) + doc.score)
                 student.save()
             
             return Response({"message": "Документ подтвержден, баллы начислены"}, status=status.HTTP_200_OK)

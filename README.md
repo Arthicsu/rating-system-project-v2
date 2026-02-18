@@ -47,6 +47,21 @@ docker-compose up --build
 ```
 После сборки frontend будет доступен на http://localhost:3000, а API backend на http://localhost:8000.
 
+Для настройки ролей пользователей
+```
+docker compose exec backend python manage.py setup_roles
+```
+
+Для создания миграционных файлов моделей для БД
+```
+docker compose exec backend python manage.py makemigrations 
+```
+
+Для создания суперпользователя
+```
+docker compose exec backend python manage.py createsuperuser
+```
+
 ## Требования:
 >Python 3.12+
 

@@ -22,6 +22,8 @@
     "doc_types": {
       "diploma": "Диплом",
       "certificate": "Сертификат",
+      "certificate_of_participation": "Свидетельство об участии",
+      "letter_of_thanks": "Благодарственное письмо",
       "other": "Другое"
     },
     "statuses": {

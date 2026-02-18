@@ -2,20 +2,24 @@ from django import forms
 from django.contrib import admin, messages
 from django.db import transaction
 from django.contrib.auth.admin import UserAdmin
-from university_structure.models import Faculty, Group, Teacher
-from students.models import Student
-from .models import User
-import json
+from django.contrib.auth.models import Group as DjangoGroup
 from django.urls import path
 from django.shortcuts import render, redirect
+
+from university_structure.models import Faculty, Department, Group, Staff
+from students.models import Student
+from .models import User
+
+import json
+
+
 
 class JsonImportForm(forms.Form):
     json_file = forms.FileField(label="Выберите json-файл")
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'first_name', 'last_name', 'is_teacher', 'is_student', 'is_staff')
-    
+    list_display = ('username', 'first_name', 'last_name', 'is_staff')
     change_list_template = "admin/user_change_list.html"
 
     def get_urls(self):
@@ -48,75 +52,102 @@ class CustomUserAdmin(UserAdmin):
 
     def process_import(self, data):
         with transaction.atomic():
+            # Факультеты
             for fac_data in data.get('faculties', []):
                 Faculty.objects.get_or_create(
                     short_name=fac_data['short_name'],
                     defaults={'name': fac_data['name']}
                 )
-
-            for t_data in data.get('teachers', []):
-                user, created = User.objects.get_or_create(
-                    username=t_data['username'],
+            
+            # Кафедры
+            for dep_data in data.get('departments', []):
+                # Находим факультет для кафедры
+                faculty = Faculty.objects.get(short_name=dep_data['faculty_short_name'])
+                Department.objects.get_or_create(
+                    short_name=dep_data['short_name'],
                     defaults={
-                        "email": t_data.get('email', t_data['username']),
-                        "first_name": t_data['first_name'],
-                        "last_name": t_data['last_name'],
-                        "patronymic": t_data.get('patronymic', ''),
-                        "is_teacher": True
-                    }
-                )
-                if created:
-                    user.set_password(t_data.get('password', 'ZAQ123wsx'))
-                    user.save()
-                
-                faculty = Faculty.objects.get(short_name=t_data['faculty_short_name'])
-                Teacher.objects.get_or_create(
-                    user=user,
-                    defaults={
-                        "faculty": faculty,
-                        "phone": t_data.get('phone', ''),
-                        "position": t_data.get('position', 'Преподаватель')
+                        'name': dep_data['name'],
+                        'faculty': faculty,
                     }
                 )
 
+            # Группы
             for gr_data in data.get('groups', []):
-                curator = User.objects.get(username=gr_data['curator_username'])
-                faculty = Faculty.objects.get(short_name=gr_data['faculty_short_name'])
+                department = Department.objects.get(short_name=gr_data['department_short_name'])
                 Group.objects.get_or_create(
                     name=gr_data['name'],
                     defaults={
-                        "faculty": faculty,
+                        "department": department,
                         "course": gr_data['course'],
-                        "curator": curator
                     }
                 )
 
-            for s_data in data.get('students', []):
+            g_student, _ = DjangoGroup.objects.get_or_create(name='Student')
+            g_dept, _ = DjangoGroup.objects.get_or_create(name='Department')
+            g_dean, _ = DjangoGroup.objects.get_or_create(name='Dean')
+            g_rector, _ = DjangoGroup.objects.get_or_create(name='Rectorate')
+
+            # Сотрудники
+            for staff_data in data.get('staffs', []):
                 user, created = User.objects.get_or_create(
-                    username=s_data['username'],
+                    username=staff_data['username'],
                     defaults={
-                        "email": s_data.get('email', s_data['username']),
-                        "first_name": s_data['first_name'],
-                        "last_name": s_data['last_name'],
-                        "patronymic": s_data.get('patronymic', ''),
-                        "is_student": True
+                        "email": staff_data.get('email', staff_data['username']),
+                        "first_name": staff_data['first_name'],
+                        "last_name": staff_data['last_name'],
+                        "patronymic": staff_data.get('patronymic', ''),
+                        "is_staff": True, 
                     }
                 )
                 if created:
-                    user.set_password(s_data.get('password', 'ZAQ123wsx'))
+                    user.set_password(staff_data.get('password', 'ZAQ123wsx'))
                     user.save()
 
-                group = Group.objects.get(name=s_data['group_name'])
-                faculty = Faculty.objects.get(short_name=s_data['faculty_short_name'])
-                
+                role_input = staff_data.get('role', '')
+                if role_input == 'Декан':
+                    user.groups.add(g_dean)
+                elif role_input == 'Проректор':
+                    user.groups.add(g_rector)
+                else:
+                    user.groups.add(g_dept)
+
+                faculty = Faculty.objects.filter(short_name=staff_data.get('faculty_short_name')).first()
+                department = Department.objects.filter(short_name=staff_data.get('department_short_name')).first()
+                if department and not faculty:
+                    faculty = department.faculty
+
+                Staff.objects.get_or_create(
+                    user=user,
+                    defaults={"faculty": faculty, "department": department}
+                )
+
+            # Студенты
+            for stud_data in data.get('students', []):
+                user, created = User.objects.get_or_create(
+                    username=stud_data['username'],
+                    defaults={
+                        "email": stud_data.get('email', stud_data['username']),
+                        "first_name": stud_data['first_name'],
+                        "last_name": stud_data['last_name'],
+                        "patronymic": stud_data.get('patronymic', ''),
+                    }
+                )
+                if created:
+                    user.set_password(stud_data.get('password', 'ZAQ123wsx'))
+                    user.save()
+
+                user.groups.add(g_student)
+
+                group = Group.objects.get(name=stud_data['group_name'])
                 Student.objects.get_or_create(
                     user=user,
                     defaults={
-                        "full_name": f"{user.last_name} {user.first_name} {user.patronymic}".strip(),
+                        "full_name": user.get_full_username(),
                         "group": group,
-                        "faculty": faculty,
-                        "record_book": s_data['record_book'],
-                        "phone": s_data.get('phone', ''),
+                        "department": group.department,
+                        "faculty": group.department.faculty if group.department else None,
+                        "record_book": stud_data['record_book'],
+                        "phone": stud_data.get('phone', '-'),
                     }
                 )
 
@@ -125,22 +156,35 @@ class FacultyAdmin(admin.ModelAdmin):
     list_display = ('short_name', 'name')
     search_fields = ('short_name', 'name')
 
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ('short_name', 'name', 'faculty')
+    list_filter = ('faculty',)
+
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
-    list_display = ('name', 'faculty', 'course', 'curator')
-    list_filter = ('faculty', 'course')
+    list_display = ('name', 'get_faculty', 'get_department', 'course')
+    list_filter = ('department__faculty', 'course')
     search_fields = ('name',)
+
+    def get_faculty(self, obj):
+        return obj.department.faculty if obj.department else "-"
+    get_faculty.short_description = "Факультет"
+
+    def get_department(self, obj):
+        return obj.department if obj.department else "-"
+    get_department.short_description = "Кафедра"
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('full_name', 'group', 'academic_score', 'total_score')
-    list_filter = ('group__faculty', 'group__course', 'group')
+    list_filter = ('group__department__faculty', 'group__course') 
     search_fields = ('full_name', 'record_book')
     readonly_fields = ('created_at',)
 
-@admin.register(Teacher)
-class TeacherAdmin(admin.ModelAdmin):
-    list_display = ('get_full_name', 'faculty')
+@admin.register(Staff)
+class StaffAdmin(admin.ModelAdmin):
+    list_display = ('get_full_name', 'department', 'faculty')
     list_filter = ('faculty',)
     search_fields = ('user__last_name', 'user__first_name')
 
