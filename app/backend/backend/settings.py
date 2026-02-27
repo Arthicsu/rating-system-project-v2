@@ -182,7 +182,7 @@ SPECTACULAR_SETTINGS = {
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru'
 
 TIME_ZONE = 'UTC'
 
@@ -198,7 +198,7 @@ STATIC_URL = 'static/'
 
 AUTH_USER_MODEL = 'users.User'
 
-SCORING_CONFIG_PATH = os.path.join(BASE_DIR, 'jsons/scoring_json/' ,'scoring_config.json')
+SCORING_CONFIG_PATH = os.path.join(BASE_DIR, 'config-files/scoring_json/' ,'scoring_config.json')
 
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
