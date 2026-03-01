@@ -18,6 +18,9 @@ COPY requirements.txt .
 RUN uv pip install -r requirements.txt --system
 
 COPY . .
+
+RUN chmod +x entrypoint.sh
+
 EXPOSE 8000
 
 
