@@ -24,7 +24,7 @@ export default function Profile() {
 
     if (isLoading) return <div className="p-10 text-center">Загрузка профиля...</div>;
     if (!profile) return <div className="p-10 text-center">Данный профиль не найден.</div>;
-    const isStaff = profile.Type == 'staff';
+    const isStaff = profile.type == "staff";
     const isOwner = profile.is_own_profile;
     return (
       <>
