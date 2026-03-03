@@ -52,14 +52,24 @@ docker-compose up --build
 docker compose exec backend python manage.py setup_roles
 ```
 
-Для создания миграционных файлов моделей для БД
-```
-docker compose exec backend python manage.py makemigrations 
-```
-
 Для создания суперпользователя
 ```
 docker compose exec backend python manage.py createsuperuser
+```
+
+Для локальной разработки фронтенда нужно установить зависимости через pnpm:
+
+Устанавливаем pnpm. В PowerShell:
+```
+Invoke-WebRequest https://get.pnpm.io/install.ps1 -UseBasicParsing | Invoke-Expression
+```
+Переходим в директорию фронта
+```
+cd app/frontend
+```
+И устанавливаем зависимости
+```
+pnpm i
 ```
 
 ## Требования:
@@ -70,7 +80,6 @@ docker compose exec backend python manage.py createsuperuser
 >Docker Engine 29.1+
 
 >PostgreSQL 17
-
 
 ## Документация API
 
