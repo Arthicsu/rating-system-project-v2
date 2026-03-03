@@ -57,7 +57,7 @@ docker compose exec backend python manage.py setup_roles
 docker compose exec backend python manage.py createsuperuser
 ```
 
-Для локальной разработки фронтенда нужно установить зависимости через pnpm:
+Для локальной разработки фронтенда нужно установить зависимости через [pnpm](https://pnpm.io/installation):
 
 Устанавливаем pnpm. В PowerShell:
 ```
