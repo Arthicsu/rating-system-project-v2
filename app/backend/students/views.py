@@ -204,7 +204,7 @@ def upload_achievement(request):
     
         try:
             student = Student.objects.get(record_book__iexact=record_book)
-            bucket_name = "achievement"
+            bucket_name = "achievements"
             # bucket_name = SUPABASE_BUCKET_NAME
             original_file_name = None
             file_url = None
