@@ -19,6 +19,10 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+# Кастомизация админ панели
+admin.site.site_header = "Админ-панель системы рейтинга студентов"  # Заголовок в браузере и шапке
+admin.site.site_title = "Админ-панель"                              # Заголовок в браузере
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', RedirectView.as_view(url='/admin/', permanent=False), name='home_redirect'),
