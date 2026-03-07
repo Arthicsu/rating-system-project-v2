@@ -30,15 +30,23 @@ export default function TeacherProfile({profile, isOwner}) {
   const [rejectReasons, setRejectReasons] = useState([]);
 
   const [modalState, setModalState] = useState({
-    type: null, 
-    targetId: null, 
+    type: null,
+    targetId: null,
     targetScore: 0,
-    targetStudentId: null 
+    targetStudentId: null
   });
 
-  const initialGroupId = (profile.curated_groups && profile.curated_groups.length > 0) ? profile.curated_groups[0].id : 'all';
+  const getInitialGroupId = () => {
+    const managed = profile.managed_groups || [];
+    const curated = profile.curated_groups || [];
+    const groupsSource = managed.length > 0 ? managed : curated;
+    return groupsSource.length > 0 ? groupsSource[0].id : 'all';
+  };
+
+  const initialGroupId = getInitialGroupId();
   const [selectedGroupId, setSelectedGroupId] = useState(initialGroupId);
   const [searchTerm, setSearchTerm] = useState('');
+  const [requestsSearchTerm, setRequestsSearchTerm] = useState('');
   
   const semesterOptions = getSemesterRanges();
   const [selectedSemester, setSelectedSemester] = useState(semesterOptions[0].label);
@@ -83,8 +91,14 @@ export default function TeacherProfile({profile, isOwner}) {
             return docDate >= currentRange.start && docDate <= currentRange.end;
         });
     }
+    if (requestsSearchTerm.trim() != '') {
+      const lowerTerm = requestsSearchTerm.toLowerCase();
+      docs = docs.filter(d =>
+        d.student_name.toLowerCase().includes(lowerTerm)
+      );
+    }
     return docs;
-  }, [localProfile.pending_documents, selectedGroupId, selectedSemester]);
+  }, [localProfile.pending_documents, selectedGroupId, selectedSemester, requestsSearchTerm]);
 
   const dynamicStats = useMemo(() => {
     const students = filteredStudents;
@@ -192,7 +206,9 @@ export default function TeacherProfile({profile, isOwner}) {
   };
 
   const curatedGroups = profile.curated_groups && profile.curated_groups.length > 0 ? profile.curated_groups.map(g => g.name).join(', ') : "Нет курируемых групп";
-  const groupsList = profile.curated_groups || [];
+  const groupsList = (localProfile.managed_groups && localProfile.managed_groups.length > 0)
+    ? localProfile.managed_groups
+    : (profile.curated_groups || []);
   const currentGroupName = groupsList.find(g => g.id == selectedGroupId)?.name || "Все группы";
   // Ну да, хардкод, потом пофиксим
   const reasonsRejectArr = [
@@ -237,14 +253,14 @@ export default function TeacherProfile({profile, isOwner}) {
           </div>
 
           <div className="nav-tabs">
-            <a className={`nav-tab ${activeTab == `my-group` ? `active`:``}`} onClick={() => setActiveTab(`my-group`)}>
+            <a style={{cursor:'pointer'}} className={`nav-tab ${activeTab == `my-group` ? `active`:``}`} onClick={() => setActiveTab(`my-group`)}>
                 Моя группа
             </a>
-            <a className={`nav-tab ${activeTab == `pending-requests` ? `active`:``}`} onClick={() => setActiveTab(`pending-requests`)}>
+            <a style={{cursor:'pointer'}} className={`nav-tab ${activeTab == `pending-requests` ? `active`:``}`} onClick={() => setActiveTab(`pending-requests`)}>
                 Заявки на подтверждение
                 {filteredDocs.length > 0 && <span className="badge-count" style={{marginLeft:'5px', background:'#E11D48', color:'white', borderRadius:'10px', padding:'2px 6px', fontSize:'11px'}}>{filteredDocs.length}</span>}
             </a>
-            <a className={`nav-tab ${activeTab == `statistics` ? `active`:``}`} onClick={() => setActiveTab(`statistics`)}>
+            <a style={{cursor:'pointer'}} className={`nav-tab ${activeTab == `statistics` ? `active`:``}`} onClick={() => setActiveTab(`statistics`)}>
                 Статистика
             </a>
           </div>
@@ -313,6 +329,46 @@ export default function TeacherProfile({profile, isOwner}) {
               <div className="students-section">
                 <div className="students-header-row" style={{marginBottom:'15px'}}>
                   <h2 className="section-title">Заявки: {selectedSemester}</h2>
+                </div>
+                <div className="students-header-row" style={{marginBottom:'15px', gap:'12px', alignItems:'center'}}>
+                  <div className="filter-item">
+                    <label style={{fontSize:'12px', color:'#666', display:'block', marginBottom:'4px'}}>Группа</label>
+                    <select 
+                      className="custom-select"
+                      value={selectedGroupId}
+                      onChange={(e) => setSelectedGroupId(e.target.value)}
+                      style={{padding:'8px', borderRadius:'6px', border:'1px solid #ddd', minWidth:'140px'}}
+                    >
+                      {groupsList.map(g => (
+                        <option key={g.id} value={g.id}>{g.name}</option>
+                      ))}
+                      {groupsList.length == 0 && <option value="all">Нет групп</option>}
+                    </select>
+                  </div>
+                  <div className="filter-item">
+                    <label style={{fontSize:'12px', color:'#666', display:'block', marginBottom:'4px'}}>Период</label>
+                    <select 
+                      className="custom-select"
+                      value={selectedSemester}
+                      onChange={(e) => setSelectedSemester(e.target.value)}
+                      style={{padding:'8px', borderRadius:'6px', border:'1px solid #ddd'}}
+                    >
+                      {semesterOptions.map(opt => (
+                        <option key={opt.label} value={opt.label}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="search-wrapper">
+                    <i className="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input
+                      type="text"
+                      className="search-input"
+                      style={{width: '220px'}}
+                      placeholder="Поиск по ФИО"
+                      value={requestsSearchTerm}
+                      onChange={(e) => setRequestsSearchTerm(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="table-wrapper">
                   <table className="custom-table">
