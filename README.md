@@ -36,7 +36,7 @@
 
 Клонируйте репозиторий:<br>
 ```
-git clone https://github.com/Arthicsu/BGTU-project--tracking-student-performance-for-scholarships.git
+git clone https://github.com/Arthicsu/rating-system-project-v2.git
 ```
 - Настройте переменные окружения из .env.example
 
