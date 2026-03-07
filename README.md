@@ -36,7 +36,7 @@
 
 Клонируйте репозиторий:<br>
 ```
-git clone https://github.com/Arthicsu/BGTU-project--tracking-student-performance-for-scholarships.git
+git clone https://github.com/Arthicsu/rating-system-project-v2.git
 ```
 - Настройте переменные окружения из .env.example
 
@@ -52,14 +52,24 @@ docker-compose up --build
 docker compose exec backend python manage.py setup_roles
 ```
 
-Для создания миграционных файлов моделей для БД
-```
-docker compose exec backend python manage.py makemigrations 
-```
-
 Для создания суперпользователя
 ```
 docker compose exec backend python manage.py createsuperuser
+```
+
+Для локальной разработки фронтенда нужно установить зависимости через [pnpm](https://pnpm.io/installation):
+
+Устанавливаем pnpm. В PowerShell:
+```
+Invoke-WebRequest https://get.pnpm.io/install.ps1 -UseBasicParsing | Invoke-Expression
+```
+Переходим в директорию фронта
+```
+cd app/frontend
+```
+И устанавливаем зависимости
+```
+pnpm i
 ```
 
 ## Требования:
@@ -70,7 +80,6 @@ docker compose exec backend python manage.py createsuperuser
 >Docker Engine 29.1+
 
 >PostgreSQL 17
-
 
 ## Документация API
 
