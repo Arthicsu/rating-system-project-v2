@@ -7,7 +7,7 @@ class Faculty(models.Model):
     short_name = models.CharField("Сокращение", max_length=20, unique=True)
     alias = models.CharField("Псевдоним", max_length=100, blank=True, null=True)
     dean_name = models.CharField("Декан", max_length=255, blank=True, null=True)
-    phone = models.CharField("Телефон", max_length=50, blank=True, null=True)
+    phone = models.CharField("Телефон", max_length=20, blank=True, null=True)
     email = models.EmailField("Email", blank=True, null=True)
     subdivision_type = models.CharField("Институт/Филиал/Подразделение", max_length=255, blank=True, null=True)
 
@@ -76,7 +76,7 @@ class Staff(models.Model):
 
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='staff', null=True, blank=True)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='staff', null=True, blank=True)
-    phone = models.CharField("Телефон", max_length=20)
+    phone = models.CharField("Телефон", max_length=20, null=True, blank=True)
     
     def __str__(self):
         return f"{self.user.get_full_username()}"

@@ -141,7 +141,8 @@ export default function TeacherProfile({profile, isOwner}) {
     if (!modalState.targetId) return;
 
     try {
-      await api.post(`/university_structure/api/v1/document/${modalState.targetId}/review/`, {
+      console.log(modalState.targetId)
+      await api.post(`/university/api/v1/document/${modalState.targetId}/review/`, {
         action: 'approve'
       });
 
@@ -182,7 +183,8 @@ export default function TeacherProfile({profile, isOwner}) {
     }
 
     try {
-      await api.post(`/user/api/v1/document/${modalState.targetId}/review/`, {
+      console.log(modalState.targetId)
+      await api.post(`/university/api/v1/document/${modalState.targetId}/review/`, {
         action: 'reject',
         reasons: rejectReasons
       });
@@ -236,7 +238,7 @@ export default function TeacherProfile({profile, isOwner}) {
               </div>
               <div className="profile-card__col" style={{gap:'10px'}}>
                 {/* <div className="profile-item"><span className="profile-label">Курируемые группы</span><span className="profile-value">{curatedGroups}</span></div> */}
-              <label className="profile-label" style={{fontSize:'12px', color:'#666', display:'block', marginBottom:'4px'}}>Курируемая группа</label>
+              {/* <label className="profile-label" style={{fontSize:'12px', color:'#666', display:'block', marginBottom:'4px'}}>Курируемая группа</label> */}
               <select className="profile-item" 
                   value={selectedGroupId} 
                   onChange={(e) => setSelectedGroupId(e.target.value)}
@@ -309,7 +311,7 @@ export default function TeacherProfile({profile, isOwner}) {
                         <td>{student.record_book || "—"}</td>
                         <td style={{color: '#0050CF', fontWeight: 'bold'}}>{student.total_score}</td>
                         <td>
-                            <a href={`/profile/${student.user_id}`} className="profile-view-link header-link__item" style={{textDecoration: 'none', color: '#333'}}>
+                            <a href={`/profile/${student.id}`} className="profile-view-link header-link__item" style={{textDecoration: 'none', color: '#333'}}>
                               Профиль
                             </a>
                         </td>

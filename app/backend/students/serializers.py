@@ -56,8 +56,18 @@ class DocumentSerializer(serializers.ModelSerializer):
             'status',
             'doc_type', 'doc_type_display', 
             'file_url', 
-            'original_file_name', 'uploaded_at',
+            'original_file_name', 
+            'date_received', 'uploaded_at',
         ]
+
+class PendingDocumentSerializer(DocumentSerializer):
+    student_id = serializers.IntegerField(source='student.id', read_only=True)
+    student_name = serializers.CharField(source='student.user.get_full_username', read_only=True)
+    group_id = serializers.CharField(source='student.group.id', read_only=True, default="—")
+    record_book = serializers.CharField(source='student.record_book', read_only=True)
+
+    class Meta(DocumentSerializer.Meta):
+        fields = DocumentSerializer.Meta.fields + ['student_id', 'student_name', 'group_id', 'record_book']
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     group = serializers.CharField(source='group.name', read_only=True, default="Без группы")

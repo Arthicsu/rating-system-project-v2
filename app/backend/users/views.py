@@ -17,7 +17,8 @@ from students.views import get_student_full_profile
 from university_structure.models import Faculty, Group
 from students.models import Document, Student
 from .serializers import StudentRegistrationSerializer
-from students.serializers import DocumentSerializer, StudentProfileSerializer, StudentRatingSerializer
+from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer
+from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer
 
 User = get_user_model()
 
@@ -116,7 +117,7 @@ class LoginAPIView(APIView):
                 "record_book": record_book,
                 "isAuthenticated": user.is_authenticated,
                 "isStaff": user.is_staff,
-                "full_name": user.get_full_username(),
+                "full_name": user.get_user_display_name(),
             }, status=status.HTTP_200_OK)
         else:
             return Response({"detail": "Неверный логин или пароль"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -386,31 +387,43 @@ class ProfileAPIView(APIView):
         if user.is_student:
             student = getattr(user, 'student_profile', None)
             if student:
-                # Используем твою функцию формирования данных
                 student_data = get_student_full_profile(student, request, is_own_profile=True)
                 response_data.update(student_data)
                 response_data["type"] = "student"
 
-        # Сотрудник (Проректор / Декан / Кафедра)
+        # Сотрудник (Ректорат / Декан / Кафедра)
         elif hasattr(user, 'staff_profile'):
             staff = user.staff_profile
             response_data["type"] = "staff"
+            response_data["department"] = staff.department.name if staff.department else "Не указан"
             response_data["faculty"] = staff.faculty.name if staff.faculty else "Не указан"
             
             # Определяем зону видимости (scope)
             students_queryset = Student.objects.all()
-            
+            managed_groups_queryset = Group.objects.all()
             if user.is_rectorate:
                 response_data["scope"] = "university"
             elif user.is_dean:
                 response_data["scope"] = "faculty"
                 students_queryset = students_queryset.filter(faculty=staff.faculty)
+                managed_groups_queryset = managed_groups_queryset.filter(specialty__faculty=staff.faculty)
             elif user.is_dept_staff:
                 response_data["scope"] = "department"
                 students_queryset = students_queryset.filter(group__specialty__department=staff.department)
+                managed_groups_queryset = managed_groups_queryset.filter(specialty__department=staff.department)
                 response_data["department"] = staff.department.name if staff.department else "Не указана"
             
-            students_list_data = StudentProfileSerializer(students_queryset.select_related('group', 'faculty')[:200], many=True, context={'request': request}).data
+            students_list_data = StudentProfileSerializer(students_queryset.select_related('group', 'faculty'), many=True, context={'request': request}).data
+            group_list_data = GroupSerializer(managed_groups_queryset, many=True, context={'request': request}).data
+
+            # Список документов на проверку (позже в зависимости от роли будет разные списки)
+            pending_docs = Document.objects.filter(
+                student__in=students_queryset,
+                status='pending'
+            ).select_related('student', 'student__group')
+
+            # Формируем список документов с данными студента
+            pending_docs_data = PendingDocumentSerializer(pending_docs, many=True, context={'request': request}).data
 
             stats_data = students_queryset.aggregate(
                 total_students=Count('id'),
@@ -424,30 +437,12 @@ class ProfileAPIView(APIView):
                 "total_students": stats_data['total_students'] or 0,
                 "avg_score": round(stats_data['avg_score'] or 0, 2)
             }
-            
-            # Список документов на проверку
-            pending_docs = Document.objects.filter(
-                student__in=students_queryset,
-                status='pending'
-            ).select_related('student', 'student__group')
-
-            # Формируем список документов с данными студента
-            pending_docs_data = []
-            for doc in pending_docs:
-                doc_data = DocumentSerializer(doc).data
-                doc_data.update({
-                    'student_id': doc.student.id,
-                    'student_name': doc.student.full_name,
-                    'group_id': doc.student.group.id if doc.student.group else "—",
-                    'record_book': doc.student.record_book
-                })
-                pending_docs_data.append(doc_data)
 
             response_data.update({
-                "stats": stats,
+                "managed_groups": group_list_data,
                 "students_list": students_list_data,
                 "pending_documents": pending_docs_data,
-                "managed_groups": list(Group.objects.filter(specialty__department=staff.department).values('id', 'name', 'course')) if staff.department else []
+                "stats": stats,
             })
 
         return Response(response_data)
@@ -492,7 +487,7 @@ class PublicProfileAPIView(APIView):
             - Права доступа управляются через группы Django
         """        
 
-        is_staff = request.user.groups.filter(name__in=['Department', 'Dean', 'Rectorate']).exists()
+        is_staff = hasattr(request.user, 'staff_profile')
         
         target_student = get_object_or_404(Student, id=student_id)
         

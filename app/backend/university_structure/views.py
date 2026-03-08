@@ -103,8 +103,8 @@ class ReviewDocumentAPIView(APIView):
             - Начисление баллов происходит строго по категории документа.
             - Повторное подтверждение уже подтверждённого документа игнорируется.
         """
-        
-        if not request.user.groups.filter(name='Department').exists():
+        is_staff = hasattr(request.user, 'staff_profile')
+        if not is_staff:
             return Response({"error": "Нет прав модерации"}, status=status.HTTP_403_FORBIDDEN)
 
         doc = get_object_or_404(Document, id=doc_id)

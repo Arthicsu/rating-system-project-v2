@@ -188,8 +188,11 @@ export default function StudentRating() {
                     <td>
                       <div className="rank-circle-blue">{student.rank}</div>
                     </td>
-                    <td className="student-name-cell">
+                    {/* <td className="student-name-cell">
                       <a href={`/profile/${student.user_id}`}>{student.name}</a>
+                    </td> */}
+                    <td className="student-name-cell">
+                      {student.name}
                     </td>
                     <td className="student-score-blue">{student.score}</td>
                     <td>{student.faculty}</td>

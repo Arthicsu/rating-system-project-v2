@@ -16,9 +16,13 @@ class JsonImportForm(forms.Form):
 
 @admin.register(Staff)
 class StaffAdmin(admin.ModelAdmin):
-    list_display = ('get_full_name', 'department', 'faculty')
-    list_filter = ('faculty',)
-    search_fields = ('user__last_name', 'user__first_name')
+    list_display = ('get_roles', 'department', 'faculty')
+    list_filter = ('faculty', 'department', 'user__groups')
+    search_fields = ('department__name', 'faculty__name')
+
+    def get_roles(self, obj):
+        return ", ".join([group.name for group in obj.user.groups.all()])
+    get_roles.short_description = 'Роли (Группы)'
 
     change_list_template = "admin/staffadmin_change_list.html"
     def get_urls(self):
@@ -119,8 +123,8 @@ class StaffAdmin(admin.ModelAdmin):
                     username=staff_data['username'],
                     defaults={
                         "email": staff_data.get('email', staff_data['username']),
-                        "first_name": staff_data['first_name'],
-                        "last_name": staff_data['last_name'],
+                        "first_name": staff_data.get('first_name', ''),
+                        "last_name": staff_data.get('last_name', ''),
                         "patronymic": staff_data.get('patronymic', ''),
                         "is_staff": True, 
                     }
@@ -133,7 +137,7 @@ class StaffAdmin(admin.ModelAdmin):
                 role_input = staff_data.get('role', '')
                 if role_input == 'Декан':
                     user.groups.add(g_dean)
-                elif role_input == 'Проректор':
+                elif role_input == 'Ректорат':
                     user.groups.add(g_rector)
                 else:
                     user.groups.add(g_dept)
