@@ -1,27 +1,85 @@
 {
   "faculties": [
-    {"short_name": "ИЭИ", "name": "Инженерно-экономический институт"},
-    {"short_name": "ЭиЭБ", "name": "Экономика и экономическая безопасность"},
-    {"short_name": "СИ", "name": "Строительный институт"},
-    {"short_name": "ИЛКЛАТиЭ", "name": "Институт лесного комплекса, ландшафтной архитектуры, транспорта и экологии"},
-    {"short_name": "ФОПиПК", "name": "Факультет общенаучной подготовки и повышения квалификации"}
+    {
+      "external_id": "fac_iei",
+      "name": "Инженерно-экономический институт",
+      "short_name": "ИЭИ",
+      "alias": "IEI",
+      "dean_name": "Иванов И.А.",
+      "phone": "8 (8636) 23-83-16",
+      "email": "iei@univ.ru",
+      "subdivision_type": "Институт"
+    },
+    {
+      "external_id": "fac_econ",
+      "name": "Экономика и экономическая безопасность",
+      "short_name": "ЭиЭБ",
+      "alias": "ECON",
+      "dean_name": "Петров С.В.",
+      "phone": "8 (8636) 23-83-17",
+      "email": "econ@univ.ru",
+      "subdivision_type": "Факультет"
+    },
+    {
+      "external_id": "fac_build",
+      "name": "Строительный институт",
+      "short_name": "СИ",
+      "alias": "BUILD",
+      "dean_name": "Сидоров К.М.",
+      "phone": "8 (8636) 23-83-18",
+      "email": "si@univ.ru",
+      "subdivision_type": "Институт"
+    },
+    {
+      "external_id": "fac_forest",
+      "name": "Институт лесного комплекса, ландшафтной архитектуры, транспорта и экологии",
+      "short_name": "ИЛКЛАТиЭ",
+      "alias": "FOREST",
+      "dean_name": "Лесов А.Г.",
+      "phone": "8 (8636) 23-83-19",
+      "email": "forest@univ.ru",
+      "subdivision_type": "Институт"
+    },
+    {
+      "external_id": "fac_general",
+      "name": "Факультет общенаучной подготовки и повышения квалификации",
+      "short_name": "ФОПиПК",
+      "alias": "GENERAL",
+      "dean_name": "Умнов Д.Б.",
+      "phone": "8 (8636) 23-83-20",
+      "email": "fop@univ.ru",
+      "subdivision_type": "Факультет"
+    }
   ],
   "departments": [
-    {"short_name": "ГиГ", "name": "Графика и геодезия", "faculty_short_name": "СИ"},
-    {"short_name": "АД", "name": "Автомобильные дороги", "faculty_short_name": "СИ"},
-    {"short_name": "СК", "name": "Строительные конструкции", "faculty_short_name": "СИ"},
-    {"short_name": "ПСК", "name": "Производство строительных конструкций", "faculty_short_name": "СИ"},
-    {"short_name": "СП", "name": "Строительное производство", "faculty_short_name": "СИ"},
-    {"short_name": "ИТ", "name": "Информационные технологии", "faculty_short_name": "ИЭИ"},
-    {"short_name": "Мат", "name": "Математики", "faculty_short_name": "ФОПиПК"},
-    {"short_name": "ПЭиТБ", "name": "Промышленная экология и техносферная безопасность", "faculty_short_name": "ИЭИ"},
-    {"short_name": "ФиС", "name": "Философии, истории и социологии", "faculty_short_name": "ФОПиПК"},
-    {"short_name": "ЛД", "name": "Лесное дело и технологии деревообработки", "faculty_short_name": "ИЛКЛАТиЭ"},
-    {"short_name": "ОТД", "name": "Общетехнических дисциплин и физики", "faculty_short_name": "ФОПиПК"},
-    {"short_name": "РиИЯ", "name": "Русского и иностранного языка", "faculty_short_name": "ФОПиПК"},
-    {"short_name": "ЭиЭБ", "name": "Экономики и экономической безопасности", "faculty_short_name": "ЭиЭБ"},
-    {"short_name": "ФВ", "name": "Физического воспитания", "faculty_short_name": "ФОПиПК"},
-    {"short_name": "ТТМиС", "name": "Транспортно-технологических машин и сервиса", "faculty_short_name": "СИ"}
+    {
+      "external_id": "dep_it",
+      "faculty_id": "fac_iei",
+      "name": "Информационные технологии",
+      "short_name": "ИТ",
+      "head_name": "Носов Д.А."
+    },
+    {
+      "external_id": "dep_math",
+      "faculty_id": "fac_general",
+      "name": "Математики",
+      "short_name": "Мат",
+      "head_name": "Петрова А.А."
+    },
+    {
+      "external_id": "dep_ld",
+      "faculty_id": "fac_forest",
+      "name": "Лесное дело и технологии деревообработки",
+      "short_name": "ЛД",
+      "head_name": "Дубов И.И."
+    },
+    {
+      "external_id": "dep_gig",
+      "faculty_id": "fac_build",
+      "name": "Графика и геодезия",
+      "short_name": "ГиГ",
+      "head_name": "Чертежников В.Г."
+    }
   ],
   "staffs": [
     {
@@ -31,45 +89,100 @@
       "patronymic": "Петрович",
       "password": "ZAQ123wsx",
       "email": "rector@ya.ru",
-      "role": "Проректор",
-      "faculty_short_name": "ИЭИ"
+      "role": "Ректорат",
+      "faculty_id": null,
+      "department_id": null
     },
     {
-      "username": "nosov@ya.ru",
-      "first_name": "Дмитрий",
-      "last_name": "Носов",
-      "patronymic": "Александрович",
+      "username": "kafedra_it@ya.ru",
+      "first_name": "Борис",
+      "last_name": "Нуралиев",
+      "patronymic": "Георгиевич",
       "password": "ZAQ123wsx",
-      "email": "nosov@ya.ru",
+      "email": "kafedra_it@ya.ru",
       "role": "Кафедра",
-      "department_short_name": "ИТ"
+      "faculty_id": "fac_iei",
+      "department_id": "dep_it"
     },
     {
-      "username": "petrova@ya.ru",
+      "username": "kafedra_math@ya.ru",
       "first_name": "Анна",
       "last_name": "Петрова",
       "patronymic": "Александровна",
       "password": "ZAQ123wsx",
-      "email": "petrova@ya.ru",
+      "email": "kafedra_math@ya.ru",
       "role": "Кафедра",
-      "department_short_name": "Мат"
+      "faculty_id": "fac_general",
+      "department_id": "dep_math"
+    },
+    {
+      "username": "dean@ya.ru",
+      "first_name": "Андрей",
+      "last_name": "Декан",
+      "patronymic": "Сергеевич",
+      "password": "ZAQ123wsx",
+      "email": "dean@ya.ru",
+      "role": "Декан",
+      "faculty_id": "fac_iei",
+      "department_id": null
+    }
+  ],
+  "specialties": [
+    {
+      "external_id": "800000111",
+      "code_fgos": "09.03.01",
+      "name": "Информатика и вычислительная техника",
+      "short_name": "ИВТ",
+      "faculty_id": "fac_iei",
+      "department_id": "dep_it",
+      "qualification": "Бакалавр"
+    },
+    {
+      "external_id": "800000113",
+      "code_fgos": "09.03.03",
+      "name": "Прикладная информатика",
+      "short_name": "ПИ",
+      "faculty_id": "fac_iei",
+      "department_id": "dep_it",
+      "qualification": "Бакалавр"
+    },
+    {
+      "external_id": "800000222",
+      "code_fgos": "18.03.02",
+      "name": "Техносферная безопасность",
+      "short_name": "ТБ",
+      "faculty_id": "fac_forest",
+      "department_id": "dep_ld",
+      "qualification": "Магистр"
     }
   ],
   "groups": [
     {
+      "external_id": "800000555",
       "name": "ИВТ-301",
-      "department_short_name": "ИТ",
-      "course": 3
+      "specialty_id": "800000111",
+      "course": 3,
+      "academic_year": "2023-2024",
+      "education_level": "Бакалавриат",
+      "education_form": "Очная"
     },
     {
+      "external_id": "800000557",
       "name": "ПИ-201",
-      "department_short_name": "ИТ",
-      "course": 2
+      "specialty_id": "800000113",
+      "course": 2,
+      "academic_year": "2024-2025",
+      "education_level": "Бакалавриат",
+      "education_form": "Очная"
     },
     {
+      "external_id": "800000606",
       "name": "ТБ-101",
-      "department_short_name": "ЛД",
-      "course": 1
+      "specialty_id": "800000222",
+      "course": 1,
+      "academic_year": "2025-2026",
+      "education_level": "Магистратура",
+      "education_form": "Очная"
     }
   ]
 }

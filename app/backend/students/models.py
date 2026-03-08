@@ -12,6 +12,7 @@ class Student(models.Model):
     Хранит информацию о студенте, включая личные данные, учебную группу, кафедру, факультет,
     номер зачётной книжки, контактную информацию и баллы по различным направлениям активности.
     """
+    external_id = models.CharField("Код студента", max_length=50, unique=True)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         null=True, blank=True,
         related_name='student_profile')
@@ -19,8 +20,12 @@ class Student(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='students', null=True, blank=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='students', null=True, blank=True)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='students', null=True, blank=True)  
+    
     record_book = models.CharField("Зачетка", max_length=30, null=True, blank=True)
-    phone = models.CharField("Телефон", max_length=20)
+    phone = models.CharField("Телефон", max_length=20, null=True)
+    status = models.CharField("Статус", max_length=50, default=1)
+    admission_year = models.PositiveIntegerField("Год поступления", null=True)
+    is_monitor = models.BooleanField("Староста", default=False)
     
     academic_score = models.PositiveIntegerField(default=0)
     research_score = models.PositiveIntegerField(default=0)

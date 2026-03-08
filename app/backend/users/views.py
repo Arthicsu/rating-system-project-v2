@@ -407,7 +407,7 @@ class ProfileAPIView(APIView):
                 students_queryset = students_queryset.filter(faculty=staff.faculty)
             elif user.is_dept_staff:
                 response_data["scope"] = "department"
-                students_queryset = students_queryset.filter(department=staff.department)
+                students_queryset = students_queryset.filter(group__specialty__department=staff.department)
                 response_data["department"] = staff.department.name if staff.department else "Не указана"
             
             students_list_data = StudentProfileSerializer(students_queryset.select_related('group', 'faculty')[:200], many=True, context={'request': request}).data
@@ -447,7 +447,7 @@ class ProfileAPIView(APIView):
                 "stats": stats,
                 "students_list": students_list_data,
                 "pending_documents": pending_docs_data,
-                "managed_groups": list(Group.objects.filter(department=staff.department).values('id', 'name', 'course')) if staff.department else []
+                "managed_groups": list(Group.objects.filter(specialty__department=staff.department).values('id', 'name', 'course')) if staff.department else []
             })
 
         return Response(response_data)

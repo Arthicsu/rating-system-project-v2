@@ -17,8 +17,8 @@ class CsvImportForm(forms.Form):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('full_name', 'group', 'academic_score', 'total_score')
-    list_filter = ('group__department__faculty', 'group__course') 
+    list_display = ('full_name', 'record_book', 'group', 'status', 'total_score')
+    list_filter = ('group__specialty__faculty', 'group__course', 'status')
     search_fields = ('full_name', 'record_book')
     readonly_fields = ('created_at',)
     change_list_template = "admin/student_change_list.html"
@@ -56,7 +56,7 @@ class StudentAdmin(admin.ModelAdmin):
 
             # Студенты
             for row in data:
-                user, created = User.objects.get_or_create(
+                user, created = User.objects.update_or_create(
                     username=row['username'],
                     defaults={
                         "email": row.get('email') or row['username'],
@@ -71,17 +71,24 @@ class StudentAdmin(admin.ModelAdmin):
 
                 user.groups.add(g_student)
                 try:
-                    group = Group.objects.get(name=row['group_name'])
+                    group = Group.objects.get(external_id=row['group_id'])
                 except Group.DoesNotExist:
                     continue
-                Student.objects.get_or_create(
+
+                monitor_raw = str(row.get('is_monitor', '')).lower().strip()
+                is_monitor_bool = monitor_raw == 'true'
+                Student.objects.update_or_create(
+                    external_id=row['student_id'],
                     user=user,
                     defaults={
                         "full_name": user.get_full_username(),
                         "group": group,
-                        "department": group.department,
-                        "faculty": group.department.faculty if group.department else None,
+                        "department": group.specialty.department,
+                        "faculty": group.specialty.faculty,
                         "record_book": row['record_book'],
                         "phone": row.get('phone', '-'),
+                        "status": row.get('status', '6'),
+                        "admission_year": row.get('admission_year', '-'),
+                        "is_monitor": is_monitor_bool,
                     }
                 )

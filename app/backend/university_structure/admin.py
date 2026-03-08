@@ -6,7 +6,7 @@ from django.urls import path
 from django.shortcuts import render, redirect
 
 from users.models import User
-from .models import Faculty, Department, Group, Staff
+from .models import Faculty, Department, Group, Staff, Specialty
 
 import json
 
@@ -48,36 +48,64 @@ class StaffAdmin(admin.ModelAdmin):
             'title': "Импорт структуры из JSON"
         }
         return render(request, "admin/import_form.html", context)
-
+        
     def process_import_structure_json(self, data):
         with transaction.atomic():
             # Факультеты
             for fac_data in data.get('faculties', []):
-                Faculty.objects.get_or_create(
-                    short_name=fac_data['short_name'],
-                    defaults={'name': fac_data['name']}
+                Faculty.objects.update_or_create(
+                    external_id=fac_data['external_id'],
+                    defaults={
+                        'name': fac_data['name'],
+                        'short_name': fac_data['short_name'],
+                        'alias': fac_data['alias'],
+                        'dean_name': fac_data['short_name'],
+                        'phone': fac_data.get('phone', '-'),
+                        'email': fac_data.get('phone', '-'),
+                        'subdivision_type': fac_data.get('subdivision_type', '-')
+                    }
                 )
             
             # Кафедры
             for dep_data in data.get('departments', []):
-                # Находим факультет для кафедры
-                faculty = Faculty.objects.get(short_name=dep_data['faculty_short_name'])
-                Department.objects.get_or_create(
-                    short_name=dep_data['short_name'],
+                Department.objects.update_or_create(
+                    external_id=dep_data['external_id'],
                     defaults={
                         'name': dep_data['name'],
-                        'faculty': faculty,
+                        'short_name': dep_data['short_name'],
+                        'faculty': Faculty.objects.filter(external_id=dep_data['faculty_id']).first(),
+                        'head_name': dep_data.get('head_name', '-'),
+                    }
+                )
+
+            # Специальности
+            for s_data in data.get('specialties', []):
+                Specialty.objects.update_or_create(
+                    external_id=s_data['external_id'],
+                    defaults={
+                        'code_fgos': s_data['code_fgos'], 
+                        'name': s_data['name'],
+                        'faculty': Faculty.objects.filter(external_id=s_data['faculty_id']).first(),
+                        'department': Department.objects.filter(external_id=s_data['department_id']).first(),
+                        'qualification': s_data.get('qualification', '-'),
+                        'specialty_type': s_data.get('specialty_type', '-'),
+                        'prefix': s_data.get('prefix'),
+                        'parent_code': s_data.get('parent_code')
                     }
                 )
 
             # Группы
             for gr_data in data.get('groups', []):
-                department = Department.objects.get(short_name=gr_data['department_short_name'])
-                Group.objects.get_or_create(
-                    name=gr_data['name'],
+                Group.objects.update_or_create(
+                    external_id=gr_data['external_id'],
                     defaults={
-                        "department": department,
+                        "name": gr_data['name'],
+                        "specialty": Specialty.objects.filter(external_id=gr_data.get('specialty_id')).first(),
                         "course": gr_data['course'],
+                        "academic_year": gr_data['academic_year'],
+                        "education_duration": gr_data.get('education_duration'),
+                        "education_level": gr_data['education_level'],
+                        "education_form": gr_data['education_form'],
                     }
                 )
 
@@ -87,7 +115,7 @@ class StaffAdmin(admin.ModelAdmin):
 
             # Сотрудники
             for staff_data in data.get('staffs', []):
-                user, created = User.objects.get_or_create(
+                user, created = User.objects.update_or_create(
                     username=staff_data['username'],
                     defaults={
                         "email": staff_data.get('email', staff_data['username']),
@@ -100,7 +128,8 @@ class StaffAdmin(admin.ModelAdmin):
                 if created:
                     user.set_password(staff_data.get('password', 'ZAQ123wsx'))
                     user.save()
-
+                
+                user.groups.clear()
                 role_input = staff_data.get('role', '')
                 if role_input == 'Декан':
                     user.groups.add(g_dean)
@@ -108,15 +137,19 @@ class StaffAdmin(admin.ModelAdmin):
                     user.groups.add(g_rector)
                 else:
                     user.groups.add(g_dept)
-
-                faculty = Faculty.objects.filter(short_name=staff_data.get('faculty_short_name')).first()
-                department = Department.objects.filter(short_name=staff_data.get('department_short_name')).first()
+                
+                department = Department.objects.filter(external_id=staff_data.get('department_id')).first()
+                faculty = Faculty.objects.filter(external_id=staff_data.get('faculty_id')).first()
                 if department and not faculty:
                     faculty = department.faculty
 
-                Staff.objects.get_or_create(
+                Staff.objects.update_or_create(
                     user=user,
-                    defaults={"faculty": faculty, "department": department}
+                    defaults={
+                        "department": department,
+                        "faculty": faculty,
+                        "phone": staff_data.get('phone', '-'),
+                    }
                 )
 
     def get_full_name(self, obj):
@@ -125,24 +158,34 @@ class StaffAdmin(admin.ModelAdmin):
 
 @admin.register(Faculty)
 class FacultyAdmin(admin.ModelAdmin):
-    list_display = ('short_name', 'name')
+    list_display = ('short_name', 'name', 'alias', 'dean_name', 'phone')
     search_fields = ('short_name', 'name')
+
+@admin.register(Specialty)
+class SpecialtyAdmin(admin.ModelAdmin):
+    list_display = ('code_fgos', 'name', 'faculty', 'department')
+    list_filter = ('faculty', 'department')
+    search_fields = ('code_fgos', 'name')
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ('short_name', 'name', 'faculty')
+    list_display = ('short_name', 'name', 'faculty', 'head_name')
     list_filter = ('faculty',)
 
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
-    list_display = ('name', 'get_faculty', 'get_department', 'course')
-    list_filter = ('department__faculty', 'course')
-    search_fields = ('name',)
+    list_display = ('name', 'get_faculty', 'get_department', 'get_specialty', 'course', 'education_level')
+    list_filter = ('specialty__faculty', 'course', 'education_form')
+    search_fields = ('name', 'specialty__name')
 
     def get_faculty(self, obj):
-        return obj.department.faculty if obj.department else "-"
+        return obj.specialty.faculty if obj.specialty else "-"
     get_faculty.short_description = "Факультет"
 
+    def get_specialty(self, obj):
+        return obj.specialty if obj.specialty else "-"
+    get_specialty.short_description = "Специальность"
+
     def get_department(self, obj):
-        return obj.department if obj.department else "-"
+        return obj.specialty.department if obj.specialty else "-"
     get_department.short_description = "Кафедра"
