@@ -90,7 +90,7 @@ class RegistrationAPIView(APIView):
                 "record_book": record_book,
                 "isAuthenticated": user.is_authenticated,
                 "isStaff": user.is_staff,
-                "full_name": user.get_full_username(),
+                "full_name": user.get_user_display_name(),
             }, status=status.HTTP_201_CREATED)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -136,7 +136,8 @@ class CheckAuthAPIView(APIView):
                 "username": request.user.username,
                 "record_book": record_book,
                 "isAuthenticated": True,
-                "full_name": request.user.get_full_username()
+                "isStaff": request.user.is_staff,
+                "full_name": request.user.get_user_display_name(),
             }, status=status.HTTP_200_OK)
         
         return Response({"isAuthenticated": False}, status=status.HTTP_401_UNAUTHORIZED)
@@ -380,7 +381,8 @@ class ProfileAPIView(APIView):
             "full_name": user.get_full_username(),
             "email": user.email,
             "roles": list(user.groups.values_list('name', flat=True)),
-            "is_own_profile": True
+            "is_own_profile": True,
+            "isStaff": user.is_staff,
         }
 
         # Студент
