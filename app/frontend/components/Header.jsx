@@ -23,17 +23,38 @@ export default function Header() {
             <a href="#">
               <img src="/media/logo_IT.png" alt="IT" className="header-img_it" />
             </a>
-            <div className="header-content__item">
+            <div
+              className="header-content__item"
+              style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
+            >
               {user ? (
                 <>
-                  <Link href={`/profile`} className="header-link__item">
-                    {user.full_name}
+                  <Link
+                    href={`/profile`}
+                    className="header-link__item"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <span>{user.full_name}</span>
+                    <span
+                      className="badge-count"
+                      style={{
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        background: '#E11D48',
+                        display: 'inline-block',
+                      }}
+                    />
                   </Link>
-                  <button onClick={logoutUser} className="header-link__item" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <button
+                    onClick={logoutUser}
+                    className="header-link__item"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
                     Выйти
                   </button>
                 </>
-                ) : (
+              ) : (
                 <Link href="/login" className="header-link__item">
                   Войти
                 </Link>
