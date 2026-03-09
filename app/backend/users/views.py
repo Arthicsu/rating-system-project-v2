@@ -4,7 +4,7 @@ from drf_spectacular.types import OpenApiTypes
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from django.db.models import Avg, F, Count
+from django.db.models import Avg, F, Count, Q
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -21,6 +21,47 @@ from students.serializers import DocumentSerializer, PendingDocumentSerializer, 
 from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer
 
 User = get_user_model()
+
+def get_response_data_for_user(user):
+    """
+    Вспомогательная функция для формирования ответа с данными пользователя
+    при логине, регистрации и проверке авторизации.
+    """
+    record_book = None
+    if hasattr(user, 'student_profile'):
+        record_book = user.student_profile.record_book
+
+    roles = list(user.groups.values_list('name', flat=True))
+    pending_docs_count = 0
+
+    if hasattr(user, 'staff_profile'):
+        staff = user.staff_profile
+        
+        if getattr(user, 'is_rectorate', False):
+            pending_docs_count = Document.objects.filter(status='approved').count()
+            
+        elif getattr(user, 'is_dean', False) and staff.faculty:
+            pending_docs_count = Document.objects.filter(
+                student__faculty=staff.faculty,
+                status='approved'
+            ).count()
+            
+        elif getattr(user, 'is_dept_staff', False) and staff.department:
+            pending_docs_count = Document.objects.filter(
+                student__group__specialty__department=staff.department,
+                status='pending'
+            ).count()
+
+    return {
+        "user_id": user.id,
+        "username": getattr(user, 'username', ''),
+        "record_book": record_book,
+        "isAuthenticated": True,
+        "isStaff": user.is_staff,
+        "full_name": user.get_user_display_name(),
+        "roles": roles,
+        "pending_docs_count": pending_docs_count,
+    }
 
 class RegistrationAPIView(APIView):
     """
@@ -55,11 +96,17 @@ class RegistrationAPIView(APIView):
 
         Пример успешного ответа:
             {
-                "message": "Регистрация успешна",
                 "user_id": 123,
-                "record_book": "123456",
+                "username": "student1@ya.ru",
+                "record_book": 24-01.01,
                 "isAuthenticated": true,
-                "full_name": "Иванов Иван Иванович"
+                "isStaff": true,
+                "full_name": "Мат",
+                "roles": [
+                    "Student"
+                ],
+                "pending_docs_count": 0,
+                "message": "Регистрация успешна"
             }
 
         Пример ошибки:
@@ -80,18 +127,10 @@ class RegistrationAPIView(APIView):
             
             login(request, user)
             
-            record_book = None
-            if hasattr(user, 'student_profile'):
-                record_book = user.student_profile.record_book
+            response_data = get_response_data_for_user(user)
+            response_data["message"] = "Регистрация успешна"
 
-            return Response({
-                "message": "Регистрация успешна",
-                "user_id": user.id,
-                "record_book": record_book,
-                "isAuthenticated": user.is_authenticated,
-                "isStaff": user.is_staff,
-                "full_name": user.get_user_display_name(),
-            }, status=status.HTTP_201_CREATED)
+            return Response(response_data, status=status.HTTP_201_CREATED)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -107,18 +146,10 @@ class LoginAPIView(APIView):
         if user is not None:
             login(request, user)
             
-            record_book = None
-            if hasattr(user, 'student_profile'):
-                record_book = user.student_profile.record_book
+            response_data = get_response_data_for_user(user)
+            response_data["message"] = "Успешный вход"
 
-            return Response({
-                "message": "Успешный вход",
-                "user_id": user.id,
-                "record_book": record_book,
-                "isAuthenticated": user.is_authenticated,
-                "isStaff": user.is_staff,
-                "full_name": user.get_user_display_name(),
-            }, status=status.HTTP_200_OK)
+            return Response(response_data, status=status.HTTP_200_OK)
         else:
             return Response({"detail": "Неверный логин или пароль"}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -127,18 +158,8 @@ class CheckAuthAPIView(APIView):
     authentication_classes = [SessionAuthentication]
     def get(self, request):
         if request.user.is_authenticated:
-            record_book = None
-            if hasattr(request.user, 'student_profile'):
-                record_book = request.user.student_profile.record_book
-            
-            return Response({
-                "user_id": request.user.id,
-                "username": request.user.username,
-                "record_book": record_book,
-                "isAuthenticated": True,
-                "isStaff": request.user.is_staff,
-                "full_name": request.user.get_user_display_name(),
-            }, status=status.HTTP_200_OK)
+            response_data = get_response_data_for_user(request.user)    
+            return Response(response_data, status=status.HTTP_200_OK)
         
         return Response({"isAuthenticated": False}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -403,6 +424,7 @@ class ProfileAPIView(APIView):
             # Определяем зону видимости (scope)
             students_queryset = Student.objects.all()
             managed_groups_queryset = Group.objects.all()
+            doc_status_filter = 'approved'
             if user.is_rectorate:
                 response_data["scope"] = "university"
             elif user.is_dean:
@@ -414,6 +436,7 @@ class ProfileAPIView(APIView):
                 students_queryset = students_queryset.filter(group__specialty__department=staff.department)
                 managed_groups_queryset = managed_groups_queryset.filter(specialty__department=staff.department)
                 response_data["department"] = staff.department.name if staff.department else "Не указана"
+                doc_status_filter = 'pending'
             
             students_list_data = StudentProfileSerializer(students_queryset.select_related('group', 'faculty'), many=True, context={'request': request}).data
             group_list_data = GroupSerializer(managed_groups_queryset, many=True, context={'request': request}).data
@@ -421,7 +444,7 @@ class ProfileAPIView(APIView):
             # Список документов на проверку (позже в зависимости от роли будет разные списки)
             pending_docs = Document.objects.filter(
                 student__in=students_queryset,
-                status='pending'
+                status=doc_status_filter
             ).select_related('student', 'student__group')
 
             # Формируем список документов с данными студента
