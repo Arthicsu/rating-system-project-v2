@@ -75,13 +75,17 @@ export default function Header() {
                       <span
                         className="badge-count"
                         style={{
-                          width: '10px',
-                          height: '10px',
-                          borderRadius: '50%',
+                          marginLeft: '4px',
                           background: '#E11D48',
-                          display: 'inline-block',
+                          color: 'white',
+                          borderRadius: '10px',
+                          padding: '0px 6px',
+                          fontSize: '11px',
+                          textAlign: 'center',
                         }}
-                      />
+                      >
+                        {pendingCount}
+                      </span>
                     )}
                   </Link>
                   <button

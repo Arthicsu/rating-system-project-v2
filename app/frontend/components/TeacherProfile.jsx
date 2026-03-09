@@ -514,7 +514,7 @@ export default function TeacherProfile({profile, isOwner}) {
           <div style={{marginTop: '20px', textAlign: 'center'}}>
               <button className="btn-approve" style={{width: '100%'}} onClick={handleApprove}>Подтвердить</button>
           </div>
-          <div className="modal-logo-wrapper">
+          <div style={{paddingTop: 20 + 'px'}} className="modal-logo-wrapper">
             <img src="/media/logo_BGITU.png" alt="БГИТУ" className="modal-mini-logo" />
           </div>
         </div>
