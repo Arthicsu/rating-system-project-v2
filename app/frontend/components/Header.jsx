@@ -44,7 +44,7 @@ export default function Header() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-20 w-full bg-white shadow-[0_4px_4px_rgba(0,0,0,0.589)]">
-      <div className="mx-auto max-w-7xl px-4 sm:px-5">
+      <div className="mx-auto max-w-350 px-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3 py-2 sm:py-2.5">
           {/* Логотип + хлебные крошки */}
           <div className="flex min-w-0 items-center gap-3 sm:gap-6.5">
