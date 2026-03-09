@@ -45,14 +45,14 @@ export default function Header() {
   return (
     <header className="fixed inset-x-0 top-0 z-20 w-full bg-white shadow-[0_4px_4px_rgba(0,0,0,0.589)]">
       <div className="mx-auto max-w-7xl px-4 sm:px-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 py-2 sm:py-[10px]">
+        <div className="flex flex-wrap items-center justify-between gap-3 py-2 sm:py-2.5">
           {/* Логотип + хлебные крошки */}
-          <div className="flex min-w-0 items-center gap-3 sm:gap-[26px]">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-6.5">
             <Link href="/">
               <img
                 src="/media/logo_BGITU.png"
                 alt="БГИТУ"
-                className="h-10 w-auto sm:h-[60px] sm:w-[70px] object-contain cursor-pointer"
+                className="h-10 w-auto sm:h-15 sm:w-17.5 object-contain cursor-pointer"
               />
             </Link>
             <div className="flex items-center text-xs sm:text-[14px] leading-[1.43] text-[#d3d7e1]">
@@ -62,7 +62,7 @@ export default function Header() {
               >
                 Главная
               </Link>
-              <span className="mx-2 sm:mx-[12px]">/</span>
+              <span className="mx-2 sm:mx-3">/</span>
             </div>
           </div>
 
@@ -84,11 +84,11 @@ export default function Header() {
                 <>
                   <Link
                     href="/profile"
-                    className="inline-flex max-w-[180px] sm:max-w-none items-center gap-[6px] truncate hover:underline"
+                    className="inline-flex max-w-45 sm:max-w-none items-center gap-1.5 truncate hover:underline"
                   >
                     <span className="truncate">{user.full_name}</span>
                     {isStaff && pendingCount > 0 && (
-                      <span className="ml-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-semibold leading-tight text-white">
+                      <span className="ml-1 inline-flex min-w-4.5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-semibold leading-tight text-white">
                         {pendingCount}
                       </span>
                     )}
