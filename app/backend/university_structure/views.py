@@ -8,9 +8,10 @@ from rest_framework.response import Response
 from rest_framework import status, serializers
 
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 
 from university_structure.models import Faculty, Group
-from students.models import Document, Student
+from students.models import Document, Student, DocumentStatus
 
 
 
@@ -60,6 +61,7 @@ class ReviewDocumentAPIView(APIView):
                 )
             ]
         )
+    @transaction.atomic
     def post(self, request, doc_id):
         """
         Обрабатывает POST-запрос на модерацию документа (подтверждение или отклонение).
@@ -107,22 +109,27 @@ class ReviewDocumentAPIView(APIView):
         if not is_staff:
             return Response({"error": "Нет прав модерации"}, status=status.HTTP_403_FORBIDDEN)
 
-        doc = get_object_or_404(Document, id=doc_id)
+        doc = get_object_or_404(Document.objects.select_related('status', 'category', 'student'), id=doc_id)
         action = request.data.get('action')
 
+        status_pending = get_object_or_404(DocumentStatus, code='pending')
+        status_approved = get_object_or_404(DocumentStatus, code='approved')
+        status_rejected = get_object_or_404(DocumentStatus, code='rejected')
+
+        # позже заменим ответ
         if request.user.is_dept_staff:
-            if doc.status != 'pending':
+            if doc.status.code != 'pending':
                 return Response({"error": "Кафедра может обрабатывать только новые заявки (pending)"}, status=status.HTTP_400_BAD_REQUEST)        
             
             if action == 'approve':
-                doc.status = 'approved'
+                doc.status = status_approved
                 doc.verified_by = request.user
                 doc.save()
                 
                 student = doc.student
-                field_name = f"{doc.category}_score"
+                field_name = f"{doc.category.code}_score"
                 if hasattr(student, field_name):
-                    setattr(student, field_name, getattr(student, field_name) + doc.score)
+                    setattr(student, field_name, getattr(student, field_name) + doc.score) 
                     student.save()
                 
                 return Response({"message": "Документ подтвержден кафедрой, баллы начислены"}, status=status.HTTP_200_OK)
@@ -131,7 +138,7 @@ class ReviewDocumentAPIView(APIView):
                 reasons = request.data.get('reasons', [])
                 reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
                 
-                doc.status = 'rejected'
+                doc.status= status_rejected
                 doc.rejection_reason = reason_text
                 doc.verified_by = request.user
                 doc.save()
@@ -141,9 +148,9 @@ class ReviewDocumentAPIView(APIView):
     
         if request.user.is_dean or request.user.is_rectorate:
             if action == 'reject':
-                if doc.status == 'approved':
+                if doc.status.code == 'approved':
                     student = doc.student
-                    field_name = f"{doc.category}_score"
+                    field_name = f"{doc.category.code}_score"
                     if hasattr(student, field_name):
                         new_score = max(0, getattr(student, field_name) - doc.score)
                         setattr(student, field_name, new_score)
@@ -152,7 +159,7 @@ class ReviewDocumentAPIView(APIView):
                 reasons = request.data.get('reasons', [])
                 reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
                 
-                doc.status = 'pending' 
+                doc.status = status_pending 
                 doc.rejection_reason = f"Отклонено {request.user}: {reason_text}"
                 doc.verified_by = request.user
                 doc.save()

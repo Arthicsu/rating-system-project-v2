@@ -36,20 +36,20 @@ def get_response_data_for_user(user):
 
     if hasattr(user, 'staff_profile'):
         staff = user.staff_profile
-        
+
         if getattr(user, 'is_rectorate', False):
-            pending_docs_count = Document.objects.filter(status='approved').count()
+            pending_docs_count = Document.objects.filter(status__code='approved').count()
             
         elif getattr(user, 'is_dean', False) and staff.faculty:
             pending_docs_count = Document.objects.filter(
                 student__faculty=staff.faculty,
-                status='approved'
+                status__code='approved'
             ).count()
             
         elif getattr(user, 'is_dept_staff', False) and staff.department:
             pending_docs_count = Document.objects.filter(
                 student__group__specialty__department=staff.department,
-                status='pending'
+                status__code='pending'
             ).count()
 
     return {
@@ -213,11 +213,12 @@ class ProfileAPIView(APIView):
                             "Student"
                         ],
                         "is_own_profile": True,
-                        "user_id": 5,
+                        "isStaff": False,
+                        "user_id": 6,
                         "phone": "+7(999)444-55-66",
-                        "record_book": "23-01-5",
+                        "record_book": "23-01.01",
                         "group": "ИВТ-301",
-                        "group_id": "1",
+                        "group_id": 1,
                         "course": 3,
                         "faculty": "ИЭИ",
                         "academic_score": 0,
@@ -228,24 +229,26 @@ class ProfileAPIView(APIView):
                         "total_score": 0,
                         "documents": [
                             {
-                                "id": 1,
-                                "category": "academic",
+                                "id": 2,
+                                "category": 1,
                                 "category_display": "Учебная",
-                                "sub_type": "olympiad",
+                                "sub_type": 2,
                                 "sub_type_display": "Олимпиада / Конкурс",
-                                "level": "university",
-                                "level_display": "Вузовский",
-                                "result": "1",
+                                "level": 5,
+                                "level_display": "Областной / Региональный",
+                                "result": 1,
                                 "result_display": "1 место / Победитель",
-                                "achievement": "Победитель олимпиады по математике",
-                                "rejection_reason": None,
-                                "score": 3,
-                                "status": "pending",
-                                "doc_type": "certificate_of_participation",
-                                "doc_type_display": "Свидетельство об участии",
-                                "file_url": "https://wzmtxnmpqenmirlgdouy.supabase.co/storage/v1/object/public/achievement/23-01-5/4d4a5262-cdf2-472f-9b32-955150f4f179.pdf",
-                                "original_file_name": "diplom2026.pdf",
-                                "uploaded_at": "2026-02-18T15:37:42.544718Z"
+                                "achievement": "Йа победил их всееех, дАаададад",
+                                "rejection_reason": "",
+                                "score": 4,
+                                "status": 1,
+                                "status_display": "На рассмотрении",
+                                "doc_type": 1,
+                                "doc_type_display": "Диплом",
+                                "file_url": None,
+                                "original_file_name": "NO_FILENAME",
+                                "date_received": "2026-03-11",
+                                "uploaded_at": "2026-03-11T21:42:33.653046+03:00"
                             }
                         ],
                         "radar_stats": {
@@ -272,29 +275,48 @@ class ProfileAPIView(APIView):
                     "Пример для кафедры",
                     value={
                         "id": 3,
-                        "full_name": "Носов Дмитрий Александрович",
-                        "email": "nosov@ya.ru",
+                        "full_name": "Нуралиев Борис Георгиевич",
+                        "email": "kafedra_it@ya.ru",
                         "roles": [
                             "Department"
                         ],
                         "is_own_profile": True,
+                        "isStaff": True,
                         "type": "staff",
+                        "department": "Информационные технологии",
                         "faculty": "Инженерно-экономический институт",
                         "scope": "department",
-                        "department": "Информационные технологии",
-                        "stats": {
-                            "total_students": 11,
-                            "avg_score": 0
-                        },
+                        "managed_groups": [
+                            {
+                                "id": 1,
+                                "name": "ИВТ-301",
+                                "course": 3,
+                                "academic_year": "2023-2024",
+                                "education_level": "Бакалавриат",
+                                "education_form": "Очная",
+                                "specialty_name": "Информатика и вычислительная техника",
+                                "specialty_code": "09.03.01"
+                            },
+                            {
+                                "id": 2,
+                                "name": "ПИ-201",
+                                "course": 2,
+                                "academic_year": "2024-2025",
+                                "education_level": "Бакалавриат",
+                                "education_form": "Очная",
+                                "specialty_name": "Прикладная информатика",
+                                "specialty_code": "09.03.03"
+                            }
+                        ],
                         "students_list": [
                             {
                                 "id": 1,
-                                "user_id": 5,
+                                "user_id": 6,
                                 "full_name": "Иванов Иван Иванович",
                                 "phone": "+7(999)444-55-66",
-                                "record_book": "23-01-5",
+                                "record_book": "23-01.01",
                                 "group": "ИВТ-301",
-                                "group_id": "1",
+                                "group_id": 1,
                                 "course": 3,
                                 "faculty": "ИЭИ",
                                 "academic_score": 0,
@@ -305,65 +327,81 @@ class ProfileAPIView(APIView):
                                 "total_score": 0,
                                 "documents": [
                                     {
-                                        "id": 1,
-                                        "category": "academic",
+                                        "id": 2,
+                                        "category": 1,
                                         "category_display": "Учебная",
-                                        "sub_type": "olympiad",
+                                        "sub_type": 2,
                                         "sub_type_display": "Олимпиада / Конкурс",
-                                        "level": "university",
-                                        "level_display": "Вузовский",
-                                        "result": "1",
+                                        "level": 5,
+                                        "level_display": "Областной / Региональный",
+                                        "result": 1,
                                         "result_display": "1 место / Победитель",
-                                        "achievement": "Победитель олимпиады по математике",
-                                        "rejection_reason": None,
-                                        "score": 3,
-                                        "status": "pending",
-                                        "doc_type": "certificate_of_participation",
-                                        "doc_type_display": "Свидетельство об участии",
-                                        "file_url": "https://wzmtxnmpqenmirlgdouy.supabase.co/storage/v1/object/public/achievement/23-01-5/4d4a5262-cdf2-472f-9b32-955150f4f179.pdf",
-                                        "original_file_name": "diplom2026.pdf",
-                                        "uploaded_at": "2026-02-18T15:37:42.544718Z"
+                                        "achievement": "Йа победил их всееех, дАаададад",
+                                        "rejection_reason": "",
+                                        "score": 4,
+                                        "status": 1,
+                                        "status_display": "На рассмотрении",
+                                        "doc_type": 1,
+                                        "doc_type_display": "Диплом",
+                                        "file_url": None,
+                                        "original_file_name": "NO_FILENAME",
+                                        "date_received": "2026-03-11",
+                                        "uploaded_at": "2026-03-11T21:42:33.653046+03:00"
                                     }
                                 ]
-                            }],
-                            "pending_documents": [
-                                {
-                                    "id": 1,
-                                    "category": "academic",
-                                    "category_display": "Учебная",
-                                    "sub_type": "olympiad",
-                                    "sub_type_display": "Олимпиада / Конкурс",
-                                    "level": "university",
-                                    "level_display": "Вузовский",
-                                    "result": "1",
-                                    "result_display": "1 место / Победитель",
-                                    "achievement": "Победитель олимпиады по математике",
-                                    "rejection_reason": None,
-                                    "score": 3,
-                                    "status": "pending",
-                                    "doc_type": "certificate_of_participation",
-                                    "doc_type_display": "Свидетельство об участии",
-                                    "file_url": "https://wzmtxnmpqenmirlgdouy.supabase.co/storage/v1/object/public/achievement/23-01-5/4d4a5262-cdf2-472f-9b32-955150f4f179.pdf",
-                                    "original_file_name": "diplom2026.pdf",
-                                    "uploaded_at": "2026-02-18T15:37:42.544718Z",
-                                    "student_id": 1,
-                                    "student_name": "Иванов Иван Иванович",
-                                    "group_id": 1,
-                                    "record_book": "23-01-5"
-                                }
-                            ],
-                            "managed_groups": [
-                                {
-                                    "id": 1,
-                                    "name": "ИВТ-301",
-                                    "course": 3
-                                },
-                                {
-                                    "id": 2,
-                                    "name": "ПИ-201",
-                                    "course": 2
-                                }
-                            ]
+                            },
+                            {
+                                "id": 2,
+                                "user_id": 7,
+                                "full_name": "Смирнов Алексей Алексеевич",
+                                "phone": "+7(999)555-66-77",
+                                "record_book": "23-01.02",
+                                "group": "ИВТ-301",
+                                "group_id": 1,
+                                "course": 3,
+                                "faculty": "ИЭИ",
+                                "academic_score": 0,
+                                "research_score": 0,
+                                "sport_score": 0,
+                                "social_score": 0,
+                                "cultural_score": 0,
+                                "total_score": 0,
+                                "documents": []
+                            },
+                            ...
+                        ],
+                        "pending_documents": [
+                            {
+                                "id": 2,
+                                "category": 1,
+                                "category_display": "Учебная",
+                                "sub_type": 2,
+                                "sub_type_display": "Олимпиада / Конкурс",
+                                "level": 5,
+                                "level_display": "Областной / Региональный",
+                                "result": 1,
+                                "result_display": "1 место / Победитель",
+                                "achievement": "Йа победил их всееех, дАаададад",
+                                "rejection_reason": "",
+                                "score": 4,
+                                "status": 1,
+                                "status_display": "На рассмотрении",
+                                "doc_type": 1,
+                                "doc_type_display": "Диплом",
+                                "file_url": None,
+                                "original_file_name": "NO_FILENAME",
+                                "date_received": "2026-03-11",
+                                "uploaded_at": "2026-03-11T21:42:33.653046+03:00",
+                                "student_id": 1,
+                                "student_name": "Иванов Иван Иванович",
+                                "group_id": 1,
+                                "record_book": "23-01.01"
+                            }
+                        ],
+                        "stats": {
+                            "total_students": 16,
+                            "avg_score": 0
+                        }
                         },
                     response_only=True,
                 ),
@@ -444,7 +482,7 @@ class ProfileAPIView(APIView):
             # Список документов на проверку (позже в зависимости от роли будет разные списки)
             pending_docs = Document.objects.filter(
                 student__in=students_queryset,
-                status=doc_status_filter
+                status__code=doc_status_filter
             ).select_related('student', 'student__group')
 
             # Формируем список документов с данными студента
