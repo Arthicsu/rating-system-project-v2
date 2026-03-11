@@ -101,7 +101,7 @@ export default function StudentRating() {
           {/* Мобильный вариант — выпадающий список */}
           <div className="block sm:hidden">
             <select
-              className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-xs text-[#333] shadow-[0_2px_10px_rgba(0,0,0,0.05)] focus:border-[#0050CF] focus:ring-1 focus:ring-[#0050CF]"
+              className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-xs text-[#333] shadow-[0_2px_10px_rgba(0,0,0,0.05)] focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
               value={activeTab}
               onChange={(e) => setActiveTab(e.target.value)}
             >
@@ -120,7 +120,7 @@ export default function StudentRating() {
                 key={tab.id}
                 className={`border-r border-[#f0f0f0] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1.5 md:py-2 lg:py-3 transition-colors last:border-r-0 ${
                   activeTab === tab.id
-                    ? 'bg-[#0050CF] text-white'
+                    ? 'bg-sky-700 text-white'
                     : 'bg-transparent text-[#333] hover:bg-[#e9ecef]'
                 }`}
                 onClick={() => setActiveTab(tab.id)}
@@ -177,7 +177,7 @@ export default function StudentRating() {
                       setSelectedCourse('all');
                       setSelectedGroup('all');
                     }}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-[#0050CF] focus:ring-1 focus:ring-[#0050CF]"
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
                   >
                     <option value="all">Все</option>
                     {faculties.map((faculty) => (
@@ -200,7 +200,7 @@ export default function StudentRating() {
                       setSelectedGroup('all');
                     }}
                     disabled={availableCourses.length === 0}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-[#0050CF] focus:ring-1 focus:ring-[#0050CF] disabled:cursor-not-allowed disabled:bg-slate-100"
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
                   >
                     <option value="all">Все</option>
                     {availableCourses
@@ -223,7 +223,7 @@ export default function StudentRating() {
                     value={selectedGroup}
                     onChange={(e) => setSelectedGroup(e.target.value)}
                     disabled={availableGroups.length === 0}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-[#0050CF] focus:ring-1 focus:ring-[#0050CF] disabled:cursor-not-allowed disabled:bg-slate-100"
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
                   >
                     <option value="all">Все</option>
                     {availableGroups
@@ -244,7 +244,7 @@ export default function StudentRating() {
             <div className="w-full overflow-x-auto">
               <table className="min-w-full border-collapse">
                 <thead>
-                  <tr className="bg-[#708099] text-white">
+                  <tr className="bg-slate-500 text-white">
                     <th className="w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
                     </th>
                     <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
@@ -269,7 +269,7 @@ export default function StudentRating() {
                             setSelectedGroup('all');
                           }}
                           size="1"
-                          className="w-auto max-[411px]:hidden rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-[#0050CF] focus:ring-1 focus:ring-[#0050CF]"
+                          className="w-auto max-[411px]:hidden rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
                         >
                           <option value="all">Все</option>
                           {faculties.map((faculty) => (
@@ -295,7 +295,7 @@ export default function StudentRating() {
                             setSelectedGroup('all');
                           }}
                           disabled={availableCourses.length === 0}
-                          className=" max-[411px]:hidden w-auto rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-[#0050CF] focus:ring-1 focus:ring-[#0050CF] disabled:cursor-not-allowed disabled:bg-slate-100"
+                          className=" max-[411px]:hidden w-auto rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
                         >
                           <option value="all">Все</option>
                           {availableCourses
@@ -321,7 +321,7 @@ export default function StudentRating() {
                           value={selectedGroup}
                           onChange={(e) => setSelectedGroup(e.target.value)}
                           disabled={availableGroups.length === 0}
-                          className=" max-[411px]:hidden w-auto rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-[#0050CF] focus:ring-1 focus:ring-[#0050CF] disabled:cursor-not-allowed disabled:bg-slate-100"
+                          className=" max-[411px]:hidden w-auto rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
                         >
                           <option value="all">Все</option>
                           {availableGroups
@@ -344,7 +344,7 @@ export default function StudentRating() {
                       className="border-b border-[#f0f0f0] text-xs sm:text-xs md:text-sm last:border-b-0 hover:bg-slate-50"
                     >
                       <td className="p-1 sm:p-2 md:px-4  md:py-3 text-center align-middle">
-                        <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-[#0056cf] text-[11px] md:text-sm font-bold text-white">
+                        <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-[11px] md:text-sm font-bold text-white">
                           {student.rank}
                         </div>
                       </td>
@@ -354,7 +354,7 @@ export default function StudentRating() {
                         </span>
                         <span className="hidden md:inline">{student.name}</span>
                       </td>
-                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm font-bold text-[#0056cf]">
+                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm font-bold text-sky-700">
                         {student.score}
                       </td>
                       <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">
