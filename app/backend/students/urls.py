@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 
-app_name = 'studentProfile'
+app_name = 'students'
 
 urlpatterns = [
     path('api/v1/upload/', views.upload_achievement, name='api_upload_achievement'),

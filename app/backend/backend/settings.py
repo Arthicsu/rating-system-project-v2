@@ -69,7 +69,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
-
+EXTERNAL_SITE_URL = 'http://localhost:3000'
 CORS_ALLOW_CREDENTIALS = True 
 
 CORS_ALLOW_METHODS = (
@@ -184,7 +184,7 @@ SPECTACULAR_SETTINGS = {
 
 LANGUAGE_CODE = 'ru'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
