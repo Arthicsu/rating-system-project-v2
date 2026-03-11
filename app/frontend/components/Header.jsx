@@ -1,46 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import api from '@/lib/axios';
 import { useMySession } from '@/context/AuthContext';
 
 export default function Header() {
   const { logoutUser, user } = useMySession();
-  const [pendingCount, setPendingCount] = useState(0);
-  const [isStaff, setIsStaff] = useState(false);
-
-  useEffect(() => {
-    if (!user || !user.isAuthenticated) {
-      setIsStaff(false);
-      setPendingCount(0);
-      return;
-    }
-
-    let cancelled = false;
-
-    api
-      .get('/user/api/v1/profile/')
-      .then((res) => {
-        if (cancelled) return;
-        const profileType = res.data?.type;
-        const staff = profileType === 'staff';
-        setIsStaff(staff);
-
-        const list = staff ? res.data?.pending_documents : null;
-        setPendingCount(Array.isArray(list) ? list.length : 0);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setIsStaff(false);
-          setPendingCount(0);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
 
   return (
     <header className="fixed inset-x-0 top-0 z-20 w-full bg-white shadow-[0_4px_4px_rgba(0,0,0,0.589)]">
@@ -69,7 +33,7 @@ export default function Header() {
           {/* Правая часть: IT-логотип + пользователь/кнопки */}
           <div className="flex flex-1 items-center justify-end gap-3 sm:gap-6 min-w-0">
             <a
-              href="#"
+              href="https://it.bgitu.ru/"
               className="items-center border-x border-[rgba(211,215,225,0.6)] px-3 sm:px-5 mr-1 sm:mr-3"
             >
               <img
@@ -87,9 +51,9 @@ export default function Header() {
                     className="inline-flex max-w-45 sm:max-w-none items-center gap-1.5 truncate hover:underline"
                   >
                     <span className="truncate">{user.full_name}</span>
-                    {isStaff && pendingCount > 0 && (
+                    {user.isStaff && user.pending_docs_count && (
                       <span className="ml-1 inline-flex min-w-4.5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-semibold leading-tight text-white">
-                        {pendingCount}
+                        {user.pending_docs_count}
                       </span>
                     )}
                   </Link>
