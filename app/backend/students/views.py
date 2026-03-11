@@ -4,10 +4,10 @@ from rest_framework.decorators import api_view
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import authentication_classes, permission_classes
-from students.serializers import DocumentSerializer, StudentProfileSerializer
 
-from students.models import Document, Student
-from .scoring import calculate_achievement_score, get_scoring_structure, get_choices_from_config
+from .serializers import DocumentSerializer, StudentProfileSerializer, CategorySerializer
+from .models import Document, Student, Level, AchievementResult, DocType, Category
+from .scoring import get_cached_metadata, get_scoring_structure, calculate_achievement_score
 
 import json, uuid
 from supabase import create_client, Client
@@ -21,13 +21,13 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 @permission_classes([IsAuthenticated])
 def get_student_radar_data(student):
     """Динамическое формирование данных радара из конфига"""
-    categories = get_choices_from_config('categories')
+    categories = Category.objects.all()
     labels = []
     values = []
     
-    for key, label in categories:
-        labels.append(label)
-        values.append(getattr(student, f"{key}_score", 0))
+    for category in categories:
+        labels.append(category.label)
+        values.append(getattr(student, f"{category.code}_score", 0))
         
     return {"labels": labels, "data": values}
 
@@ -137,11 +137,14 @@ def get_achievement_config(request) -> Response:
         т.к они используются как заглушки в модели, но не предназначены для выбора пользователями.
     """
 
+    levels = [item for item in get_cached_metadata(Level, 'meta_levels') if item['value'] != 'none']
+    results = [item for item in get_cached_metadata(AchievementResult, 'meta_results') if item['value'] != 'none']
+    
     data = {
         "structure": get_scoring_structure(),
-        "levels": [{"value": v, "label": l} for v, l in get_choices_from_config('metadata.levels') if v != 'none'],
-        "results": [{"value": v, "label": l} for v, l in get_choices_from_config('metadata.results') if v != 'none'],
-        "doc_types": [{"value": v, "label": l} for v, l in get_choices_from_config('metadata.doc_types')]
+        "levels": levels,
+        "results": results,
+        "doc_types": get_cached_metadata(DocType, 'meta_doc_types')
     }
     return Response(data)
 
@@ -204,54 +207,62 @@ def upload_achievement(request):
     
         try:
             student = Student.objects.get(record_book__iexact=record_book)
+            category_obj = Category.objects.get(label=category)
+            sub_type_obj = AchievementType.objects.get(label=sub_type)
+            status_obj = DocumentStatus.objects.get(code='pending')
+            doc_type_obj = DocType.objects.get(label=doc_type)
+            
+            level_obj = Level.objects.filter(label=level).first()
+            result_obj = AchievementResult.objects.filter(label=result).first()
+
             bucket_name = "achievements"
             # bucket_name = SUPABASE_BUCKET_NAME
             original_file_name = None
             file_url = None
+        
+            with transaction.atomic():
+                if files:
+                    for file in files:
+                        ext = file.name.split('.')[-1]
+                        unique_name = f"{uuid.uuid4()}.{ext}"
+                        storage_path = f"{student.record_book}/{unique_name}"
 
-            if files:
-                for file in files:
-                    ext = file.name.split('.')[-1]
-                    original_file_name = file.name
-                    unique_name = f"{uuid.uuid4()}.{ext}"
-                    storage_path = f"{student.record_book}/{unique_name}"
+                        try:
+                            file.seek(0)
+                            file_data = file.read()
 
-                    try:
-                        file.seek(0)
-                        file_data = file.read()
+                            supabase.storage.from_(bucket_name).upload(
+                                path=storage_path,
+                                file=file_data,
+                                file_options={
+                                    "cache-control": "3600",
+                                    "upsert": "false",
+                                    "content-type": file.content_type
+                                }
+                            )
 
-                        supabase.storage.from_(bucket_name).upload(
-                            path=storage_path,
-                            file=file_data,
-                            file_options={
-                                "cache-control": "3600",
-                                "upsert": "false",
-                                "content-type": file.content_type
-                            }
-                        )
+                            file_url = supabase.storage.from_(bucket_name).get_public_url(storage_path)
 
-                        file_url = supabase.storage.from_(bucket_name).get_public_url(storage_path)
-
-                        Document.objects.create(
-                            student=student,
-                            category=category,
-                            sub_type=sub_type,
-                            level=level,
-                            result=result,
-                            achievement=achievement_text,
-                            score=score,
-                            doc_type=doc_type,
-                            original_file_name=original_file_name,
-                            file_url=file_url,
-                            status='pending'
-                        )
-                    
-                    except Exception as e:
-                        print(f"Ошибка загрузки файла {file.name}: {e}")
-                        return Response({'error': f'{str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                            Document.objects.create(
+                                student=student,
+                                category=category_obj,
+                                sub_type=sub_type_obj,
+                                level=level_obj,
+                                result=result_obj,
+                                achievement=achievement_text,
+                                score=score,
+                                doc_type=doc_type_obj,
+                                original_file_name=file.name,
+                                file_url=file_url,
+                                status=status_obj
+                            )
+                        
+                        except Exception as e:
+                            print(f"Ошибка загрузки файла {file.name}: {e}")
+                            return Response({'error': f'{str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
         except Student.DoesNotExist:
-            return Response({'error': f'Студент {record_book} не найден'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': f'Студент {record_book} не найден'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': f'{str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
