@@ -109,27 +109,54 @@ class ReviewDocumentAPIView(APIView):
 
         doc = get_object_or_404(Document, id=doc_id)
         action = request.data.get('action')
-        
-        if action == 'approve':
-            doc.status = 'approved'
-            doc.save()
-            
-            student = doc.student
-            field_name = f"{doc.category}_score"
-            if hasattr(student, field_name):
-                setattr(student, field_name, getattr(student, field_name) + doc.score)
-                student.save()
-            
-            return Response({"message": "Документ подтвержден, баллы начислены"}, status=status.HTTP_200_OK)
 
-        elif action == 'reject':
-            reasons = request.data.get('reasons', [])
-            reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
+        if request.user.is_dept_staff:
+            if doc.status != 'pending':
+                return Response({"error": "Кафедра может обрабатывать только новые заявки (pending)"}, status=status.HTTP_400_BAD_REQUEST)        
             
-            doc.status = 'rejected'
-            doc.rejection_reason = reason_text
-            doc.save()
-            
-            return Response({"message": "Документ отклонен"}, status=status.HTTP_200_OK)
+            if action == 'approve':
+                doc.status = 'approved'
+                doc.verified_by = request.user
+                doc.save()
+                
+                student = doc.student
+                field_name = f"{doc.category}_score"
+                if hasattr(student, field_name):
+                    setattr(student, field_name, getattr(student, field_name) + doc.score)
+                    student.save()
+                
+                return Response({"message": "Документ подтвержден кафедрой, баллы начислены"}, status=status.HTTP_200_OK)
 
-        return Response({"error": "Неверное действие"}, status=status.HTTP_400_BAD_REQUEST)
+            elif action == 'reject':
+                reasons = request.data.get('reasons', [])
+                reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
+                
+                doc.status = 'rejected'
+                doc.rejection_reason = reason_text
+                doc.verified_by = request.user
+                doc.save()
+                
+                return Response({"message": "Документ отклонен кафедрой"}, status=status.HTTP_200_OK)
+            return Response({"error": "Неверное действие для кафедры"}, status=status.HTTP_400_BAD_REQUEST)
+    
+        if request.user.is_dean or request.user.is_rectorate:
+            if action == 'reject':
+                if doc.status == 'approved':
+                    student = doc.student
+                    field_name = f"{doc.category}_score"
+                    if hasattr(student, field_name):
+                        new_score = max(0, getattr(student, field_name) - doc.score)
+                        setattr(student, field_name, new_score)
+                        student.save()
+                
+                reasons = request.data.get('reasons', [])
+                reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
+                
+                doc.status = 'pending' 
+                doc.rejection_reason = f"Отклонено {request.user}: {reason_text}"
+                doc.verified_by = request.user
+                doc.save()
+                
+                return Response({"message": "Решение отменено руководством. Заявка возвращена на рассмотрение, баллы вычтены."}, status=status.HTTP_200_OK)
+            return Response({"error": "Руководство может только отклонять заявки"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Неизвестная ошибка"}, status=status.HTTP_400_BAD_REQUEST)

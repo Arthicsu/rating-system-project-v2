@@ -14,4 +14,4 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["pnpm", "dev", "-p", "3000"]
+CMD ["pnpm", "dev", "--webpack", "-p", "3000"]
