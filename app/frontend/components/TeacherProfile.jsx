@@ -40,7 +40,7 @@ export default function TeacherProfile({profile, isOwner}) {
     const managed = profile.managed_groups || [];
     const curated = profile.curated_groups || [];
     const groupsSource = managed.length > 0 ? managed : curated;
-    return groupsSource.length > 0 ? groupsSource[0].id : 'all';
+    return groupsSource.length > 0 ? String(groupsSource[0].id) : 'all';
   };
 
   const initialGroupId = getInitialGroupId();
@@ -211,8 +211,10 @@ export default function TeacherProfile({profile, isOwner}) {
   const groupsList = (localProfile.managed_groups && localProfile.managed_groups.length > 0)
     ? localProfile.managed_groups
     : (profile.curated_groups || []);
-  const currentGroupName = groupsList.find(g => g.id == selectedGroupId)?.name || "Все группы";
-  // Ну да, хардкод, потом пофиксим
+  const currentGroupName =
+    selectedGroupId === 'all'
+      ? 'Все группы'
+      : (groupsList.find(g => String(g.id) === String(selectedGroupId))?.name || 'Все группы');
   const reasonsRejectArr = [
     "Неверно указана категория",
     "Неверно указано достижение / уровень",
@@ -226,30 +228,39 @@ export default function TeacherProfile({profile, isOwner}) {
       <main className="main-layout">
         <div className="container">
           <div className="profile-card">
-            <h1 className="profile-card__title">Информация о Вас</h1>
+            <h1 className="profile-card__title">Фильтры</h1>
             <div className="profile-card__grid">
               <div className="profile-card__col">
-                <div className="profile-item"><span className="profile-label">ФИО</span><span className="profile-value">{profile.full_name}</span></div>
-                <div className="profile-item"><span className="profile-label">Факультет</span><span className="profile-value">{profile.faculty || "Не указан"}</span></div>
-              </div>
-              <div className="profile-card__col">
-                <div className="profile-item"><span className="profile-label">Должность</span><span className="profile-value">{profile.position || "Преподаватель"}</span></div>
-                <div className="profile-item"><span className="profile-label">Электронная почта</span><span className="profile-value link">{profile.email || "Не указан адрес эл.почты"}</span></div>
-              </div>
-              <div className="profile-card__col" style={{gap:'10px'}}>
-                {/* <div className="profile-item"><span className="profile-label">Курируемые группы</span><span className="profile-value">{curatedGroups}</span></div> */}
-              {/* <label className="profile-label" style={{fontSize:'12px', color:'#666', display:'block', marginBottom:'4px'}}>Курируемая группа</label> */}
-              <select className="profile-item" 
-                  value={selectedGroupId} 
+                <label className="profile-label" style={{fontSize:'12px', color:'#666', display:'block', marginBottom:'4px'}}>Группа</label>
+                <select 
+                  className="profile-item"
+                  value={selectedGroupId}
                   onChange={(e) => setSelectedGroupId(e.target.value)}
-                  style={{padding:'2px', borderRadius:'6px', border:'1px solid #ddd', width:'100px'}}
-              >
+                  style={{padding:'6px', borderRadius:'6px', border:'1px solid #ddd', minWidth:'140px'}}
+                >
+                  {groupsList.length > 0 && (
+                    <option className="profile-value" value="all">
+                      Все группы
+                    </option>
+                  )}
                   {groupsList.map(g => (
-                      <option className='profile-value' key={g.id} value={g.id}>{g.name}</option>
+                    <option className="profile-value" key={g.id} value={String(g.id)}>{g.name}</option>
                   ))}
                   {groupsList.length == 0 && <option value="all">Нет групп</option>}
-              </select>
-                <div className="profile-item"><span className="profile-label">Номер телефона</span><span className="profile-value">{profile.phone || "Не указан номер телефона"}</span></div>
+                </select>
+              </div>
+              <div className="profile-card__col">
+                <label className="profile-label" style={{fontSize:'12px', color:'#666', display:'block', marginBottom:'4px'}}>Период</label>
+                <select 
+                  className="profile-item"
+                  value={selectedSemester}
+                  onChange={(e) => setSelectedSemester(e.target.value)}
+                  style={{padding:'6px', borderRadius:'6px', border:'1px solid #ddd', minWidth:'160px'}}
+                >
+                  {semesterOptions.map(opt => (
+                    <option key={opt.label} value={opt.label}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -273,20 +284,9 @@ export default function TeacherProfile({profile, isOwner}) {
           <div className="tab-content active">
             <div className="students-section">
               <div className="students-header-row">
-                <h2 className="section-title">Список студентов группы {currentGroupName} (студентов:{filteredStudents.length})</h2>
-                {/* <label style={{fontSize:'12px', color:'#666', display:'block', marginBottom:'4px'}}>Семестр: </label> */}
-                <div className="filter-item">
-                    <select 
-                        className="custom-select"
-                        value={selectedSemester}
-                        onChange={(e) => setSelectedSemester(e.target.value)}
-                        style={{padding:'8px', borderRadius:'6px', border:'1px solid #ddd'}}
-                    >
-                        {semesterOptions.map(opt => (
-                            <option key={opt.label} value={opt.label}>{opt.label}</option>
-                        ))}
-                    </select>
-                </div>
+                <h2 className="section-title">
+                  Список студентов группы {currentGroupName} (студентов:{filteredStudents.length})
+                </h2>
                 <div className="search-wrapper">
                   <i className="fa-solid fa-magnifying-glass search-icon"></i>
                   <input type="text" className="search-input" style={{width: '200px'}} placeholder="Поиск по ФИО или зачетке" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
@@ -330,36 +330,11 @@ export default function TeacherProfile({profile, isOwner}) {
           <div className="tab-content active">
               <div className="students-section">
                 <div className="students-header-row" style={{marginBottom:'15px'}}>
-                  <h2 className="section-title">Заявки: {selectedSemester}</h2>
+                  <h2 className="section-title">
+                    Заявки: {selectedSemester}, {currentGroupName}
+                  </h2>
                 </div>
                 <div className="students-header-row" style={{marginBottom:'15px', gap:'12px', alignItems:'center'}}>
-                  <div className="filter-item">
-                    <label style={{fontSize:'12px', color:'#666', display:'block', marginBottom:'4px'}}>Группа</label>
-                    <select 
-                      className="custom-select"
-                      value={selectedGroupId}
-                      onChange={(e) => setSelectedGroupId(e.target.value)}
-                      style={{padding:'8px', borderRadius:'6px', border:'1px solid #ddd', minWidth:'140px'}}
-                    >
-                      {groupsList.map(g => (
-                        <option key={g.id} value={g.id}>{g.name}</option>
-                      ))}
-                      {groupsList.length == 0 && <option value="all">Нет групп</option>}
-                    </select>
-                  </div>
-                  <div className="filter-item">
-                    <label style={{fontSize:'12px', color:'#666', display:'block', marginBottom:'4px'}}>Период</label>
-                    <select 
-                      className="custom-select"
-                      value={selectedSemester}
-                      onChange={(e) => setSelectedSemester(e.target.value)}
-                      style={{padding:'8px', borderRadius:'6px', border:'1px solid #ddd'}}
-                    >
-                      {semesterOptions.map(opt => (
-                        <option key={opt.label} value={opt.label}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
                   <div className="search-wrapper">
                     <i className="fa-solid fa-magnifying-glass search-icon"></i>
                     <input
