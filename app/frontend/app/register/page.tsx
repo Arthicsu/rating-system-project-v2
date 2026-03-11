@@ -199,7 +199,7 @@ export default function RegisterPage() {
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-4 rounded-2xl bg-white/80 px-4 py-4 shadow-sm">
-            <p className="text-xs font-medium text-[#0050CF] md:text-sm md:text-right md:self-stretch">
+            <p className="text-xs content-center font-medium text-[#0050CF] md:text-sm md:text-right md:self-stretch">
               BRYANSK STATE <br />
               TECHNOLOGICAL UNIVERSITY <br />
               OF ENGINEERING
@@ -209,7 +209,7 @@ export default function RegisterPage() {
               alt="Logo"
               className="h-16 w-auto object-contain md:h-20"
             />
-            <p className="text-xs font-medium text-[#0050CF] md:text-sm">
+            <p className="text-xs content-center font-medium text-[#0050CF] md:text-sm md:text-left md:self-stretch">
               БРЯНСКИЙ ГОСУДАРСТВЕННЫЙ <br />
               ИНЖЕНЕРНО-ТЕХНОЛОГИЧЕСКИЙ <br />
               УНИВЕРСИТЕТ
