@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect
 
 from university_structure.models import Faculty, Department, Group, Staff
 from users.models import User
-from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus
+from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus, DocumentFile
 import csv, json
 
 class JsonImportForm(forms.Form):
@@ -265,10 +265,16 @@ class ScoringRuleAdmin(admin.ModelAdmin):
     def get_category(self, obj):
         return obj.achievement_type.category.label
 
+class DocumentFileInline(admin.TabularInline):
+    model = DocumentFile
+    extra = 0
+    readonly_fields = ('original_file_name', 'file_url', 'uploaded_at', 'order')
+
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = (
-    'student__record_book', 'student__group__specialty__faculty', 'achievement', 
+    list_display = ('student__record_book', 'student__group__specialty__faculty', 'achievement', 
     'category', 'sub_type', 'level', 'result', 'score', 
-    'status', 'date_received'
-    )
+    'status', 'date_received')
+    list_filter = ('category', 'status', 'doc_type')
+    search_fields = ('student__record_book', 'category')
+    inlines = [DocumentFileInline]

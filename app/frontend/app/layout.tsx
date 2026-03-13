@@ -1,6 +1,6 @@
 // frontend/app/layout.tsx
 import '../styles/normalize.css';
-// import '../styles/style.css';
+import '../styles/style.css';
 import './globals.css';
 import Header from '../components/Header.jsx';
 import { AuthProvider } from '../context/AuthContext';
