@@ -172,7 +172,7 @@ class Document(models.Model):
     ссылку на файл и проходит процесс модерации (на рассмотрении, подтверждён, отклонён).   
     """
 
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='student_documents')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='student_documents', verbose_name="Студент")
     # пока заглушка date_received
     date_received = models.DateField("Дата получения", default=timezone.now) 
     verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_documents', verbose_name='Кем проверено')

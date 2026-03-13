@@ -22,7 +22,7 @@ class Department(models.Model):
     external_id = models.CharField("Код кафедры", max_length=50, unique=True)
     name = models.CharField("Название кафедры", max_length=255, unique=True)
     short_name = models.CharField("Сокращение", max_length=20, unique=True)
-    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='departments', null=True, blank=True)
+    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='departments', null=True, blank=True, verbose_name="Факультет")
     head_name = models.CharField("Зав. кафедрой", max_length=255, blank=True)
 
     def __str__(self) -> str:
@@ -54,7 +54,7 @@ class Specialty(models.Model):
 class Group(models.Model):    
     external_id = models.CharField("Код группы", max_length=50, unique=True)
     name = models.CharField("Название группы", max_length=50)
-    specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE)
+    specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE, verbose_name="Специальность")
     course = models.PositiveSmallIntegerField("Курс")
     academic_year = models.CharField("Учебный год", max_length=20)
     education_duration = models.CharField("Срок обучения", max_length=50, blank=True, null=True)
@@ -74,8 +74,8 @@ class Staff(models.Model):
     """
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='staff_profile')
 
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='staff', null=True, blank=True)
-    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='staff', null=True, blank=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='staff', null=True, blank=True, verbose_name="Кафедра")
+    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='staff', null=True, blank=True, verbose_name="Факультет")
     phone = models.CharField("Телефон", max_length=20, null=True, blank=True)
     
     def __str__(self):
