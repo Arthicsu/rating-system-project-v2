@@ -225,8 +225,10 @@ def upload_achievement(request):
                         ext = file.name.split('.')[-1]
                         unique_name = f"{uuid.uuid4()}.{ext}"
                         storage_path = f"{student.record_book}/{unique_name}"
-
+                        file_size = file.size
                         try:
+                            if file_size > 20 * 1024 * 1024:  # Ограничение на размер файла (20 МБ)
+                                raise ValueError(f'Файл {file.name} слишком большой. Максимальный размер 20 МБ.')
                             file.seek(0)
                             file_data = file.read()
 
@@ -255,7 +257,9 @@ def upload_achievement(request):
                                 file_url=file_url,
                                 status=status_obj
                             )
-                        
+                        except ValueError as ve:
+                            print(f"Ошибка валидации для файла {file.name}: {ve}")
+                            return Response({'error': f'Файл {file.name} слишком большой. Максимальный размер 20 МБ.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                         except Exception as e:
                             print(f"Ошибка загрузки файла {file.name}: {e}")
                             return Response({'error': f'{str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
