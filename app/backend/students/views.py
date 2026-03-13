@@ -4,9 +4,10 @@ from rest_framework.decorators import api_view
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import authentication_classes, permission_classes
+from django.db import transaction
 
 from .serializers import DocumentSerializer, StudentProfileSerializer, CategorySerializer
-from .models import Document, Student, Level, AchievementResult, DocType, Category
+from .models import Document, Student, Level, AchievementResult, DocType, Category, AchievementType, DocumentStatus
 from .scoring import get_cached_metadata, get_scoring_structure, calculate_achievement_score
 
 import json, uuid
@@ -90,8 +91,8 @@ def get_achievement_config(request) -> Response:
     Возвращает:
         Response: json-ответ с полями:
             - structure (dict): Иерархия категорий и подтипов с флагами needsLevel и needsResult.
-            - levels (list): Список доступных уровней (исключая 'none').
-            - results (list): Список доступных результатов (исключая 'none').
+            - levels (list): Список доступных уровней.
+            - results (list): Список доступных результатов.
             - doc_types (list): Полный список типов документов (включая 'Другое').
 
     Пример ответа:
@@ -133,7 +134,6 @@ def get_achievement_config(request) -> Response:
         }
 
     Примечание:
-        Значения 'none' исключаются из списков уровней и результатов,
         т.к они используются как заглушки в модели, но не предназначены для выбора пользователями.
     """
 
@@ -165,9 +165,9 @@ def upload_achievement(request):
     Параметры запроса (в form-data):
         record_book (str): Номер зачётной книжки студента (обязательный).
         category (str): Категория достижения (например, 'academic', 'sport').
-        sub_type (str): Подтип достижения (например, 'olympiad', 'grades'). По умолчанию 'other'.
-        level (str): Уровень мероприятия (например, 'university', 'russian'). По умолчанию 'none'.
-        result (str): Результат участия (например, '1', 'excellent'). По умолчанию 'other'.
+        sub_type (str): Подтип достижения (например, 'olympiad', 'grades').
+        level (str): Уровень мероприятия (например, 'university', 'russian'). По умолчанию None.
+        result (str): Результат участия (например, '1', 'excellent'). По умолчанию None.
         achievement (str): Описание или название достижения.
         doc_type (str): Тип документа (например, 'diploma', 'certificate'). По умолчанию 'other'.
         files (list of files): Один или несколько файлов, подтверждающих достижение.
@@ -196,9 +196,9 @@ def upload_achievement(request):
     if request.method == 'POST':
         record_book = request.POST.get('record_book', '').strip()
         category = request.POST.get('category')
-        sub_type = request.POST.get('sub_type', 'other')
-        level = request.POST.get('level', 'none')
-        result = request.POST.get('result', 'other')
+        sub_type = request.POST.get('sub_type')
+        level = request.POST.get('level', None)
+        result = request.POST.get('result', None)
         achievement_text = request.POST.get('achievement', '')
         files = request.FILES.getlist('files')
         doc_type = request.POST.get('doc_type', 'other')
@@ -207,16 +207,15 @@ def upload_achievement(request):
     
         try:
             student = Student.objects.get(record_book__iexact=record_book)
-            category_obj = Category.objects.get(label=category)
-            sub_type_obj = AchievementType.objects.get(label=sub_type)
+            category_obj = Category.objects.get(code=category)
+            sub_type_obj = AchievementType.objects.get(category=category_obj, code=sub_type)
             status_obj = DocumentStatus.objects.get(code='pending')
-            doc_type_obj = DocType.objects.get(label=doc_type)
+            doc_type_obj = DocType.objects.get(code=doc_type)
             
-            level_obj = Level.objects.filter(label=level).first()
-            result_obj = AchievementResult.objects.filter(label=result).first()
+            level_obj = Level.objects.filter(code=level).first()
+            result_obj = AchievementResult.objects.filter(code=result).first()
 
-            bucket_name = "achievements"
-            # bucket_name = SUPABASE_BUCKET_NAME
+            bucket_name = SUPABASE_BUCKET_NAME
             original_file_name = None
             file_url = None
         
@@ -264,6 +263,8 @@ def upload_achievement(request):
         except Student.DoesNotExist:
             return Response({'error': f'Студент {record_book} не найден'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response({'error': f'{str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response(status=status.HTTP_201_CREATED)

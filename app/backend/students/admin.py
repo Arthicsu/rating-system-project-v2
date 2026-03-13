@@ -94,39 +94,21 @@ class StudentAdmin(admin.ModelAdmin):
                     }
                 )
 
-@admin.register(Document)
-class DocumentAdmin(admin.ModelAdmin):
-    list_display = (
-    'student__record_book', 'student__group__specialty__faculty', 'achievement', 
-    'category', 'sub_type', 'level', 'result', 'score', 
-    'status', 'date_received'
-    )
+@admin.register(Level)
+class LevelAdmin(admin.ModelAdmin):
+    list_display = ('label', 'code')
 
-@admin.register(ScoringRule)
-class ScoringRuleAdmin(admin.ModelAdmin):
-    list_display = ('get_category', 'achievement_type', 'level', 'result', 'score')
-    list_filter = ('achievement_type__category', 'level', 'result')
-    search_fields = ('achievement_type__label', 'achievement_type__code')
+@admin.register(AchievementResult)
+class AchievementResultAdmin(admin.ModelAdmin):
+    list_display = ('label', 'code')
 
-    # Метод для вывода категории (так как она связана через achievement_type)
-    @admin.display(description='Категория', ordering='achievement_type__category')
-    def get_category(self, obj):
-        return obj.achievement_type.category.label
+@admin.register(DocType)
+class DocTypeAdmin(admin.ModelAdmin):
+    list_display = ('label', 'code')
 
 @admin.register(DocumentStatus)
 class DocumentStatusAdmin(admin.ModelAdmin):
     list_display = ('label', 'code')
-
-class ScoringRuleInline(admin.TabularInline):
-    model = ScoringRule
-    extra = 0
-    fields = ('achievement_type', 'level', 'result', 'score')
-
-@admin.register(AchievementType)
-class AchievementTypeAdmin(admin.ModelAdmin):
-    list_display = ('label', 'category', 'code', 'needs_level', 'needs_result')
-    list_filter = ('category',)
-    inlines = [ScoringRuleInline]
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -260,3 +242,33 @@ class CategoryAdmin(admin.ModelAdmin):
                                 result=target_result,
                                 score=logic_val
                             )
+
+class ScoringRuleInline(admin.TabularInline):
+    model = ScoringRule
+    extra = 0
+    fields = ('achievement_type', 'level', 'result', 'score')
+
+@admin.register(AchievementType)
+class AchievementTypeAdmin(admin.ModelAdmin):
+    list_display = ('label', 'category', 'code', 'needs_level', 'needs_result')
+    list_filter = ('category',)
+    inlines = [ScoringRuleInline]
+
+@admin.register(ScoringRule)
+class ScoringRuleAdmin(admin.ModelAdmin):
+    list_display = ('get_category', 'achievement_type', 'level', 'result', 'score')
+    list_filter = ('achievement_type__category', 'level', 'result')
+    search_fields = ('achievement_type__label', 'achievement_type__code')
+
+    # Метод для вывода категории (так как она связана через achievement_type)
+    @admin.display(description='Категория', ordering='achievement_type__category')
+    def get_category(self, obj):
+        return obj.achievement_type.category.label
+
+@admin.register(Document)
+class DocumentAdmin(admin.ModelAdmin):
+    list_display = (
+    'student__record_book', 'student__group__specialty__faculty', 'achievement', 
+    'category', 'sub_type', 'level', 'result', 'score', 
+    'status', 'date_received'
+    )
