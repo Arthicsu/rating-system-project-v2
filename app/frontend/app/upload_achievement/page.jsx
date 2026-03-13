@@ -88,6 +88,10 @@ const handleSubmit = async () => {
     }
 
     try {
+      formData.forEach(element => {
+          console.log(element)
+      });
+
       const response = await api.post('/student/api/v1/upload/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -207,8 +211,10 @@ const handleSubmit = async () => {
               </div>
 
               <div className="achievements-input">
+                <label className="label-login">*Файлы (необязательно)</label>
+                <label className="label-login">Максимальный размер файла: 20 мб</label>
                 <label style={{ cursor: 'pointer' }}>
-                  <input type="file" style={{ display: 'none' }} onChange={(e) => setFile(e.target.files[0])} />
+                  <input type="file" style={{ display: 'none' }} onChange={(e) => setFile(e.target.files[0])} multiple />
                   <div className="achievements-button">
                     {file ? `Файл: ${file.name}` : 'Нажмите сюда, чтобы загрузить документ'}
                   </div>

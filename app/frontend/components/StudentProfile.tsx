@@ -4,7 +4,7 @@ import { Radar } from 'react-chartjs-2';
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 function AchievementItem({ doc } : {doc: any}) {
-  const statusIcon = doc.status == 'rejected' ? 'fa-circle-xmark' : 'fa-file-lines';
+  const statusIcon = doc.status_display == 'rejected' ? 'fa-circle-xmark' : 'fa-file-lines';
 
   return (
     <div className="doc-item">
@@ -15,7 +15,7 @@ function AchievementItem({ doc } : {doc: any}) {
           <span className="doc-meta">
             <i className="fa-regular fa-bookmark"></i><span className="tag" style={{marginLeft: '4px'}}>{doc.category_display}</span>
             <span className="tag-category" style={{marginLeft: '4px'}}>{doc.sub_type_display}</span> &nbsp; 
-            {doc.level != 'none' && <span className="tag-category">{doc.level_display}</span>} &nbsp;
+            {doc.level && <span className="tag-category">{doc.level_display}</span>} &nbsp;
             {doc.result && <span className="tag-category">{doc.result_display}</span>} &nbsp;
           </span>
           
@@ -30,7 +30,7 @@ function AchievementItem({ doc } : {doc: any}) {
         </div>
       </div>
 
-      {doc.status == 'rejected' ? (
+      {doc.status_display == 'rejected' ? (
         <div className="doc-reason">
           <span className="reason-text">Причина: {doc.rejection_reason || 'Не указана'}</span>
         </div>
@@ -72,9 +72,9 @@ export default function StudentProfile({ profile, isOwner }: { profile: any, isO
   };
 
   const documents = profile.documents || [];
-  const approvedDocs = documents.filter((d: any) => d.status == 'approved');
-  const pendingDocs = documents.filter((d: any) => d.status == 'pending');
-  const rejectedDocs = documents.filter((d: any) => d.status == 'rejected');
+  const approvedDocs = documents.filter((d: any) => d.status_display == 'approved');
+  const pendingDocs = documents.filter((d: any) => d.status_display == 'pending');
+  const rejectedDocs = documents.filter((d: any) => d.status_display == 'rejected');
   
     return (
     <>
