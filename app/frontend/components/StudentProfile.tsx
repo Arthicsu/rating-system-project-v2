@@ -24,7 +24,7 @@ function AchievementItem({ doc } : {doc: any}) {
             <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700">
               {doc.sub_type_display}
             </span>
-            {doc.level != 'none' && (
+            {doc.level && (
               <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700">
                 {doc.level_display}
               </span>
@@ -36,21 +36,24 @@ function AchievementItem({ doc } : {doc: any}) {
             )}
           </div>
 
-          {doc.file_url && (
+          {doc.files && doc.files.length > 0 && (
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
               <span className="inline-flex items-center gap-1">
                 <i className="fa-regular fa-calendar" />
                 {new Date(doc.uploaded_at).toLocaleDateString()}
               </span>
-              <a
-                href={doc.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900"
-              >
-                <i className="fa-solid fa-paperclip" />
-                {doc.original_file_name || 'Просмотреть файл'}
-              </a>
+              {doc.files.map((file: any, index: number) => (
+                <a
+                  key={file.id}
+                  href={file.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900"
+                >
+                  <i className="fa-solid fa-paperclip" />
+                  {file.original_file_name || `Файл ${index + 1}`}
+                </a>
+              ))}
             </div>
           )}
         </div>
