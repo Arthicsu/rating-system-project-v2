@@ -1,96 +1,123 @@
-from django import forms
-from django.contrib import admin, messages
+from django.contrib import admin
 from django.db import transaction
 from django.contrib.auth.models import Group as DjangoGroup
-from django.urls import path
-from django.shortcuts import render, redirect
 
+from core.admin_password_generator import generate_password
+from core.admin_import_csv import CsvImport
+from core.admin_import_json import JsonImport
 from university_structure.models import Faculty, Department, Group, Staff
 from users.models import User
+<<<<<<< Updated upstream
 from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus
 import csv, json
+=======
+from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus, DocumentFile
+>>>>>>> Stashed changes
 
-class JsonImportForm(forms.Form):
-    json_file = forms.FileField(label="Файл конфигурации достижений (JSON)")
-
-class CsvImportForm(forms.Form):
-    csv_file = forms.FileField(label="Список студентов (CSV)")
 
 @admin.register(Student)
-class StudentAdmin(admin.ModelAdmin):
+class StudentAdmin(admin.ModelAdmin, CsvImport):
     list_display = ('full_name', 'record_book', 'group', 'status', 'total_score')
     list_filter = ('group__specialty__faculty', 'group__course', 'status')
-    search_fields = ('full_name', 'record_book')
+    search_fields = ('full_name', 'record_book', 'email')
     readonly_fields = ('created_at',)
     change_list_template = "admin/student_change_list.html"
 
     def get_urls(self):
         urls = super().get_urls()
-        custom_urls = [
-            path('import-students/', self.admin_site.admin_view(self.import_csv), name='import-students-csv'),
-        ]
-        return custom_urls + urls
+        return self.get_import_urls() + urls
 
-    def import_csv(self, request):
-        if request.method == "POST":
-            form = CsvImportForm(request.POST, request.FILES)
-            if form.is_valid():
-                csv_file = request.FILES['csv_file'].read().decode('utf-8').splitlines()
-                try:
-                    data = csv.DictReader(csv_file)
-                    self.process_import_students_csv(data)
-                    self.message_user(request, "Студенты добавлены", messages.SUCCESS)
-                except Exception as e:
-                    self.message_user(request, f"Ошибка: {e}", messages.ERROR)
-                return redirect("..")
-        
-        context = {
-            **self.admin_site.each_context(request),
-            'form': CsvImportForm(),
-            'title': "Импорт студентов"
-        }
-        return render(request, "admin/import_form.html", context)
-
-    def process_import_students_csv(self, data):
+    def process_import_csv(self, data):
         with transaction.atomic():
             g_student, _ = DjangoGroup.objects.get_or_create(name='Student')
 
-            # Студенты
+            # --- 1. ПРЕДЗАГРУЗКА ДАННЫХ В ПАМЯТЬ (Убиваем лишние SELECT) ---
+            # select_related тянет сразу и специальность, и кафедру за 1 запрос
+            groups_map = {
+                g.external_id: g 
+                for g in Group.objects.select_related('specialty__department').all()
+            }
+            faculties_map = {
+                f.external_id: f 
+                for f in Faculty.objects.all()
+            }
+
             for row in data:
-                user, created = User.objects.update_or_create(
-                    username=row['username'],
-                    defaults={
-                        "email": row.get('email') or row['username'],
-                        "first_name": row['first_name'],
-                        "last_name": row['last_name'],
-                        "patronymic": row.get('patronymic', ''),
-                    }
-                )
-                if created:
-                    user.set_password(row.get('password', 'ZAQ123wsx'))
+                def clean_val(key):
+                    val = str(row.get(key, '')).strip()
+                    return '' if val.upper() == 'NULL' else val
+
+                status_raw = clean_val('Статус')
+                if status_raw not in ['1', '-1']:
+                    continue
+                
+                status = int(status_raw)
+
+                external_id = clean_val('Код')
+                record_book = clean_val('Номер_Зачетной_Книжки')
+                email = clean_val('E_Mail')
+                last_name = clean_val('Фамилия')
+                first_name = clean_val('Имя')
+                patronymic = clean_val('Отчество')
+                status_decoding = clean_val('Расшифровка_Статуса')
+
+                # --- 2. ДОСТАЕМ СВЯЗИ ИЗ ОПЕРАТИВНОЙ ПАМЯТИ ---
+                group_code = clean_val('Код_Группы')
+                group = groups_map.get(group_code)
+                
+                faculty_code = clean_val('КодФакультета')
+                faculty = faculties_map.get(faculty_code)
+                
+                # Кафедра подтянется без запроса к БД, так как мы использовали select_related выше
+                department = group.specialty.department if group and hasattr(group, 'specialty') else None
+
+                is_monitor = clean_val('Староста') == '1'
+                admission_year_raw = clean_val('Год_Поступления')
+                admission_year = int(admission_year_raw) if admission_year_raw.isdigit() else None
+                # if admission_year not in [2023,2024]:
+                #     continue
+                student = Student.objects.filter(external_id=external_id).first()
+
+                if student:
+                    # Если студент есть, работаем с его существующим юзером
+                    user = student.user
+                    # Обновляем данные юзера
+                    user.first_name = first_name
+                    user.last_name = last_name
+                    user.patronymic = patronymic
                     user.save()
+                else:
+                    # Если студента нет, создаем/обновляем юзера по username
+                    username = email if email else f"student_{external_id}"
+                    user, created = User.objects.update_or_create(
+                        username=username,
+                        defaults={
+                            "email": email,
+                            "first_name": first_name,
+                            "last_name": last_name,
+                            "patronymic": patronymic,
+                        }
+                    )
+                    if created:
+                        user.set_password(generate_password())
+                        user.save()
 
                 user.groups.add(g_student)
-                try:
-                    group = Group.objects.get(external_id=row['group_id'])
-                except Group.DoesNotExist:
-                    continue
 
-                monitor_raw = str(row.get('is_monitor', '')).lower().strip()
-                is_monitor_bool = monitor_raw == 'true'
+                # 2. Теперь сохраняем студента через update_or_create
                 Student.objects.update_or_create(
-                    external_id=row['student_id'],
-                    user=user,
+                    external_id=external_id,
                     defaults={
+                        "user": user,
                         "full_name": user.get_full_username(),
                         "group": group,
-                        "department": group.specialty.department,
-                        "faculty": group.specialty.faculty,
-                        "record_book": row['record_book'],
-                        "phone": row.get('phone', '-'),
-                        "status": row.get('status', '6'),
-                        "admission_year": row.get('admission_year', '-'),
-                        "is_monitor": is_monitor_bool,
+                        "department": department,
+                        "faculty": faculty,
+                        "record_book": record_book,
+                        "status": str(status),
+                        "status_decoding": status_decoding,
+                        "admission_year": admission_year,
+                        "is_monitor": is_monitor,
                     }
                 )
 
@@ -111,39 +138,15 @@ class DocumentStatusAdmin(admin.ModelAdmin):
     list_display = ('label', 'code')
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(admin.ModelAdmin, JsonImport):
     list_display = ('code', 'label')
 
     change_list_template = "admin/achievement_change_list.html"
+    
     def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path('import-achievement-config/', self.admin_site.admin_view(self.import_json), name='import-achievement-config'),
-        ]
-        return custom_urls + urls
-
-        
-    def import_json(self, request):
-        if request.method == "POST":
-            form = JsonImportForm(request.POST, request.FILES)
-            if form.is_valid():
-                json_file = request.FILES['json_file']
-                try:
-                    data = json.load(json_file)
-                    self.process_import_achievement_json(data)
-                    self.message_user(request, "Конфигурация достижений успешно обновлена", messages.SUCCESS)
-                except Exception as e:
-                    self.message_user(request, f"Ошибка JSON: {e}", messages.ERROR)
-                return redirect("..")
-        form = JsonImportForm()
-        context = {
-            **self.admin_site.each_context(request),
-            'form': form,
-            'title': "Импорт конфигурации достижений из JSON"
-        }
-        return render(request, "admin/import_form.html", context)
-        
-    def process_import_achievement_json(self, data):
+        return self.get_import_urls() + super().get_urls()
+ 
+    def process_import_json(self, data):
         metadata = data.get('metadata', {})
         known_levels_data = metadata.get('levels', {})
         known_results_data = metadata.get('results', {})

@@ -1,0 +1,25 @@
+import secrets
+import string
+
+
+def generate_password(length: int = 10, nb_digits: int = 3) -> str:
+    """Generate a random password following best practices.
+
+    By default, the password will satisfy the following criteria:
+    - At least 10 characters long,
+    - At least one lowercase letter,
+    - At least one uppercase letter,
+    - At least three digits.
+
+    https://docs.python.org/3/library/secrets.html#recipes-and-best-practices
+    """
+    char_set = string.ascii_letters + string.digits
+    while True:
+        password = "".join(secrets.choice(char_set) for i in range(length))
+        if (
+            any(c.islower() for c in password)
+            and any(c.isupper() for c in password)
+            and sum(c.isdigit() for c in password) >= nb_digits
+        ):
+            break
+    return password

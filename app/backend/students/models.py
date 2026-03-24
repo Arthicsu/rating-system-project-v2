@@ -12,18 +12,19 @@ class Student(models.Model):
     Хранит информацию о студенте, включая личные данные, учебную группу, кафедру, факультет,
     номер зачётной книжки, контактную информацию и баллы по различным направлениям активности.
     """
-    external_id = models.CharField("Код студента", max_length=50, unique=True)
+    external_id = models.CharField("Код студента", max_length=50, unique=True, help_text="Код студента из БД вуза")
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         null=True, blank=True,
         related_name='student_profile')
-    full_name = models.CharField("ФИО", max_length=150)
+    full_name = models.CharField("ФИО", max_length=255, help_text="Полное ФИО студента")
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='students', null=True, blank=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='students', null=True, blank=True)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='students', null=True, blank=True)  
     
-    record_book = models.CharField("Зачетка", max_length=30, null=True, blank=True)
-    phone = models.CharField("Телефон", max_length=20, null=True)
-    status = models.CharField("Статус", max_length=50, default=1)
+    record_book = models.CharField("Зачетка", max_length=50, null=True, blank=True)
+    email = models.EmailField("Email", blank=True, null=True)
+    status = models.CharField("Статус", max_length=5, default=1, help_text="Код статуса")
+    status_decoding = models.CharField("Расшифровка Статуса", max_length=255, default=1, help_text="Расшифровка кода статуса")
     admission_year = models.PositiveIntegerField("Год поступления", null=True)
     is_monitor = models.BooleanField("Староста", default=False)
     
@@ -173,7 +174,6 @@ class Document(models.Model):
     """
 
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='student_documents', verbose_name="Студент")
-    # пока заглушка date_received
     date_received = models.DateField("Дата получения", default=timezone.now) 
     verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_documents', verbose_name='Кем проверено')
     uploaded_at = models.DateTimeField(auto_now_add=True)

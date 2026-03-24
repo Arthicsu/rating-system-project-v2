@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 
 class Faculty(models.Model):
-    external_id = models.CharField("Код факультета", max_length=50, unique=True)
+    external_id = models.CharField("Код факультета", max_length=50, unique=True, help_text="Код факультета из БД вуза")
     name = models.CharField("Название факультета", max_length=255, unique=True)
     short_name = models.CharField("Сокращение", max_length=20, unique=True)
     alias = models.CharField("Псевдоним", max_length=100, blank=True, null=True)
@@ -19,10 +19,11 @@ class Faculty(models.Model):
         verbose_name_plural = "Факультеты"
 
 class Department(models.Model):
-    external_id = models.CharField("Код кафедры", max_length=50, unique=True)
+    external_id = models.CharField("Код кафедры", max_length=50, unique=True, help_text="Код кафедры из БД вуза")
     name = models.CharField("Название кафедры", max_length=255, unique=True)
     short_name = models.CharField("Сокращение", max_length=20, unique=True)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='departments', null=True, blank=True, verbose_name="Факультет")
+    phone = models.CharField("Телефон", max_length=20, blank=True, null=True)
     head_name = models.CharField("Зав. кафедрой", max_length=255, blank=True)
 
     def __str__(self) -> str:
@@ -33,7 +34,7 @@ class Department(models.Model):
         verbose_name_plural = "Кафедры"
 
 class Specialty(models.Model):
-    external_id = models.CharField("Код специальности", max_length=50, unique=True)
+    external_id = models.CharField("Код специальности", max_length=50, unique=True, help_text="Код специальности из БД вуза")
     code_fgos = models.CharField("Код по ФГОС", max_length=20)
     name = models.CharField("Название специальности", max_length=255)
     short_name = models.CharField("Краткое название", max_length=100, blank=True, null=True)
@@ -52,14 +53,16 @@ class Specialty(models.Model):
         verbose_name_plural = "Специальности"
 
 class Group(models.Model):    
-    external_id = models.CharField("Код группы", max_length=50, unique=True)
+    external_id = models.CharField("Код группы", max_length=50, unique=True, help_text="Код группы из БД вуза")
     name = models.CharField("Название группы", max_length=50)
     specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE, verbose_name="Специальность")
     course = models.PositiveSmallIntegerField("Курс")
     academic_year = models.CharField("Учебный год", max_length=20)
     education_duration = models.CharField("Срок обучения", max_length=50, blank=True, null=True)
-    education_level = models.CharField("Уровень", max_length=100)
-    education_form = models.CharField("Форма обучения", max_length=100)
+    education_level = models.CharField("Уровень", max_length=5)
+    education_level_decode = models.CharField("Название уровеня", max_length=100)
+    education_form = models.CharField("Форма обучения", max_length=5)
+    education_form_decode = models.CharField("Название формы обучения", max_length=100)
     
     def __str__(self):
         return self.name

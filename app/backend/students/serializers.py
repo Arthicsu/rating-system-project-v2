@@ -80,7 +80,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         model = Student
         fields = [
             'id', 'user_id', 
-            'full_name', 'phone', 'record_book', 
+            'full_name', 'email', 'record_book', 
             'group', 'group_id', 'course', 'faculty',
             'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score', 'total_score',
             'documents',

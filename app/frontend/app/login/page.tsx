@@ -52,7 +52,7 @@ export default function LoginPage() {
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1">
-              <label className="text-sm text-slate-600">E-mail</label>
+              <label className="text-sm text-slate-600">Логин (для обучающихся E-Mail)</label>
               <input
                 type="text"
                 id="username"
