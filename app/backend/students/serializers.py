@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from university_structure.models import Faculty
-from .models import Student, Document, Category
+from .models import Student, Document, Category, DocumentFile
 
 class StudentRatingSerializer(serializers.ModelSerializer):
     """
@@ -33,6 +33,11 @@ class StudentRatingSerializer(serializers.ModelSerializer):
             'cultural_score',
         ]
 
+class DocumentFileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocumentFile
+        fields = ['__all__']
+
 class DocumentSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='category.label', read_only=True)
     sub_type_display = serializers.CharField(source='sub_type.label', read_only=True)
@@ -40,6 +45,7 @@ class DocumentSerializer(serializers.ModelSerializer):
     result_display = serializers.CharField(source='result.label', read_only=True, default=None)
     doc_type_display = serializers.CharField(source='doc_type.label', read_only=True)
     status_display = serializers.CharField(source='status.code', read_only=True)
+    files = DocumentFileSerializer(many=True, read_only=True) 
 
     class Meta:
         model = Document
@@ -54,11 +60,10 @@ class DocumentSerializer(serializers.ModelSerializer):
             'score', 
             'status', 'status_display',
             'doc_type', 'doc_type_display', 
-            'file_url', 
-            'original_file_name', 
+            'files',
             'date_received', 'uploaded_at',
         ]
-
+        
 class PendingDocumentSerializer(DocumentSerializer):
     student_id = serializers.IntegerField(source='student.id', read_only=True)
     student_name = serializers.CharField(source='student.user.get_full_username', read_only=True)

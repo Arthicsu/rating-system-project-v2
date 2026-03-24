@@ -174,7 +174,7 @@ class Document(models.Model):
     """
 
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='student_documents', verbose_name="Студент")
-    date_received = models.DateField("Дата получения", default=timezone.now) 
+    date_received = models.DateField("Дата получения", default=timezone.now)
     verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_documents', verbose_name='Кем проверено')
     uploaded_at = models.DateTimeField(auto_now_add=True)
     
@@ -185,9 +185,6 @@ class Document(models.Model):
     achievement = models.CharField("Название достижения", max_length=255)
     doc_type = models.ForeignKey(DocType, on_delete=models.PROTECT, verbose_name="Тип документа")
     
-    original_file_name = models.CharField(max_length=255, default='NO_FILENAME')
-    file_url = models.URLField(max_length=500, null=True, blank=True)
-
     score = models.PositiveIntegerField("Баллы", default=0)
     status = models.ForeignKey(DocumentStatus, on_delete=models.PROTECT, verbose_name="Статус")
     rejection_reason = models.TextField("Причина отказа", blank=True, null=True)
@@ -235,3 +232,23 @@ class Document(models.Model):
         verbose_name = "Документ"
         verbose_name_plural = "Документы"
         ordering = ['-uploaded_at']
+
+class DocumentFile(models.Model):
+    """
+    Модель для хранения файлов, прикреплённых к документу достижения.
+    Один документ может иметь несколько файлов.
+    """
+
+    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='files', verbose_name="Документ")
+    original_file_name = models.CharField("Оригинальное имя файла", max_length=255, default='NO_FILENAME')
+    file_url = models.URLField("Ссылка на файл", max_length=500, null=True, blank=True)
+    uploaded_at = models.DateTimeField("Дата загрузки", auto_now_add=True)
+    order = models.PositiveSmallIntegerField("Порядок", default=0, help_text="Для сортировки файлов")
+
+    class Meta:
+        verbose_name = "Файл документа"
+        verbose_name_plural = "Файлы документов"
+        ordering = ['order', 'uploaded_at']
+
+    def __str__(self):
+        return self.original_file_name

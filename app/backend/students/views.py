@@ -7,7 +7,7 @@ from rest_framework.decorators import authentication_classes, permission_classes
 from django.db import transaction
 
 from .serializers import DocumentSerializer, StudentProfileSerializer, CategorySerializer
-from .models import Document, Student, Level, AchievementResult, DocType, Category, AchievementType, DocumentStatus
+from .models import Document, Student, Level, AchievementResult, DocType, Category, AchievementType, DocumentStatus, DocumentFile
 from .scoring import get_cached_metadata, get_scoring_structure, calculate_achievement_score
 
 import json, uuid
@@ -216,12 +216,22 @@ def upload_achievement(request):
             result_obj = AchievementResult.objects.filter(code=result).first()
 
             bucket_name = SUPABASE_BUCKET_NAME
-            original_file_name = None
-            file_url = None
         
             with transaction.atomic():
+                doc = Document.objects.create(
+                    student=student,
+                    category=category_obj,
+                    sub_type=sub_type_obj,
+                    level=level_obj,
+                    result=result_obj,
+                    achievement=achievement_text,
+                    score=score,
+                    doc_type=doc_type_obj,
+                    status=status_obj
+                )
+
                 if files:
-                    for file in files:
+                    for order, file in enumerate(files):
                         ext = file.name.split('.')[-1]
                         unique_name = f"{uuid.uuid4()}.{ext}"
                         storage_path = f"{student.record_book}/{unique_name}"
@@ -242,18 +252,11 @@ def upload_achievement(request):
 
                             file_url = supabase.storage.from_(bucket_name).get_public_url(storage_path)
 
-                            Document.objects.create(
-                                student=student,
-                                category=category_obj,
-                                sub_type=sub_type_obj,
-                                level=level_obj,
-                                result=result_obj,
-                                achievement=achievement_text,
-                                score=score,
-                                doc_type=doc_type_obj,
+                            DocumentFile.objects.create(
+                                document=doc,
                                 original_file_name=file.name,
                                 file_url=file_url,
-                                status=status_obj
+                                order=order
                             )
                         
                         except Exception as e:

@@ -7,12 +7,9 @@ from core.admin_import_csv import CsvImport
 from core.admin_import_json import JsonImport
 from university_structure.models import Faculty, Department, Group, Staff
 from users.models import User
-<<<<<<< Updated upstream
-from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus
-import csv, json
-=======
+
 from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus, DocumentFile
->>>>>>> Stashed changes
+
 
 
 @admin.register(Student)
@@ -268,10 +265,24 @@ class ScoringRuleAdmin(admin.ModelAdmin):
     def get_category(self, obj):
         return obj.achievement_type.category.label
 
+class DocumentFileInline(admin.TabularInline):
+    """
+    Инлайн-панель для отображения и редактирования файлов, 
+    прикрепленных к конкретному документу достижения.
+    """
+    model = DocumentFile
+    extra = 0  # Чтобы не отображались лишние пустые строки
+    fields = ('original_file_name', 'file_url', 'order', 'uploaded_at')
+    readonly_fields = ('uploaded_at',)
+
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
     list_display = (
-    'student__record_book', 'student__group__specialty__faculty', 'achievement', 
-    'category', 'sub_type', 'level', 'result', 'score', 
-    'status', 'date_received'
+        'student__record_book', 'student__group__specialty__faculty', 'achievement', 
+        'category', 'sub_type', 'level', 'result', 'score', 
+        'status', 'date_received'
     )
+    inlines = [DocumentFileInline] 
+    
+    list_filter = ('status', 'category', 'date_received')
+    search_fields = ('student__full_name', 'student__record_book', 'achievement')
