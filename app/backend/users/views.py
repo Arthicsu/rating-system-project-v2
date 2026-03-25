@@ -4,14 +4,14 @@ from drf_spectacular.types import OpenApiTypes
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from django.db.models import Avg, F, Count, Q
+from django.db.models import Avg, F, Count, Q, ExpressionWrapper, IntegerField
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
-
+from rest_framework.pagination import PageNumberPagination
 
 from students.views import get_student_full_profile
 from university_structure.models import Faculty, Group
@@ -177,14 +177,60 @@ class GroupListView(APIView):
         groups = Group.objects.all().values('id', 'name', 'course', 'faculty')
         return Response(list(groups))
 
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 class RatingAPIView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    def get(self, request):
-        students = Student.objects.select_related('group', 'faculty').all()
-        serializer = StudentRatingSerializer(students, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def get(self, request):
+        faculty = request.query_params.get('faculty', 'all')
+        course = request.query_params.get('course', 'all')
+        group = request.query_params.get('group', 'all')
+        category = request.query_params.get('category', 'common')
+
+        queryset = Student.objects.select_related('group', 'faculty').all()
+
+        if faculty != 'all':
+            queryset = queryset.filter(faculty__short_name=faculty)
+        if course != 'all':
+            queryset = queryset.filter(group__course=course)
+        if group != 'all':
+            queryset = queryset.filter(group__name=group)
+
+        category_map = {
+            'study': 'academic_score',
+            'social': 'social_score',
+            'sport': 'sport_score',
+            'science': 'research_score',
+            'culture': 'cultural_score',
+        }
+
+        if category == 'common':
+            queryset = queryset.annotate(
+                _db_total_score=ExpressionWrapper(
+                    F('academic_score') + F('social_score') + 
+                    F('sport_score') + F('research_score') + F('cultural_score'),
+                    output_field=IntegerField()
+                )
+            ).order_by('-_db_total_score')
+        else:
+            sort_field = category_map.get(category, 'academic_score')
+            queryset = queryset.order_by(f'-{sort_field}')
+
+        paginator = StandardResultsSetPagination()
+        paginated_queryset = paginator.paginate_queryset(queryset, request, view=self)
+
+        if paginated_queryset is not None:
+            serializer = StudentRatingSerializer(paginated_queryset, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = StudentRatingSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
 class ProfileAPIView(APIView):
     """
     API-представление для получения профиля текущего пользователя.
