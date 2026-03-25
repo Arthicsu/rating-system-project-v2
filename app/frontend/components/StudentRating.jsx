@@ -1,6 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/axios';
 
 function getShortName(fullName = '') {
@@ -15,84 +14,84 @@ function getShortName(fullName = '') {
 }
 
 export default function StudentRating() {
-  const [activeTab, setActiveTab] = useState('common');
   const [students, setStudents] = useState([]);
-
+  const [loading, setLoading] = useState(true);
+  const [filterOptions, setFilterOptions] = useState({ faculties: [], courses: [], groups: [] });
+  
   const [selectedFaculty, setSelectedFaculty] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [selectedGroup, setSelectedGroup] = useState('all');
+  const [activeTab, setActiveTab] = useState('common');
+  const [tabs, setTabs] = useState([{ id: 'common', label: 'Общий рейтинг' }]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const PAGE_SIZE = 20; // Количество записей на страницу
 
-  const scoreMap = {
-    common: 'total_score',
-    study: 'academic_score',
-    social: 'social_score',
-    sport: 'sport_score',
-    science: 'research_score',
-    culture: 'cultural_score',
-  };
-
+  // Загрузка категорий
   useEffect(() => {
-    api
-      .get(`/user/api/v1/rating/`)
-      .then((res) => setStudents(res.data))
-      .catch((err) => console.error(err));
+    api.get('/user/api/v1/category-achievements/')
+      .then(res => {
+        const dynamicTabs = res.data.map(cat => ({
+          id: cat.code,
+          label: cat.label.endsWith('рейтинг') ? cat.label : `${cat.label} деятельность`
+        }));
+        setTabs([{ id: 'common', label: 'Общий рейтинг' }, ...dynamicTabs]);
+      })
+      .catch(err => console.error('Ошибка загрузки категорий:', err));
   }, []);
 
-  const currentField = scoreMap[activeTab];
+  // Загрузка опций для фильтров
+  useEffect(() => {
+    api.get('/user/api/v1/rating-filters/')
+      .then(res => setFilterOptions(res.data))
+      .catch(err => console.error('Ошибка загрузки фильтров:', err));
+  }, []);
 
-  const filteredByFaculty =
-    selectedFaculty === 'all'
-      ? students
-      : students.filter((s) => s.faculty === selectedFaculty);
+  useEffect(() => {
+    const fetchRating = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (selectedFaculty !== 'all') params.append('faculty', selectedFaculty);
+        if (selectedCourse !== 'all') params.append('course', selectedCourse);
+        if (selectedGroup !== 'all') params.append('group', selectedGroup);
+        
+        params.append('category', activeTab);
+        params.append('page', String(page));
 
-  const availableCourses = Array.from(
-    new Set(
-      filteredByFaculty
-        .map((s) => s.course)
-        .filter((v) => v !== null && v !== undefined),
-    ),
-  );
+        const response = await api.get(`/user/api/v1/rating/`, { params });
+        
+        setStudents(response.data.results);
+        setTotalCount(response.data.count);
+      } catch (err) {
+        console.error('Ошибка при получении рейтинга:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRating();
+  }, [activeTab, selectedFaculty, selectedCourse, selectedGroup, page]);
 
-  const filteredByCourse =
-    selectedCourse === 'all'
-      ? filteredByFaculty
-      : filteredByFaculty.filter((s) => String(s.course) === selectedCourse);
+  // Доступные группы на основе выбранного факультета и курса
+  const availableGroups = useMemo(() => {
+    return filterOptions.groups.filter(g => {
+      const matchFaculty = selectedFaculty === 'all' || g.specialty__faculty__short_name === selectedFaculty;
+      const matchCourse = selectedCourse === 'all' || String(g.course) === selectedCourse;
+      return matchFaculty && matchCourse;
+    });
+  }, [filterOptions.groups, selectedFaculty, selectedCourse]);
+  
+  const scoreKey = activeTab == 'common' ? 'total_score' : `${activeTab}_score`;
+  const handleTabChange = (id) => {
+    setActiveTab(id);
+    setPage(1); // Всегда возвращаемся на первую страницу
+  };
 
-  const availableGroups = Array.from(
-    new Set(filteredByCourse.map((s) => s.group).filter(Boolean)),
-  );
-
-  const filteredStudents =
-    selectedGroup === 'all'
-      ? filteredByCourse
-      : filteredByCourse.filter((s) => s.group === selectedGroup);
-
-  const faculties = Array.from(
-    new Set(students.map((s) => s.faculty).filter(Boolean)),
-  );
-
-  const ratingData = [...filteredStudents]
-    .sort((a, b) => (b[currentField] || 0) - (a[currentField] || 0))
-    .map((student, index) => ({
-      rank: index + 1,
-      user_id: student.user_id,
-      name: student.full_name,
-      score: student[currentField],
-      faculty: student.faculty,
-      course: student.course,
-      group: student.group,
-    }));
-
-  const tabs = [
-    { id: 'common', label: 'Общий рейтинг' },
-    { id: 'study', label: 'Учебная деятельность' },
-    { id: 'social', label: 'Общественная деятельность' },
-    { id: 'sport', label: 'Спортивная деятельность' },
-    { id: 'science', label: 'Научно-исследовательская деятельность' },
-    { id: 'culture', label: 'Культурно-творческая деятельность' },
-  ];
-
+  const handleFilterChange = (setter, value) => {
+    setter(value);
+    setPage(1);
+  };
   return (
     <div className="pt-25">
       {/* Фильтры баллов */}
@@ -103,10 +102,10 @@ export default function StudentRating() {
             <select
               className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-xs text-[#333] shadow-[0_2px_10px_rgba(0,0,0,0.05)] focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
               value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value)}
+              onChange={(e) => handleTabChange(e.target.value)}
             >
               {tabs.map((tab) => (
-                <option key={tab.id} value={tab.id}>
+                <option key={tab.id} onClick={() => handleTabChange(tab.id)} value={tab.id}>
                   {tab.label}
                 </option>
               ))}
@@ -123,7 +122,7 @@ export default function StudentRating() {
                     ? 'bg-sky-700 text-white'
                     : 'bg-transparent text-[#333] hover:bg-[#e9ecef]'
                 }`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
               >
                 {tab.label}
               </button>
@@ -173,17 +172,15 @@ export default function StudentRating() {
                     id="m-faculty"
                     value={selectedFaculty}
                     onChange={(e) => {
-                      setSelectedFaculty(e.target.value);
-                      setSelectedCourse('all');
-                      setSelectedGroup('all');
+                      handleFilterChange(setSelectedFaculty, e.target.value);
+                      handleFilterChange(setSelectedCourse, 'all');
+                      handleFilterChange(setSelectedGroup, 'all');
                     }}
                     className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
                   >
                     <option value="all">Все</option>
-                    {faculties.map((faculty) => (
-                      <option key={faculty} value={faculty}>
-                        {faculty}
-                      </option>
+                    {filterOptions.faculties.map(f => (
+                      <option key={f.id} value={f.short_name}>{f.short_name}</option>
                     ))}
                   </select>
                 </div>
@@ -196,21 +193,15 @@ export default function StudentRating() {
                     id="m-course"
                     value={selectedCourse}
                     onChange={(e) => {
-                      setSelectedCourse(e.target.value);
-                      setSelectedGroup('all');
+                      handleFilterChange(setSelectedCourse, e.target.value);
+                      handleFilterChange(setSelectedGroup, 'all');
                     }}
-                    disabled={availableCourses.length === 0}
                     className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
                   >
                     <option value="all">Все</option>
-                    {availableCourses
-                      .slice()
-                      .sort((a, b) => a - b)
-                      .map((course) => (
-                        <option key={course} value={String(course)}>
-                          {course}
-                        </option>
-                      ))}
+                    {[1, 2, 3, 4, 5].map(c => (
+                      <option key={c} value={String(c)}>{c} курс</option>
+                    ))}
                   </select>
                 </div>
 
@@ -221,19 +212,14 @@ export default function StudentRating() {
                   <select
                     id="m-group"
                     value={selectedGroup}
-                    onChange={(e) => setSelectedGroup(e.target.value)}
+                    onChange={(e) => handleFilterChange(setSelectedGroup, e.target.value)}
                     disabled={availableGroups.length === 0}
                     className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
                   >
                     <option value="all">Все</option>
-                    {availableGroups
-                      .slice()
-                      .sort((a, b) => a.localeCompare(b))
-                      .map((group) => (
-                        <option key={group} value={group}>
-                          {group}
-                        </option>
-                      ))}
+                    {availableGroups.map(g => (
+                      <option key={g.id} value={g.name}>{g.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -264,18 +250,15 @@ export default function StudentRating() {
                           id="faculty-select"
                           value={selectedFaculty}
                           onChange={(e) => {
-                            setSelectedFaculty(e.target.value);
-                            setSelectedCourse('all');
-                            setSelectedGroup('all');
+                            handleFilterChange(setSelectedFaculty, e.target.value);
+                            handleFilterChange(setSelectedCourse, 'all');
+                            handleFilterChange(setSelectedGroup, 'all');
                           }}
-                          size="1"
                           className="w-auto max-[411px]:hidden rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
                         >
                           <option value="all">Все</option>
-                          {faculties.map((faculty) => (
-                            <option key={faculty} value={faculty}>
-                              {faculty}
-                            </option>
+                          {filterOptions.faculties.map(f => (
+                            <option key={f.id} value={f.short_name}>{f.short_name}</option>
                           ))}
                         </select>
                       </div>
@@ -291,21 +274,15 @@ export default function StudentRating() {
                           id="course-select"
                           value={selectedCourse}
                           onChange={(e) => {
-                            setSelectedCourse(e.target.value);
-                            setSelectedGroup('all');
+                            handleFilterChange(setSelectedCourse, e.target.value);
+                            handleFilterChange(setSelectedGroup, 'all');
                           }}
-                          disabled={availableCourses.length === 0}
                           className=" max-[411px]:hidden w-auto rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
                         >
                           <option value="all">Все</option>
-                          {availableCourses
-                            .slice()
-                            .sort((a, b) => a - b)
-                            .map((course) => (
-                              <option key={course} value={String(course)}>
-                                {course}
-                              </option>
-                            ))}
+                          {[1, 2, 3, 4, 5].map(c => (
+                            <option key={c} value={String(c)}>{c} курс</option>
+                          ))}
                         </select>
                       </div>
                     </th>
@@ -319,57 +296,76 @@ export default function StudentRating() {
                         <select
                           id="group-select"
                           value={selectedGroup}
-                          onChange={(e) => setSelectedGroup(e.target.value)}
+                          onChange={(e) => handleFilterChange(setSelectedGroup, e.target.value)}
                           disabled={availableGroups.length === 0}
                           className=" max-[411px]:hidden w-auto rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
                         >
                           <option value="all">Все</option>
-                          {availableGroups
-                            .slice()
-                            .sort((a, b) => a.localeCompare(b))
-                            .map((group) => (
-                              <option key={group} value={group}>
-                                {group}
-                              </option>
-                            ))}
+                          {availableGroups.map(g => (
+                            <option key={g.id} value={g.name}>{g.name}</option>
+                          ))}
                         </select>
                       </div>
                     </th>
                   </tr>
                 </thead>
-                <tbody>
-                  {ratingData.map((student, index) => (
-                    <tr
-                      key={index}
-                      className="border-b border-[#f0f0f0] text-xs sm:text-xs md:text-sm last:border-b-0 hover:bg-slate-50"
-                    >
+                <tbody className={loading ? 'opacity-50 transition-opacity' : ''}>
+                  {students.map((student, index) => (
+                    <tr key={student.user_id} className="border-b border-[#f0f0f0] text-xs sm:text-xs md:text-sm last:border-b-0 hover:bg-slate-50">
                       <td className="p-1 sm:p-2 md:px-4  md:py-3 text-center align-middle">
                         <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-[11px] md:text-sm font-bold text-white">
-                          {student.rank}
+                          {(page - 1) * PAGE_SIZE + index + 1}
                         </div>
                       </td>
                       <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-[#333]">
                         <span className="inline md:hidden">
-                          {getShortName(student.name)}
+                          {getShortName(student.full_name)}
                         </span>
-                        <span className="hidden md:inline">{student.name}</span>
+                        <span className="hidden md:inline">{student.full_name}</span>
                       </td>
                       <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm font-bold text-sky-700">
-                        {student.score}
+                        {student[scoreKey]}
                       </td>
-                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">
-                        {student.faculty}
-                      </td>
-                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">
-                        {student.course}
-                      </td>
-                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">
-                        {student.group}
-                      </td>
+                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.faculty}</td>
+                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.course}</td>
+                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.group}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              
+              {/* Блок пагинации */}
+              <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4 px-2">
+                <div className="text-xs text-slate-500">
+                  Показано {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalCount)} из {totalCount}
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                    disabled={page === 1 || loading}
+                    className="flex h-8 w-8 items-center justify-center rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+
+                  <div className="flex h-8 items-center px-3 text-sm font-medium text-slate-700">
+                    {page}
+                  </div>
+
+                  <button
+                    onClick={() => setPage(prev => prev + 1)}
+                    disabled={page * PAGE_SIZE >= totalCount || loading}
+                    className="flex h-8 w-8 items-center justify-center rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

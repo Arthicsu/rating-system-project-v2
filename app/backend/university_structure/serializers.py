@@ -25,13 +25,14 @@ class SpecialtySerializer(serializers.ModelSerializer):
         ]
 
 class GroupSerializer(serializers.ModelSerializer):
+    faculty_name = serializers.CharField(source='specialty.faculty.short_name', read_only=True)    
     specialty_name = serializers.CharField(source='specialty.name', read_only=True)
     specialty_code = serializers.CharField(source='specialty.code_fgos', read_only=True)
 
     class Meta:
         model = Group
         fields = [
-            'id', 'name', 'course', 
+            'id', 'name', 'course', 'faculty_name',
             'academic_year', 'education_level', 'education_form', 
             'specialty_name', 'specialty_code'
         ]

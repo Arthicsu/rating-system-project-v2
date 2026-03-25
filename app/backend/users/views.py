@@ -5,22 +5,27 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg, F, Count, Q, ExpressionWrapper, IntegerField
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 
 from rest_framework.views import APIView
+from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.pagination import PageNumberPagination
 
 from students.views import get_student_full_profile
 from university_structure.models import Faculty, Group
-from students.models import Document, Student
+from students.models import Document, Student, Category
 from .serializers import StudentRegistrationSerializer
-from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer
+from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
 from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer
+from core.pagination import StandardResultsSetPagination
 
 User = get_user_model()
+pagination_class = StandardResultsSetPagination
 
 def get_response_data_for_user(user):
     """
@@ -170,22 +175,66 @@ class LogoutAPIView(APIView):
         logout(request)
         return Response(status=status.HTTP_200_OK)
 
-class GroupListView(APIView): 
+class GroupAPIView(APIView): 
     permission_classes = [AllowAny]
     authentication_classes = []
+    
+    @method_decorator(cache_page(60 * 60 * 2), name='dispatch')
     def get(self, request):
-        groups = Group.objects.all().values('id', 'name', 'course', 'faculty')
-        return Response(list(groups))
+        try:
+            groups_queryset = Group.objects.select_related('specialty__faculty').all()
+            serializer = GroupSerializer(groups_queryset, many=True, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {"detail": "Ошибка при получении списка групп", "error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 50
-    page_size_query_param = 'page_size'
-    max_page_size = 100
+class RatingFiltersAPIView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    
+    @method_decorator(cache_page(60 * 60 * 2), name='dispatch')
+    def get(self, request):
+        faculties = Faculty.objects.values('id', 'short_name', 'name')
+        courses = Group.objects.values_list('course', flat=True).distinct().order_by('course')
+        groups = Group.objects.select_related('specialty__faculty').values(
+            'id', 
+            'name', 
+            'course', 
+            'specialty__faculty__short_name'
+        )
+
+        return Response({
+            "faculties": faculties,
+            "courses": list(courses),
+            "groups": list(groups),
+        }, status=status.HTTP_200_OK)
+
+      
+class CategoryAchievementAPIView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    
+    @method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
+    def get(self, request):
+        try:
+            category_achievements_queryset = Category.objects.all()
+            serializer = CategorySerializer(category_achievements_queryset, many=True, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {"detail": "Ошибка при получении категорий", "error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class RatingAPIView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
+    @method_decorator(cache_page(60), name='dispatch')
+    @method_decorator(vary_on_headers('Cookie'), name='dispatch')
     def get(self, request):
         faculty = request.query_params.get('faculty', 'all')
         course = request.query_params.get('course', 'all')
@@ -201,14 +250,7 @@ class RatingAPIView(APIView):
         if group != 'all':
             queryset = queryset.filter(group__name=group)
 
-        category_map = {
-            'study': 'academic_score',
-            'social': 'social_score',
-            'sport': 'sport_score',
-            'science': 'research_score',
-            'culture': 'cultural_score',
-        }
-
+        # да, медленно, но пока так
         if category == 'common':
             queryset = queryset.annotate(
                 _db_total_score=ExpressionWrapper(
@@ -216,12 +258,12 @@ class RatingAPIView(APIView):
                     F('sport_score') + F('research_score') + F('cultural_score'),
                     output_field=IntegerField()
                 )
-            ).order_by('-_db_total_score')
+            ).order_by('-_db_total_score', 'full_name')
         else:
-            sort_field = category_map.get(category, 'academic_score')
-            queryset = queryset.order_by(f'-{sort_field}')
+            sort_field = f"{category}_score"
+            queryset = queryset.order_by(f"-{sort_field}", "full_name")
 
-        paginator = StandardResultsSetPagination()
+        paginator = pagination_class()
         paginated_queryset = paginator.paginate_queryset(queryset, request, view=self)
 
         if paginated_queryset is not None:
@@ -230,7 +272,52 @@ class RatingAPIView(APIView):
 
         serializer = StudentRatingSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-        
+
+class RatingListAPIView(ListAPIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    serializer_class = StudentRatingSerializer
+
+    @method_decorator(cache_page(60), name='dispatch')
+    @method_decorator(vary_on_headers('Cookie'), name='dispatch')
+    def get(self, request, *args, **kwargs):
+        """
+        Кэшируем весь метод GET. 
+        super().get сам вызовет get_queryset, пагинацию и сериализатор.
+        """
+        return super().get(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        faculty = self.request.query_params.get('faculty', 'all')
+        course = self.request.query_params.get('course', 'all')
+        group = self.request.query_params.get('group', 'all')
+        category = self.request.query_params.get('category', 'common')
+
+        queryset = Student.objects.select_related('group', 'faculty').all()
+
+        # Фильтры
+        if faculty != 'all':
+            queryset = queryset.filter(faculty__short_name=faculty)
+        if course != 'all':
+            queryset = queryset.filter(group__course=course)
+        if group != 'all':
+            queryset = queryset.filter(group__name=group)
+
+        # Медленная сортировка (ну рили)
+        if category == 'common':
+            queryset = queryset.annotate(
+                _db_total_score=ExpressionWrapper(
+                    F('academic_score') + F('social_score') + 
+                    F('sport_score') + F('research_score') + F('cultural_score'),
+                    output_field=IntegerField()
+                )
+            ).order_by('-_db_total_score', 'full_name')
+        else:
+            sort_field = f"{category}_score"
+            queryset = queryset.order_by(f"-{sort_field}", "full_name")
+            
+        return queryset
+
 class ProfileAPIView(APIView):
     """
     API-представление для получения профиля текущего пользователя.

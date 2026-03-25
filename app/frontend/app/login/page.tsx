@@ -46,7 +46,7 @@ export default function LoginPage() {
       <div className="mx-auto flex max-w-275 flex-col gap-8">
         {/* Форма авторизации */}
         <div className="mx-auto w-full max-w-md rounded-2xl bg-white px-6 py-8 shadow-md md:px-10">
-          <h1 className="mb-6 text-2xl font-semibold text-black sm:text-3xl">
+          <h1 className="mb-6 text-2xl font-semibold text-black text-center sm:text-3xl">
             Авторизация
           </h1>
 

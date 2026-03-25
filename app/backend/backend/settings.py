@@ -100,7 +100,9 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
         'rest_framework.permissions.AllowAny',
         'rest_framework.permissions.IsAdminUser',
-    ]
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'core.pagination.StandardResultsSetPagination',
+    'PAGE_SIZE': 20
 }
 
 ROOT_URLCONF = 'backend.urls'
@@ -171,6 +173,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# для теста.
+# потом на radis перейдём
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'rating-system-project-v2 API',
