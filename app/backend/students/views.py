@@ -218,7 +218,7 @@ def upload_achievement(request):
             bucket_name = SUPABASE_BUCKET_NAME
         
             with transaction.atomic():
-                doc = Document.objects.create(
+                document = Document.objects.create(
                     student=student,
                     category=category_obj,
                     sub_type=sub_type_obj,
@@ -229,14 +229,16 @@ def upload_achievement(request):
                     doc_type=doc_type_obj,
                     status=status_obj
                 )
-
+                
                 if files:
                     for order, file in enumerate(files):
                         ext = file.name.split('.')[-1]
                         unique_name = f"{uuid.uuid4()}.{ext}"
                         storage_path = f"{student.record_book}/{unique_name}"
-
+                        file_size = file.size
                         try:
+                            if file_size > 20 * 1024 * 1024:  # Ограничение на размер файла (20 МБ)
+                                raise ValueError(f'Файл {file.name} слишком большой. Максимальный размер 20 МБ.')
                             file.seek(0)
                             file_data = file.read()
 
@@ -253,14 +255,19 @@ def upload_achievement(request):
                             file_url = supabase.storage.from_(bucket_name).get_public_url(storage_path)
 
                             DocumentFile.objects.create(
-                                document=doc,
+                                document=document,
                                 original_file_name=file.name,
                                 file_url=file_url,
                                 order=order
                             )
-                        
+
+                        except ValueError as ve:
+                            print(f"Ошибка валидации для файла {file.name}: {ve}")
+                            raise
+                            return Response({'error': f'Файл {file.name} слишком большой. Максимальный размер 20 МБ.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                         except Exception as e:
                             print(f"Ошибка загрузки файла {file.name}: {e}")
+                            raise
                             return Response({'error': f'{str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
         except Student.DoesNotExist:

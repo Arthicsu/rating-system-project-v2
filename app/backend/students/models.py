@@ -238,7 +238,6 @@ class DocumentFile(models.Model):
     Модель для хранения файлов, прикреплённых к документу достижения.
     Один документ может иметь несколько файлов.
     """
-
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='files', verbose_name="Документ")
     original_file_name = models.CharField("Оригинальное имя файла", max_length=255, default='NO_FILENAME')
     file_url = models.URLField("Ссылка на файл", max_length=500, null=True, blank=True)

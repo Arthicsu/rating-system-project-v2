@@ -36,7 +36,7 @@ class StudentRatingSerializer(serializers.ModelSerializer):
 class DocumentFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentFile
-        fields = ['__all__']
+        fields = '__all__'
 
 class DocumentSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='category.label', read_only=True)
