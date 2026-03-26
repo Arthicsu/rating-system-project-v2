@@ -4,6 +4,22 @@ from students.models import Student
 
 User = get_user_model()
 
+class AuthUserResponseSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    username = serializers.CharField()
+    record_book = serializers.CharField(allow_null=True)
+    isAuthenticated = serializers.BooleanField()
+    isStudent = serializers.BooleanField()
+    isStaff = serializers.BooleanField()
+    full_name = serializers.CharField()
+    roles = serializers.ListField(child=serializers.CharField())
+    pending_docs_count = serializers.IntegerField()
+    message = serializers.CharField(required=False)
+
+class LoginRequestSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
 class StudentRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(required=True, write_only=True)
     email = serializers.EmailField(required=True, write_only=True)

@@ -4,7 +4,11 @@ from rest_framework.decorators import api_view
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import authentication_classes, permission_classes
+
 from django.db import transaction
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 
 from .serializers import DocumentSerializer, StudentProfileSerializer, CategorySerializer
 from .models import Document, Student, Level, AchievementResult, DocType, Category, AchievementType, DocumentStatus, DocumentFile
@@ -75,6 +79,7 @@ def get_student_full_profile(student, request, is_own_profile):
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
+@cache_page(60 * 60 * 2)
 def get_achievement_config(request) -> Response:    
     """
     Возвращает конфигурацию для формы добавления достижения.

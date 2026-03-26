@@ -60,7 +60,7 @@ export default function StudentRating() {
         params.append('category', activeTab);
         params.append('page', String(page));
 
-        const response = await api.get(`/user/api/v1/rating/`, { params });
+        const response = await api.get(`/user/api/v2/rating/`, { params });
         
         setStudents(response.data.results);
         setTotalCount(response.data.count);
@@ -76,7 +76,7 @@ export default function StudentRating() {
   // Доступные группы на основе выбранного факультета и курса
   const availableGroups = useMemo(() => {
     return filterOptions.groups.filter(g => {
-      const matchFaculty = selectedFaculty === 'all' || g.specialty__faculty__short_name === selectedFaculty;
+      const matchFaculty = selectedFaculty === 'all' || g.faculty_short_name === selectedFaculty;
       const matchCourse = selectedCourse === 'all' || String(g.course) === selectedCourse;
       return matchFaculty && matchCourse;
     });

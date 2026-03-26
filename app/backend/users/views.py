@@ -1,4 +1,4 @@
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, inline_serializer
 from drf_spectacular.types import OpenApiTypes
 
 from django.contrib.auth import login, logout, authenticate
@@ -10,16 +10,16 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 
 from rest_framework.views import APIView
-from rest_framework.generics import ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
+from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 
 from students.views import get_student_full_profile
 from university_structure.models import Faculty, Group
 from students.models import Document, Student, Category
-from .serializers import StudentRegistrationSerializer
+from .serializers import StudentRegistrationSerializer, AuthUserResponseSerializer, LoginRequestSerializer
 from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
 from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer
 from core.pagination import StandardResultsSetPagination
@@ -68,7 +68,7 @@ def get_response_data_for_user(user):
         "pending_docs_count": pending_docs_count,
     }
 
-class RegistrationAPIView(APIView):
+class RegistrationAPIView(CreateAPIView):
     """
     API-представление для регистрации нового студента.
 
@@ -77,9 +77,11 @@ class RegistrationAPIView(APIView):
     После успешной валидации создаёт пользователя и связанный профиль студента,
     автоматически выполняет вход и возвращает базовую информацию о пользователе.
     """
-
+    
     permission_classes = [AllowAny]
     authentication_classes = []
+    serializer_class = StudentRegistrationSerializer 
+
     def post(self, request):
         """
         Обрабатывает POST-запрос на регистрацию нового студента.
@@ -96,7 +98,7 @@ class RegistrationAPIView(APIView):
         Возвращает:
             Response:
                 - 201 Created: Если данные валидны и регистрация прошла успешно.
-                  В теле - сообщение и данные пользователя.
+                    В теле - сообщение и данные пользователя.
                 - 400 Bad Request: Если данные некорректны. В теле - ошибки валидации.
 
         Пример успешного ответа:
@@ -123,28 +125,31 @@ class RegistrationAPIView(APIView):
         Особенности:
             - Доступ разрешён всем (AllowAny), включая неаутентифицированных пользователей.
             - После регистрации пользователь сразу входит в систему (функция login).
-            - Поле full_name берётся из кастомного метода get_full_username() модели пользователя.
-            - Если у пользователя есть профиль студента, в ответ включается его record_book.
         """
-        serializer = StudentRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            
-            login(request, user)
-            
-            response_data = get_response_data_for_user(user)
-            response_data["message"] = "Регистрация успешна"
 
-            return Response(response_data, status=status.HTTP_201_CREATED)
-            
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        login(request, user)
+        
+        raw_data = get_response_data_for_user(user)
+        raw_data["message"] = "Регистрация успешна"
+        
+        response_serializer = AuthUserResponseSerializer(raw_data)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-class LoginAPIView(APIView):
+class LoginAPIView(GenericAPIView):
     permission_classes = [AllowAny]
     authentication_classes = [SessionAuthentication]  
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
+    serializer_class = LoginRequestSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        username = serializer.validated_data.get('username')
+        password = serializer.validated_data.get('password')
         
         user = authenticate(request, username=username, password=password)
         
@@ -157,7 +162,7 @@ class LoginAPIView(APIView):
             return Response(response_data, status=status.HTTP_200_OK)
         else:
             return Response({"detail": "Неверный логин или пароль"}, status=status.HTTP_401_UNAUTHORIZED)
-
+        
 class CheckAuthAPIView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = [SessionAuthentication]
@@ -175,109 +180,70 @@ class LogoutAPIView(APIView):
         logout(request)
         return Response(status=status.HTTP_200_OK)
 
-class GroupAPIView(APIView): 
+class GroupAPIView(ListAPIView): 
     permission_classes = [AllowAny]
     authentication_classes = []
-    
+    queryset = Group.objects.select_related('specialty__faculty').all()
+    serializer_class = GroupSerializer
+    pagination_class = None
     @method_decorator(cache_page(60 * 60 * 2), name='dispatch')
-    def get(self, request):
-        try:
-            groups_queryset = Group.objects.select_related('specialty__faculty').all()
-            serializer = GroupSerializer(groups_queryset, many=True, context={'request': request})
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(
-                {"detail": "Ошибка при получении списка групп", "error": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    @extend_schema(
+        summary="Список всех учебных групп",
+        description="Возвращает полный список групп с информацией о факультете и специальности."
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
-class RatingFiltersAPIView(APIView):
+class RatingFiltersAPIView(GenericAPIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    
+
     @method_decorator(cache_page(60 * 60 * 2), name='dispatch')
+    @extend_schema(
+        summary="Данные для фильтров рейтинга",
+        description="Возвращает списки факультетов, курсов и групп для построения фильтров на клиенте.",
+        responses={
+            200: inline_serializer(
+                name='RatingFiltersResponse',
+                fields={
+                    "faculties": serializers.ListField(child=serializers.DictField()),
+                    "courses": serializers.ListField(child=serializers.IntegerField()),
+                    "groups": serializers.ListField(child=serializers.DictField()),
+                }
+            )
+        }
+    )
     def get(self, request):
         faculties = Faculty.objects.values('id', 'short_name', 'name')
         courses = Group.objects.values_list('course', flat=True).distinct().order_by('course')
-        groups = Group.objects.select_related('specialty__faculty').values(
-            'id', 
-            'name', 
-            'course', 
-            'specialty__faculty__short_name'
-        )
+        
+        groups = Group.objects.annotate(
+            faculty_short_name=F('specialty__faculty__short_name')
+        ).values('id', 'name', 'course', 'faculty_short_name')
 
         return Response({
-            "faculties": faculties,
+            "faculties": list(faculties),
             "courses": list(courses),
             "groups": list(groups),
         }, status=status.HTTP_200_OK)
 
       
-class CategoryAchievementAPIView(APIView):
+class CategoryAchievementAPIView(ListAPIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    
+    serializer_class = CategorySerializer
+    queryset = Category.objects.all()
+    pagination_class = None
+
     @method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
-    def get(self, request):
-        try:
-            category_achievements_queryset = Category.objects.all()
-            serializer = CategorySerializer(category_achievements_queryset, many=True, context={'request': request})
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(
-                {"detail": "Ошибка при получении категорий", "error": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-class RatingAPIView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
-
-    @method_decorator(cache_page(60), name='dispatch')
-    @method_decorator(vary_on_headers('Cookie'), name='dispatch')
-    def get(self, request):
-        faculty = request.query_params.get('faculty', 'all')
-        course = request.query_params.get('course', 'all')
-        group = request.query_params.get('group', 'all')
-        category = request.query_params.get('category', 'common')
-
-        queryset = Student.objects.select_related('group', 'faculty').all()
-
-        if faculty != 'all':
-            queryset = queryset.filter(faculty__short_name=faculty)
-        if course != 'all':
-            queryset = queryset.filter(group__course=course)
-        if group != 'all':
-            queryset = queryset.filter(group__name=group)
-
-        # да, медленно, но пока так
-        if category == 'common':
-            queryset = queryset.annotate(
-                _db_total_score=ExpressionWrapper(
-                    F('academic_score') + F('social_score') + 
-                    F('sport_score') + F('research_score') + F('cultural_score'),
-                    output_field=IntegerField()
-                )
-            ).order_by('-_db_total_score', 'full_name')
-        else:
-            sort_field = f"{category}_score"
-            queryset = queryset.order_by(f"-{sort_field}", "full_name")
-
-        paginator = pagination_class()
-        paginated_queryset = paginator.paginate_queryset(queryset, request, view=self)
-
-        if paginated_queryset is not None:
-            serializer = StudentRatingSerializer(paginated_queryset, many=True)
-            return paginator.get_paginated_response(serializer.data)
-
-        serializer = StudentRatingSerializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
 class RatingListAPIView(ListAPIView):
     permission_classes = [AllowAny]
     authentication_classes = []
     serializer_class = StudentRatingSerializer
-
+    
     @method_decorator(cache_page(60), name='dispatch')
     @method_decorator(vary_on_headers('Cookie'), name='dispatch')
     def get(self, request, *args, **kwargs):
@@ -331,216 +297,8 @@ class ProfileAPIView(APIView):
     """
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsAuthenticated]
-    @extend_schema(
-            summary="Получение профиля пользователя",
-            description="",
-            responses={200: OpenApiTypes.OBJECT},
-            examples=[
-                OpenApiExample(
-                    "Пример для студента",
-                    value={
-                        "id": 1,
-                        "full_name": "Иванов Иван Иванович",
-                        "email": "student1@ya.ru",
-                        "roles": [
-                            "Student"
-                        ],
-                        "is_own_profile": True,
-                        "isStaff": False,
-                        "user_id": 6,
-                        "phone": "+7(999)444-55-66",
-                        "record_book": "23-01.01",
-                        "group": "ИВТ-301",
-                        "group_id": 1,
-                        "course": 3,
-                        "faculty": "ИЭИ",
-                        "academic_score": 0,
-                        "research_score": 0,
-                        "sport_score": 0,
-                        "social_score": 0,
-                        "cultural_score": 0,
-                        "total_score": 0,
-                        "documents": [
-                            {
-                                "id": 2,
-                                "category": 1,
-                                "category_display": "Учебная",
-                                "sub_type": 2,
-                                "sub_type_display": "Олимпиада / Конкурс",
-                                "level": 5,
-                                "level_display": "Областной / Региональный",
-                                "result": 1,
-                                "result_display": "1 место / Победитель",
-                                "achievement": "Йа победил их всееех, дАаададад",
-                                "rejection_reason": "",
-                                "score": 4,
-                                "status": 1,
-                                "status_display": "На рассмотрении",
-                                "doc_type": 1,
-                                "doc_type_display": "Диплом",
-                                "file_url": None,
-                                "original_file_name": "NO_FILENAME",
-                                "date_received": "2026-03-11",
-                                "uploaded_at": "2026-03-11T21:42:33.653046+03:00"
-                            }
-                        ],
-                        "radar_stats": {
-                            "labels": [
-                                "Учебная",
-                                "Научно-исследовательская",
-                                "Культурно-творческая",
-                                "Спортивная",
-                                "Общественная"
-                            ],
-                            "data": [
-                                0,
-                                0,
-                                0,
-                                0,
-                                0
-                            ]
-                        },
-                        "type": "student"
-                    },
-                    response_only=True,
-                ),
-                OpenApiExample(
-                    "Пример для кафедры",
-                    value={
-                        "id": 3,
-                        "full_name": "Нуралиев Борис Георгиевич",
-                        "email": "kafedra_it@ya.ru",
-                        "roles": [
-                            "Department"
-                        ],
-                        "is_own_profile": True,
-                        "isStaff": True,
-                        "type": "staff",
-                        "department": "Информационные технологии",
-                        "faculty": "Инженерно-экономический институт",
-                        "scope": "department",
-                        "managed_groups": [
-                            {
-                                "id": 1,
-                                "name": "ИВТ-301",
-                                "course": 3,
-                                "academic_year": "2023-2024",
-                                "education_level": "Бакалавриат",
-                                "education_form": "Очная",
-                                "specialty_name": "Информатика и вычислительная техника",
-                                "specialty_code": "09.03.01"
-                            },
-                            {
-                                "id": 2,
-                                "name": "ПИ-201",
-                                "course": 2,
-                                "academic_year": "2024-2025",
-                                "education_level": "Бакалавриат",
-                                "education_form": "Очная",
-                                "specialty_name": "Прикладная информатика",
-                                "specialty_code": "09.03.03"
-                            }
-                        ],
-                        "students_list": [
-                            {
-                                "id": 1,
-                                "user_id": 6,
-                                "full_name": "Иванов Иван Иванович",
-                                "phone": "+7(999)444-55-66",
-                                "record_book": "23-01.01",
-                                "group": "ИВТ-301",
-                                "group_id": 1,
-                                "course": 3,
-                                "faculty": "ИЭИ",
-                                "academic_score": 0,
-                                "research_score": 0,
-                                "sport_score": 0,
-                                "social_score": 0,
-                                "cultural_score": 0,
-                                "total_score": 0,
-                                "documents": [
-                                    {
-                                        "id": 2,
-                                        "category": 1,
-                                        "category_display": "Учебная",
-                                        "sub_type": 2,
-                                        "sub_type_display": "Олимпиада / Конкурс",
-                                        "level": 5,
-                                        "level_display": "Областной / Региональный",
-                                        "result": 1,
-                                        "result_display": "1 место / Победитель",
-                                        "achievement": "Йа победил их всееех, дАаададад",
-                                        "rejection_reason": "",
-                                        "score": 4,
-                                        "status": 1,
-                                        "status_display": "На рассмотрении",
-                                        "doc_type": 1,
-                                        "doc_type_display": "Диплом",
-                                        "file_url": None,
-                                        "original_file_name": "NO_FILENAME",
-                                        "date_received": "2026-03-11",
-                                        "uploaded_at": "2026-03-11T21:42:33.653046+03:00"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": 2,
-                                "user_id": 7,
-                                "full_name": "Смирнов Алексей Алексеевич",
-                                "phone": "+7(999)555-66-77",
-                                "record_book": "23-01.02",
-                                "group": "ИВТ-301",
-                                "group_id": 1,
-                                "course": 3,
-                                "faculty": "ИЭИ",
-                                "academic_score": 0,
-                                "research_score": 0,
-                                "sport_score": 0,
-                                "social_score": 0,
-                                "cultural_score": 0,
-                                "total_score": 0,
-                                "documents": []
-                            },
-                            ...
-                        ],
-                        "pending_documents": [
-                            {
-                                "id": 2,
-                                "category": 1,
-                                "category_display": "Учебная",
-                                "sub_type": 2,
-                                "sub_type_display": "Олимпиада / Конкурс",
-                                "level": 5,
-                                "level_display": "Областной / Региональный",
-                                "result": 1,
-                                "result_display": "1 место / Победитель",
-                                "achievement": "Йа победил их всееех, дАаададад",
-                                "rejection_reason": "",
-                                "score": 4,
-                                "status": 1,
-                                "status_display": "На рассмотрении",
-                                "doc_type": 1,
-                                "doc_type_display": "Диплом",
-                                "file_url": None,
-                                "original_file_name": "NO_FILENAME",
-                                "date_received": "2026-03-11",
-                                "uploaded_at": "2026-03-11T21:42:33.653046+03:00",
-                                "student_id": 1,
-                                "student_name": "Иванов Иван Иванович",
-                                "group_id": 1,
-                                "record_book": "23-01.01"
-                            }
-                        ],
-                        "stats": {
-                            "total_students": 16,
-                            "avg_score": 0
-                        }
-                        },
-                    response_only=True,
-                ),
-            ]
-        )
-    
+
+    @extend_schema(operation_id="get_my_profile")
     def get(self, request):
         """
         Обрабатывает GET-запрос на получение профиля текущего пользователя.
@@ -652,7 +410,7 @@ class PublicProfileAPIView(APIView):
     Обычные студенты могут просматривать только свой собственный профиль.
     """
     permission_classes = [IsAuthenticated]
-
+    @extend_schema(operation_id="get_public_profile")
     def get(self, request, student_id):
         """
         Обрабатывает GET-запрос на получение данных профиля студента по его ID.
