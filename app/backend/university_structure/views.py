@@ -4,16 +4,36 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
 from rest_framework.response import Response
 from rest_framework import status, serializers
 
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.http import HttpResponse
+from django.db.models import Avg, F, Count, Q, ExpressionWrapper, IntegerField
 
 from university_structure.models import Faculty, Group
 from students.models import Document, Student, DocumentStatus
 
+from core.export_rating_excel import generate_rating_excel_pandas
+from core.student_rating_query_set_mixin import StudentRatingQuerySetMixin
 
+class RatingExportAPIView(StudentRatingQuerySetMixin, GenericAPIView):
+    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+
+    @extend_schema(summary="Экспорт рейтинга в Excel")
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_base_rating_queryset()
+        excel_bytes = generate_rating_excel_pandas(queryset)
+
+        response = HttpResponse(
+            excel_bytes,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="student_rating.xlsx"'
+        return response
 
 class ReviewDocumentAPIView(APIView):
     """

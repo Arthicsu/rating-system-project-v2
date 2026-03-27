@@ -218,7 +218,7 @@ export default function StudentRating() {
                   >
                     <option value="all">Все</option>
                     {availableGroups.map(g => (
-                      <option key={g.id} value={g.name}>{g.name}</option>
+                      <option key={g.id} value={g.id}>{g.name} ({g.academic_year})</option>
                     ))}
                   </select>
                 </div>
@@ -302,7 +302,7 @@ export default function StudentRating() {
                         >
                           <option value="all">Все</option>
                           {availableGroups.map(g => (
-                            <option key={g.id} value={g.name}>{g.name} ({g.academic_year})</option>
+                            <option key={g.id} value={g.id}>{g.name} ({g.academic_year})</option>
                           ))}
                         </select>
                       </div>

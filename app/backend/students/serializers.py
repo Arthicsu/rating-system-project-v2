@@ -25,7 +25,6 @@ class StudentRatingSerializer(serializers.ModelSerializer):
             'group', 
             'course', 
             'faculty',
-            'admission_year',
             'total_score',
             'academic_score', 
             'research_score', 

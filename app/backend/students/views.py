@@ -15,11 +15,11 @@ from .models import Document, Student, Level, AchievementResult, DocType, Catego
 from .scoring import get_cached_metadata, get_scoring_structure, calculate_achievement_score
 
 import json, uuid
-from supabase import create_client, Client
+# from supabase import create_client, Client
 from backend.settings import SUPABASE_KEY, SUPABASE_URL, SUPABASE_BUCKET_NAME
 
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 @authentication_classes([SessionAuthentication])
@@ -247,17 +247,17 @@ def upload_achievement(request):
                             file.seek(0)
                             file_data = file.read()
 
-                            supabase.storage.from_(bucket_name).upload(
-                                path=storage_path,
-                                file=file_data,
-                                file_options={
-                                    "cache-control": "3600",
-                                    "upsert": "false",
-                                    "content-type": file.content_type
-                                }
-                            )
+                            # supabase.storage.from_(bucket_name).upload(
+                            #     path=storage_path,
+                            #     file=file_data,
+                            #     file_options={
+                            #         "cache-control": "3600",
+                            #         "upsert": "false",
+                            #         "content-type": file.content_type
+                            #     }
+                            # )
 
-                            file_url = supabase.storage.from_(bucket_name).get_public_url(storage_path)
+                            # file_url = supabase.storage.from_(bucket_name).get_public_url(storage_path)
 
                             DocumentFile.objects.create(
                                 document=document,

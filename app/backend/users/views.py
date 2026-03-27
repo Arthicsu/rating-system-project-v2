@@ -1,6 +1,7 @@
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, inline_serializer
 from drf_spectacular.types import OpenApiTypes
 
+
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
@@ -23,6 +24,7 @@ from .serializers import StudentRegistrationSerializer, AuthUserResponseSerializ
 from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
 from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer
 from core.pagination import StandardResultsSetPagination
+from core.student_rating_query_set_mixin import StudentRatingQuerySetMixin
 
 User = get_user_model()
 pagination_class = StandardResultsSetPagination
@@ -141,7 +143,7 @@ class RegistrationAPIView(CreateAPIView):
 
 class LoginAPIView(GenericAPIView):
     permission_classes = [AllowAny]
-    authentication_classes = [SessionAuthentication]  
+    authentication_classes = [SessionAuthentication]
     serializer_class = LoginRequestSerializer
 
     def post(self, request, *args, **kwargs):
@@ -180,13 +182,14 @@ class LogoutAPIView(APIView):
         logout(request)
         return Response(status=status.HTTP_200_OK)
 
+@method_decorator(cache_page(60 * 60 * 2), name='dispatch')
 class GroupAPIView(ListAPIView): 
     permission_classes = [AllowAny]
-    authentication_classes = []
+    authentication_classes = [SessionAuthentication]
     queryset = Group.objects.select_related('specialty__faculty').all()
     serializer_class = GroupSerializer
     pagination_class = None
-    @method_decorator(cache_page(60 * 60 * 2), name='dispatch')
+
     @extend_schema(
         summary="Список всех учебных групп",
         description="Возвращает полный список групп с информацией о факультете и специальности."
@@ -194,11 +197,11 @@ class GroupAPIView(ListAPIView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
+@method_decorator(cache_page(60 * 60 * 2), name='dispatch')
 class RatingFiltersAPIView(GenericAPIView):
     permission_classes = [AllowAny]
-    authentication_classes = []
+    authentication_classes = [SessionAuthentication]
 
-    @method_decorator(cache_page(60 * 60 * 2), name='dispatch')
     @extend_schema(
         summary="Данные для фильтров рейтинга",
         description="Возвращает списки факультетов, курсов и групп для построения фильтров на клиенте.",
@@ -225,64 +228,34 @@ class RatingFiltersAPIView(GenericAPIView):
             "faculties": list(faculties),
             "courses": list(courses),
             "groups": list(groups),
-        }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)      
 
-      
+@method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
 class CategoryAchievementAPIView(ListAPIView):
     permission_classes = [AllowAny]
-    authentication_classes = []
+    authentication_classes = [SessionAuthentication]
     serializer_class = CategorySerializer
     queryset = Category.objects.all()
     pagination_class = None
 
-    @method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-class RatingListAPIView(ListAPIView):
+@method_decorator(cache_page(60 * 15), name='dispatch')
+@method_decorator(vary_on_headers('Cookie'), name='dispatch')
+class RatingListAPIView(StudentRatingQuerySetMixin, ListAPIView):
     permission_classes = [AllowAny]
-    authentication_classes = []
+    authentication_classes = [SessionAuthentication]
     serializer_class = StudentRatingSerializer
     
-    @method_decorator(cache_page(60), name='dispatch')
-    @method_decorator(vary_on_headers('Cookie'), name='dispatch')
     def get(self, request, *args, **kwargs):
         """
-        Кэшируем весь метод GET. 
         super().get сам вызовет get_queryset, пагинацию и сериализатор.
         """
         return super().get(request, *args, **kwargs)
     
     def get_queryset(self):
-        faculty = self.request.query_params.get('faculty', 'all')
-        course = self.request.query_params.get('course', 'all')
-        group = self.request.query_params.get('group', 'all')
-        category = self.request.query_params.get('category', 'common')
-
-        queryset = Student.objects.select_related('group', 'faculty').all()
-
-        # Фильтры
-        if faculty != 'all':
-            queryset = queryset.filter(faculty__short_name=faculty)
-        if course != 'all':
-            queryset = queryset.filter(group__course=course)
-        if group != 'all':
-            queryset = queryset.filter(group__name=group)
-
-        # Медленная сортировка (ну рили)
-        if category == 'common':
-            queryset = queryset.annotate(
-                _db_total_score=ExpressionWrapper(
-                    F('academic_score') + F('social_score') + 
-                    F('sport_score') + F('research_score') + F('cultural_score'),
-                    output_field=IntegerField()
-                )
-            ).order_by('-_db_total_score', 'full_name')
-        else:
-            sort_field = f"{category}_score"
-            queryset = queryset.order_by(f"-{sort_field}", "full_name")
-            
-        return queryset
+        return self.get_base_rating_queryset()
 
 class ProfileAPIView(APIView):
     """
@@ -401,6 +374,7 @@ class ProfileAPIView(APIView):
 
         return Response(response_data)
 
+@method_decorator(cache_page(60), name='dispatch')
 class PublicProfileAPIView(APIView):
     """
     API-представление для просмотра профиля студента.
