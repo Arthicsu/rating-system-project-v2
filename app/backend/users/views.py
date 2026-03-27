@@ -219,7 +219,7 @@ class RatingFiltersAPIView(GenericAPIView):
         
         groups = Group.objects.annotate(
             faculty_short_name=F('specialty__faculty__short_name')
-        ).values('id', 'name', 'course', 'faculty_short_name')
+        ).values('id', 'name', 'course', 'faculty_short_name', 'academic_year')
 
         return Response({
             "faculties": list(faculties),
