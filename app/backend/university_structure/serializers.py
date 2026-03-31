@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Faculty, Department, Specialty, Group, Staff
+from .models import Faculty, Department, Specialty, Group, Staff, RejectionReason, AcademicYear
 
 class FacultySerializer(serializers.ModelSerializer):
     class Meta:
@@ -46,3 +46,13 @@ class StaffSerializer(serializers.ModelSerializer):
     class Meta:
         model = Staff
         fields = ['id', 'full_name', 'email', 'phone', 'department_name', 'faculty_name']
+
+class RejectionReasonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RejectionReason
+        fields = ['id', 'text']
+
+class AcademicYearSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AcademicYear
+        fields = ['__all__']

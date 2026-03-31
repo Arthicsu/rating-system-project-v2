@@ -1,8 +1,10 @@
 from django.contrib import admin
 from django.db import transaction
 from django.contrib.auth.models import Group as DjangoGroup
+from django.contrib import messages
 
 from core.admin_password_generator import generate_password
+from core.admin_save_generated_password_for_user import log_generated_passwords
 from core.admin_import_csv import CsvImport
 from core.admin_import_json import JsonImport
 from university_structure.models import Faculty, Department, Group, Staff
@@ -25,10 +27,11 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
         return self.get_import_urls() + urls
 
     def process_import_csv(self, data):
+        new_credentials = []
+
         with transaction.atomic():
             g_student, _ = DjangoGroup.objects.get_or_create(name='Student')
 
-            # --- 1. ПРЕДЗАГРУЗКА ДАННЫХ В ПАМЯТЬ (Убиваем лишние SELECT) ---
             # select_related тянет сразу и специальность, и кафедру за 1 запрос
             groups_map = {
                 g.external_id: g 
@@ -58,7 +61,6 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                 patronymic = clean_val('Отчество')
                 status_decoding = clean_val('Расшифровка_Статуса')
 
-                # --- 2. ДОСТАЕМ СВЯЗИ ИЗ ОПЕРАТИВНОЙ ПАМЯТИ ---
                 group_code = clean_val('Код_Группы')
                 group = groups_map.get(group_code)
                 
@@ -71,8 +73,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                 is_monitor = clean_val('Староста') == '1'
                 admission_year_raw = clean_val('Год_Поступления')
                 admission_year = int(admission_year_raw) if admission_year_raw.isdigit() else None
-                # if admission_year not in [2023,2024]:
-                #     continue
+
                 student = Student.objects.filter(external_id=external_id).first()
 
                 if student:
@@ -86,20 +87,26 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                 else:
                     # Если студента нет, создаем/обновляем юзера по username
                     username = email if email else f"student_{external_id}"
-                    user, created = User.objects.update_or_create(
+                    password = generate_password()
+                    user = User.objects.create_user(
                         username=username,
-                        defaults={
-                            "email": email,
-                            "first_name": first_name,
-                            "last_name": last_name,
-                            "patronymic": patronymic,
-                        }
+                        password=password,
+                        email=email,
+                        first_name=first_name,
+                        last_name=last_name,
+                        patronymic=patronymic,
                     )
-                    if created:
-                        user.set_password(generate_password())
-                        user.save()
-
-                user.groups.add(g_student)
+                    user.save() 
+                    user.groups.add(g_student)
+                    # Это для списка логирования ФИО, группы, логина и пароля,
+                    new_credentials.append({
+                        'group_code': group_code,
+                        'group': group,
+                        'admission_year': admission_year,
+                        'full_name': f"{last_name} {first_name} {patronymic}".strip(),
+                        'login': username,
+                        'password': password
+                    })
 
                 # 2. Теперь сохраняем студента через update_or_create
                 Student.objects.update_or_create(
@@ -117,6 +124,17 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                         "is_monitor": is_monitor,
                     }
                 )
+
+        if new_credentials:
+            filename, _ = log_generated_passwords(new_credentials, prefix="students")
+            self.message_user(
+                self.request, 
+                f"Импорт завершен. Создано {len(new_credentials)} записей. "
+                f"Файл с паролями: media/import_passwords/{filename}",
+                messages.SUCCESS
+            )
+        else:
+            self.message_user(self.request, "Данные обновлены. Новых пользователей не создано.", messages.SUCCESS)
 
 @admin.register(Level)
 class LevelAdmin(admin.ModelAdmin):
@@ -278,7 +296,7 @@ class DocumentFileInline(admin.TabularInline):
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
     list_display = (
-        'student__record_book', 'student__group__specialty__faculty', 'achievement', 
+        'user__student_profile__record_book', 'user__student_profile__group__specialty__faculty', 'achievement', 
         'category', 'sub_type', 'level', 'result', 'score', 
         'status', 'date_received'
     )

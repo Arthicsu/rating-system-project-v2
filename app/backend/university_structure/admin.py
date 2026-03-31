@@ -3,8 +3,9 @@ from django.db import transaction
 from django.contrib.auth.models import Group as DjangoGroup
 
 from core.admin_import_csv import CsvImport
+
 from users.models import User
-from .models import Faculty, Department, Group, Staff, Specialty
+from .models import Faculty, Department, Group, Staff, Specialty, RejectionReason, AcademicYear
 
 
 @admin.register(Staff)
@@ -107,8 +108,8 @@ class FacultyAdmin(admin.ModelAdmin, CsvImport):
 @admin.register(Specialty)
 class SpecialtyAdmin(admin.ModelAdmin, CsvImport):
     list_display = ('external_id', 'code_fgos', 'name', 'faculty', 'department')
-    list_filter = ('faculty', 'department')
-    search_fields = ('external_id', 'code_fgos', 'name')
+    list_filter = ['faculty', 'department']
+    search_fields = ['external_id', 'code_fgos', 'name']
     change_list_template = "admin/specialty_change_list.html"
 
     def get_urls(self):
@@ -117,20 +118,32 @@ class SpecialtyAdmin(admin.ModelAdmin, CsvImport):
     def process_import_csv(self, data):
         with transaction.atomic():
             for row in data:
-                faculty = Faculty.objects.filter(external_id=row.get('Код_Факультета')).first()
-                department = Department.objects.filter(external_id=row.get('Код_Кафедры')).first()
+                ext_id = row.get('Код')
+                dep_code = row.get('Код_Кафедры')
+                fac_code = row.get('Код_Факультета')
+                code_fgos = row.get('Код_по_ФГОС')
+                name = row.get('Название_Спец')
+
+                if not all([ext_id, dep_code, fac_code, code_fgos, name]):
+                    continue
+
+                faculty = Faculty.objects.filter(external_id=fac_code).first()
+                department = Department.objects.filter(external_id=dep_code).first()
+
+                if not faculty or not department:
+                    continue
                 
                 Specialty.objects.update_or_create(
                     external_id=row.get('Код'),
                     defaults={
-                        'code_fgos': row.get('Код_по_ФГОС'),
-                        'name': row.get('Название_Спец'),
+                        'code_fgos': code_fgos,
+                        'name': name,
                         'faculty': faculty,
                         'department': department,
                         'qualification': row.get('Квалификация', '-'),
                         'specialty_type': row.get('Специальность', '-'),
-                        'prefix': row.get('Префикс'),
-                        'parent_code': row.get('КодРодителя')
+                        'prefix': row.get('Префикс', '-'),
+                        'parent_code': row.get('КодРодителя', '-')
                     }
                 )
 
@@ -146,6 +159,12 @@ class DepartmentAdmin(admin.ModelAdmin, CsvImport):
     def process_import_csv(self, data):
         with transaction.atomic():
             for row in data:
+                def clean_val(key):
+                    val = str(row.get(key, '')).strip()
+                    return 0 if val.upper() == 'NULL' else val
+                status = clean_val('Удалена')
+                if status == 1:
+                    continue
                 faculty = Faculty.objects.filter(external_id=row.get('Код_Факультета')).first()
                 Department.objects.update_or_create(
                     external_id=row.get('Код'),
@@ -155,13 +174,14 @@ class DepartmentAdmin(admin.ModelAdmin, CsvImport):
                         'faculty': faculty,
                         'phone': row.get('Телефон', '-'),
                         'head_name': row.get('ЗавКафедрой', '-'),
+                        'status': status
                     }
                 )
 
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin, CsvImport):
     list_display = ('external_id', 'name', 'get_faculty', 'get_department', 'get_specialty', 'course', 'education_level_decode', 'education_form_decode', 'academic_year')
-    list_filter = ('specialty__faculty', 'course', 'education_form')
+    list_filter = ('specialty__faculty', 'specialty__department' ,'course', 'education_form_decode')
     search_fields = ('external_id', 'name', 'specialty__name')
     change_list_template = "admin/group_change_list.html"
 
@@ -180,14 +200,27 @@ class GroupAdmin(admin.ModelAdmin, CsvImport):
     def get_urls(self):
         return self.get_import_urls() + super().get_urls()
 
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related('specialty', 'specialty__faculty', 'specialty__department')
+
     def process_import_csv(self, data):
         with transaction.atomic():
             for row in data:
-                # Нет нужных специальностей, поэтому групп некоторых нет
-                specialty = Specialty.objects.filter(external_id=row.get('Код_специальности')).first()
-                if specialty == None:
+                spec_code = row.get('Код_специальности')
+                specialty = Specialty.objects.filter(external_id=spec_code).first()
+                
+                if not specialty:
+                    # print(f"Специальность {spec_code} не найдена")
                     continue
 
+                def clean_val(key):
+                    val = str(row.get(key, '')).strip()
+                    return 0 if val.upper() == 'NULL' else val
+                status = clean_val('Удалена')
+                if status == 1:
+                    continue
+                
                 Group.objects.update_or_create(
                     external_id=row.get('Код'),
                     defaults={
@@ -199,6 +232,19 @@ class GroupAdmin(admin.ModelAdmin, CsvImport):
                         'education_level': row.get('Уровень', '-'),
                         'education_level_decode': row.get('Название_Уровня', ''),
                         'education_form': row.get('Форма_Обучения', '-'),
-                        'education_form_decode': row.get('Название_Формы_Обучения', '')
+                        'education_form_decode': row.get('Название_Формы_Обучения', ''),
+                        # 'status': status
                     }
                 )
+
+@admin.register(RejectionReason)
+class RejectionReasonAdmin(admin.ModelAdmin):
+    list_display = ('text', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('text',)
+
+@admin.register(AcademicYear)
+class AcademicYearAdmin(admin.ModelAdmin):
+    list_display = ('label', 'start_date', 'end_date', 'is_current')
+    list_filter = ('is_current',)
+    search_fields = ('label',)

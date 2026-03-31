@@ -12,8 +12,12 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.http import HttpResponse
 from django.db.models import Avg, F, Count, Q, ExpressionWrapper, IntegerField
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 
-from university_structure.models import Faculty, Group
+from .serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RejectionReasonSerializer, AcademicYearSerializer
+from .models import Faculty, Group, RejectionReason, AcademicYear
 from students.models import Document, Student, DocumentStatus
 
 from core.export_rating_excel import generate_rating_excel_pandas
@@ -187,3 +191,25 @@ class ReviewDocumentAPIView(APIView):
                 return Response({"message": "Решение отменено руководством. Заявка возвращена на рассмотрение, баллы вычтены."}, status=status.HTTP_200_OK)
             return Response({"error": "Руководство может только отклонять заявки"}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"error": "Неизвестная ошибка"}, status=status.HTTP_400_BAD_REQUEST)
+
+@method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
+class RejectionReasonListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [SessionAuthentication]
+    serializer_class = RejectionReasonSerializer
+    queryset = RejectionReason.objects.filter(is_active=True)
+    pagination_class = None
+
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+@method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
+class AcademicYearListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [SessionAuthentication]
+    serializer_class = AcademicYearSerializer
+    queryset = AcademicYear.objects.all()
+    pagination_class = None
+
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)

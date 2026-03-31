@@ -25,7 +25,8 @@ class Department(models.Model):
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='departments', null=True, blank=True, verbose_name="Факультет")
     phone = models.CharField("Телефон", max_length=20, blank=True, null=True)
     head_name = models.CharField("Зав. кафедрой", max_length=255, blank=True)
-
+    status = models.PositiveIntegerField(default=0, null=True)
+    
     def __str__(self) -> str:
         return self.short_name
 
@@ -55,7 +56,7 @@ class Specialty(models.Model):
 class Group(models.Model):    
     external_id = models.CharField("Код группы", max_length=50, unique=True, help_text="Код группы из БД вуза")
     name = models.CharField("Название группы", max_length=50)
-    specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE, verbose_name="Специальность")
+    specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Специальность")
     course = models.PositiveSmallIntegerField("Курс")
     academic_year = models.CharField("Учебный год", max_length=20)
     education_duration = models.CharField("Срок обучения", max_length=50, blank=True, null=True)
@@ -63,6 +64,7 @@ class Group(models.Model):
     education_level_decode = models.CharField("Название уровеня", max_length=100)
     education_form = models.CharField("Форма обучения", max_length=5)
     education_form_decode = models.CharField("Название формы обучения", max_length=100)
+    status = models.PositiveIntegerField(default=0, null=True)
     
     def __str__(self):
         return self.name
@@ -87,3 +89,28 @@ class Staff(models.Model):
     class Meta:
         verbose_name = "Сотрудник"
         verbose_name_plural = "Сотрудники"
+
+class RejectionReason(models.Model):
+    text = models.CharField("Текст причины", max_length=255, unique=True)
+    is_active = models.BooleanField("Активна", default=True, help_text="Если снять галочку, причина не будет предлагаться при новых отказах")
+
+    def __str__(self) -> str:
+        return self.text
+
+    class Meta:
+        verbose_name = "Причина отказа"
+        verbose_name_plural = "Причины отказа"
+
+class AcademicYear(models.Model):
+    label = models.CharField("Название периода", max_length=100)
+    start_date = models.DateField("Дата начала")
+    end_date = models.DateField("Дата окончания")
+    is_current = models.BooleanField("Текущий семестр", default=False)
+
+    def __str__(self):
+        return self.label
+
+    class Meta:
+        verbose_name = "Учебный период"
+        verbose_name_plural = "Учебные периоды"
+        ordering = ['-start_date']
