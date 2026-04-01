@@ -10,9 +10,9 @@ from .models import Faculty, Department, Group, Staff, Specialty, RejectionReaso
 
 @admin.register(Staff)
 class StaffAdmin(admin.ModelAdmin, CsvImport):
-    list_display = ('get_roles', 'department', 'faculty')
+    list_display = ('email', 'get_roles', 'department', 'faculty')
     list_filter = ('faculty', 'department', 'user__groups')
-    search_fields = ('department__name', 'faculty__name')
+    search_fields = ('email', 'department__name', 'faculty__name')
 
     def get_roles(self, obj):
         return ", ".join([group.name for group in obj.user.groups.all()])
@@ -24,7 +24,7 @@ class StaffAdmin(admin.ModelAdmin, CsvImport):
         urls = super().get_urls()
         return self.get_import_urls() + urls
         
-    def process_import_csv(self, data):
+    def process_import_csv(self, request, data):
         with transaction.atomic():
             # Факультеты
             
@@ -39,23 +39,22 @@ class StaffAdmin(admin.ModelAdmin, CsvImport):
             g_rector, _ = DjangoGroup.objects.get_or_create(name='Rectorate')
 
             # Сотрудники
-            for staff_data in data.get('staffs', []):
+            for row in data:
                 user, created = User.objects.update_or_create(
-                    username=staff_data['username'],
+                    username=row['username'],
                     defaults={
-                        "email": staff_data.get('email', staff_data['username']),
-                        "first_name": staff_data.get('first_name', ''),
-                        "last_name": staff_data.get('last_name', ''),
-                        "patronymic": staff_data.get('patronymic', ''),
+                        "first_name": row.get('first_name', ''),
+                        "last_name": row.get('last_name', ''),
+                        "patronymic": row.get('patronymic', ''),
                         "is_staff": True, 
                     }
                 )
                 if created:
-                    user.set_password(staff_data.get('password', 'ZAQ123wsx'))
+                    user.set_password(row.get('password'))
                     user.save()
                 
                 user.groups.clear()
-                role_input = staff_data.get('role', '')
+                role_input = row.get('role', '')
                 if role_input == 'Декан':
                     user.groups.add(g_dean)
                 elif role_input == 'Ректорат':
@@ -63,17 +62,18 @@ class StaffAdmin(admin.ModelAdmin, CsvImport):
                 else:
                     user.groups.add(g_dept)
                 
-                department = Department.objects.filter(external_id=staff_data.get('department_id')).first()
-                faculty = Faculty.objects.filter(external_id=staff_data.get('faculty_id')).first()
+                department = Department.objects.filter(external_id=row.get('department_id')).first()
+                faculty = Faculty.objects.filter(external_id=row.get('faculty_id')).first()
                 if department and not faculty:
                     faculty = department.faculty
 
                 Staff.objects.update_or_create(
                     user=user,
                     defaults={
+                        "email": row.get('email', row['username']),
                         "department": department,
                         "faculty": faculty,
-                        "phone": staff_data.get('phone', '-'),
+                        "phone": row.get('phone', '-'),
                     }
                 )
 
@@ -90,7 +90,7 @@ class FacultyAdmin(admin.ModelAdmin, CsvImport):
     def get_urls(self):
         return self.get_import_urls() + super().get_urls()
 
-    def process_import_csv(self, data):
+    def process_import_csv(self, request, data):
         with transaction.atomic():
             for row in data:
                 Faculty.objects.update_or_create(
@@ -115,7 +115,7 @@ class SpecialtyAdmin(admin.ModelAdmin, CsvImport):
     def get_urls(self):
         return self.get_import_urls() + super().get_urls()
 
-    def process_import_csv(self, data):
+    def process_import_csv(self, request, data):
         with transaction.atomic():
             for row in data:
                 ext_id = row.get('Код')
@@ -156,7 +156,7 @@ class DepartmentAdmin(admin.ModelAdmin, CsvImport):
     def get_urls(self):
         return self.get_import_urls() + super().get_urls()
 
-    def process_import_csv(self, data):
+    def process_import_csv(self, request, data):
         with transaction.atomic():
             for row in data:
                 def clean_val(key):
@@ -204,7 +204,7 @@ class GroupAdmin(admin.ModelAdmin, CsvImport):
         queryset = super().get_queryset(request)
         return queryset.select_related('specialty', 'specialty__faculty', 'specialty__department')
 
-    def process_import_csv(self, data):
+    def process_import_csv(self, request, data):
         with transaction.atomic():
             for row in data:
                 spec_code = row.get('Код_специальности')

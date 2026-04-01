@@ -78,7 +78,7 @@ class Staff(models.Model):
     Модель сотрудника университета. Позже распишу что и как (мне пока лень)
     """
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='staff_profile')
-
+    email = models.EmailField("Email", blank=True, null=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='staff', null=True, blank=True, verbose_name="Кафедра")
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='staff', null=True, blank=True, verbose_name="Факультет")
     phone = models.CharField("Телефон", max_length=20, null=True, blank=True)
