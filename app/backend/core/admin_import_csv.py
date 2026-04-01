@@ -38,7 +38,7 @@ class CsvImport:
                     delimiter = ';' if ';' in csv_lines[0] else ','
                     data = list(csv.DictReader(csv_lines, delimiter=delimiter))
                     
-                    self.process_import_csv(data)
+                    self.process_import_csv(request, data)
                     self.message_user(request, f"Успешно обработано {len(data)} строк.", messages.SUCCESS)
                 except Exception as e:
                     self.message_user(request, f"Ошибка при импорте: {e}", messages.ERROR)
@@ -51,5 +51,5 @@ class CsvImport:
         }
         return render(request, self.import_template, context)
 
-    def process_import_csv(self, data):
+    def process_import_csv(self, request, data):
         raise NotImplementedError("Нужно реализовать этот метод")

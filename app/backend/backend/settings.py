@@ -208,10 +208,11 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+CONFIG_FILE_ROOT = os.path.join(BASE_DIR, 'config-files')
 
 AUTH_USER_MODEL = 'users.User'
 
-SCORING_CONFIG_PATH = os.path.join(BASE_DIR, 'config-files/scoring_json/' ,'scoring_config.json')
+SCORING_CONFIG_PATH = os.path.join(CONFIG_FILE_ROOT, 'scoring_json/' ,'scoring_config.json')
 
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')

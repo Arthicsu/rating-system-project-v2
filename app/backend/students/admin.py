@@ -26,7 +26,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
         urls = super().get_urls()
         return self.get_import_urls() + urls
 
-    def process_import_csv(self, data):
+    def process_import_csv(self, request, data):
         new_credentials = []
 
         with transaction.atomic():
@@ -37,12 +37,20 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                 g.external_id: g 
                 for g in Group.objects.select_related('specialty__department').all()
             }
+            # кешируем все факультеты
             faculties_map = {
                 f.external_id: f 
                 for f in Faculty.objects.all()
             }
-
+            
+            # кешируем существующих студентов по external_id
+            existing_students = {
+                s.external_id: s 
+                for s in Student.objects.select_related('user').all()
+            }
+            
             for row in data:
+                total_processed += 1
                 def clean_val(key):
                     val = str(row.get(key, '')).strip()
                     return '' if val.upper() == 'NULL' else val
@@ -74,7 +82,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                 admission_year_raw = clean_val('Год_Поступления')
                 admission_year = int(admission_year_raw) if admission_year_raw.isdigit() else None
 
-                student = Student.objects.filter(external_id=external_id).first()
+                student = existing_students.get(external_id)
 
                 if student:
                     # Если студент есть, работаем с его существующим юзером
@@ -85,13 +93,13 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                     user.patronymic = patronymic
                     user.save()
                 else:
+                    created_counter += 1
                     # Если студента нет, создаем/обновляем юзера по username
                     username = email if email else f"student_{external_id}"
                     password = generate_password()
                     user = User.objects.create_user(
                         username=username,
                         password=password,
-                        email=email,
                         first_name=first_name,
                         last_name=last_name,
                         patronymic=patronymic,
@@ -116,6 +124,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                         "full_name": user.get_full_username(),
                         "group": group,
                         "department": department,
+                        "email": email,
                         "faculty": faculty,
                         "record_book": record_book,
                         "status": str(status),
@@ -125,16 +134,26 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                     }
                 )
 
+                if created_counter > 0 and created_counter % 10 == 0:
+                    # Не выводили ли мы уже сообщение для этого десятка
+                    last_notified = getattr(self, '_last_notified_count', 0)
+                    if created_counter != last_notified:
+                        self.message_user(
+                            request, 
+                            f"Создано {created_counter} новых студентов...", 
+                            messages.INFO
+                        )
+                        self._last_notified_count = created_counter
+
         if new_credentials:
             filename, _ = log_generated_passwords(new_credentials, prefix="students")
             self.message_user(
-                self.request, 
-                f"Импорт завершен. Создано {len(new_credentials)} записей. "
-                f"Файл с паролями: media/import_passwords/{filename}",
+                request,
+                f"Файл с паролями: config-files/import_passwords/{filename}",
                 messages.SUCCESS
             )
         else:
-            self.message_user(self.request, "Данные обновлены. Новых пользователей не создано.", messages.SUCCESS)
+            self.message_user(request, "Данные обновлены. Новых пользователей не создано.", messages.SUCCESS)
 
 @admin.register(Level)
 class LevelAdmin(admin.ModelAdmin):

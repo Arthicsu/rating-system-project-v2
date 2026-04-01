@@ -12,7 +12,7 @@ def log_generated_passwords(credentials_list, prefix="students"):
     if not credentials_list:
         return None
 
-    folder_path = os.path.join(settings.MEDIA_ROOT, 'import_passwords')
+    folder_path = os.path.join(settings.CONFIG_FILE_ROOT, 'import_passwords')
     if not os.path.exists(folder_path):
         os.makedirs(folder_path, exist_ok=True)
 
