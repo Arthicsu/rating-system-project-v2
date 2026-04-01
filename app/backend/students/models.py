@@ -1,7 +1,10 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+
 from university_structure.models import Group, Faculty, Department
+
+import uuid
 
 
 class Student(models.Model):
@@ -233,6 +236,21 @@ class Document(models.Model):
         verbose_name_plural = "Документы"
         ordering = ['-uploaded_at']
 
+def achievement_directory_path(instance, filename):
+    """
+    Генерирует путь для сохранения файла в SeaweedFS.
+    Формат: <зачетка_студента>/<uuid>.<расширение>
+    """
+    ext = filename.split('.')[-1]
+    unique_name = f"{uuid.uuid4()}.{ext}"
+    
+    try:
+        record_book = instance.document.user.student_profile.record_book
+    except AttributeError:
+        record_book = 'unknown_student'
+        
+    return f"{record_book}/{unique_name}"
+
 class DocumentFile(models.Model):
     """
     Модель для хранения файлов, прикреплённых к документу достижения.
@@ -240,9 +258,10 @@ class DocumentFile(models.Model):
     """
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='files', verbose_name="Документ")
     original_file_name = models.CharField("Оригинальное имя файла", max_length=255, default='NO_FILENAME')
-    file_url = models.URLField("Ссылка на файл", max_length=500, null=True, blank=True)
+    file = models.FileField("Файл", upload_to=achievement_directory_path)
     uploaded_at = models.DateTimeField("Дата загрузки", auto_now_add=True)
     order = models.PositiveSmallIntegerField("Порядок", default=0, help_text="Для сортировки файлов")
+
 
     class Meta:
         verbose_name = "Файл документа"

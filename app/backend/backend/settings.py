@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'storages',
     'drf_spectacular',
     'main',
     'users',
@@ -189,6 +190,16 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
@@ -214,7 +225,10 @@ AUTH_USER_MODEL = 'users.User'
 
 SCORING_CONFIG_PATH = os.path.join(CONFIG_FILE_ROOT, 'scoring_json/' ,'scoring_config.json')
 
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY')
-SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY')
-SUPABASE_BUCKET_NAME = os.getenv('SUPABASE_BUCKET_NAME')
+AWS_ACCESS_KEY_ID = os.getenv('SEAWEEDFS_ACCESS_KEY')
+AWS_SECRET_ACCESS_KEY = os.getenv('SEAWEEDFS_SECRET_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('SEAWEEDFS_BUCKET_NAME')
+AWS_S3_ENDPOINT_URL = os.getenv('SEAWEEDFS_ENDPOINT_URL')
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = 'public-read'
+AWS_S3_VERIFY = False

@@ -133,12 +133,14 @@ class ReviewDocumentAPIView(APIView):
         if not is_staff:
             return Response({"error": "Нет прав модерации"}, status=status.HTTP_403_FORBIDDEN)
 
-        doc = get_object_or_404(Document.objects.select_related('status', 'category', 'student'), id=doc_id)
+        doc = get_object_or_404(Document.objects.select_related('status', 'category', 'user__student_profile'), id=doc_id)
         action = request.data.get('action')
 
         status_pending = get_object_or_404(DocumentStatus, code='pending')
         status_approved = get_object_or_404(DocumentStatus, code='approved')
         status_rejected = get_object_or_404(DocumentStatus, code='rejected')
+
+        student = getattr(doc.user, 'student_profile', None)
 
         # позже заменим ответ
         if request.user.is_dept_staff:
@@ -150,7 +152,6 @@ class ReviewDocumentAPIView(APIView):
                 doc.verified_by = request.user
                 doc.save()
                 
-                student = doc.student
                 field_name = f"{doc.category.code}_score"
                 if hasattr(student, field_name):
                     setattr(student, field_name, getattr(student, field_name) + doc.score) 
@@ -173,7 +174,6 @@ class ReviewDocumentAPIView(APIView):
         if request.user.is_dean or request.user.is_rectorate:
             if action == 'reject':
                 if doc.status.code == 'approved':
-                    student = doc.student
                     field_name = f"{doc.category.code}_score"
                     if hasattr(student, field_name):
                         new_score = max(0, getattr(student, field_name) - doc.score)

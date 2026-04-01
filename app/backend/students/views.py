@@ -14,9 +14,17 @@ from .serializers import DocumentSerializer, StudentProfileSerializer, CategoryS
 from .models import Document, Student, Level, AchievementResult, DocType, Category, AchievementType, DocumentStatus, DocumentFile
 from .scoring import get_cached_metadata, get_scoring_structure, calculate_achievement_score
 
+
+from rest_framework.generics import CreateAPIView
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import AchievementUploadSerializer
+
 import json, uuid
 # from supabase import create_client, Client
-from backend.settings import SUPABASE_KEY, SUPABASE_URL, SUPABASE_BUCKET_NAME
+# from backend.settings import SUPABASE_KEY, SUPABASE_URL, SUPABASE_BUCKET_NAME
 
 
 # supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -153,133 +161,25 @@ def get_achievement_config(request) -> Response:
     }
     return Response(data)
 
-# пока уберу
-@api_view(['POST'])
-@authentication_classes([SessionAuthentication])
-@permission_classes([IsAuthenticated])
-def upload_achievement(request):
+class AchievementUploadView(CreateAPIView):
     """
-    Обрабатывает загрузку нового достижения студента.
-
-    Принимает POST-запрос с данными о достижении и прикреплёнными файлами,
-    сохраняет файл в облачное хранилище (Supabase Storage было тестовым решением, далее будем переделывать в зависимости от требований), 
-
-    создаёт запись в модели Document 
-    и начисляет баллы на основе категории, подтипа, уровня и результата.
-
-    Параметры запроса (в form-data):
-        record_book (str): Номер зачётной книжки студента (обязательный).
-        category (str): Категория достижения (например, 'academic', 'sport').
-        sub_type (str): Подтип достижения (например, 'olympiad', 'grades').
-        level (str): Уровень мероприятия (например, 'university', 'russian'). По умолчанию None.
-        result (str): Результат участия (например, '1', 'excellent'). По умолчанию None.
-        achievement (str): Описание или название достижения.
-        doc_type (str): Тип документа (например, 'diploma', 'certificate'). По умолчанию 'other'.
-        files (list of files): Один или несколько файлов, подтверждающих достижение.
-
-    Логика работы:
-        1. Находит студента по номеру зачётной книжки (без учёта регистра).
-        2. Вычисляет баллы с помощью функции calculate_achievement_score.
-        3. Загружает каждый файл в Supabase Storage с уникальным именем.
-        4. Сохраняет публичную ссылку на файл и все данные в модели Document со статусом 'pending'.
-
-    Возвращает:
-        Response: 
-            - 201 Created — при успешной загрузке.
-            - 500 Internal Server Error - если студент не найден, файл не загрузился или произошла ошибка валидации.
-
-    Особенности:
-        - Использует bucket с именем "achievement".
-        - Для каждого файла генерируется уникальное имя на основе UUID для избежания коллизий.
-        - При ошибке загрузки любого из файлов возвращается ошибка, и дальнейшая обработка прерывается.
-        - CSRF отключён, так как предполагается использование API без сессий.
-
-    Пример успешного ответа:
-        HTTP 201 Created
+    Обрабатывает загрузку нового достижения студента и файлов в SeaweedFS.
+    
+    Принимает multipart/form-data. Файлы загружаются параллельно в S3, 
+    а метаданные сохраняются в БД.
     """
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [SessionAuthentication]
+    parser_classes = [MultiPartParser, FormParser]
+    serializer_class = AchievementUploadSerializer
+    pagination_class = None
     
-    if request.method == 'POST':
-        record_book = request.POST.get('record_book', '').strip()
-        category = request.POST.get('category')
-        sub_type = request.POST.get('sub_type')
-        level = request.POST.get('level', None)
-        result = request.POST.get('result', None)
-        achievement_text = request.POST.get('achievement', '')
-        files = request.FILES.getlist('files')
-        doc_type = request.POST.get('doc_type', 'other')
-
-        score = calculate_achievement_score(category, sub_type, level, result)
-    
-        try:
-            student = Student.objects.get(record_book__iexact=record_book)
-            category_obj = Category.objects.get(code=category)
-            sub_type_obj = AchievementType.objects.get(category=category_obj, code=sub_type)
-            status_obj = DocumentStatus.objects.get(code='pending')
-            doc_type_obj = DocType.objects.get(code=doc_type)
-            
-            level_obj = Level.objects.filter(code=level).first()
-            result_obj = AchievementResult.objects.filter(code=result).first()
-
-            bucket_name = SUPABASE_BUCKET_NAME
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
         
-            with transaction.atomic():
-                document = Document.objects.create(
-                    student=student,
-                    category=category_obj,
-                    sub_type=sub_type_obj,
-                    level=level_obj,
-                    result=result_obj,
-                    achievement=achievement_text,
-                    score=score,
-                    doc_type=doc_type_obj,
-                    status=status_obj
-                )
-                
-                if files:
-                    for order, file in enumerate(files):
-                        ext = file.name.split('.')[-1]
-                        unique_name = f"{uuid.uuid4()}.{ext}"
-                        storage_path = f"{student.record_book}/{unique_name}"
-                        file_size = file.size
-                        try:
-                            if file_size > 20 * 1024 * 1024:  # Ограничение на размер файла (20 МБ)
-                                raise ValueError(f'Файл {file.name} слишком большой. Максимальный размер 20 МБ.')
-                            file.seek(0)
-                            file_data = file.read()
-
-                            # supabase.storage.from_(bucket_name).upload(
-                            #     path=storage_path,
-                            #     file=file_data,
-                            #     file_options={
-                            #         "cache-control": "3600",
-                            #         "upsert": "false",
-                            #         "content-type": file.content_type
-                            #     }
-                            # )
-
-                            # file_url = supabase.storage.from_(bucket_name).get_public_url(storage_path)
-
-                            DocumentFile.objects.create(
-                                document=document,
-                                original_file_name=file.name,
-                                file_url=file_url,
-                                order=order
-                            )
-
-                        except ValueError as ve:
-                            print(f"Ошибка валидации для файла {file.name}: {ve}")
-                            raise
-                            return Response({'error': f'Файл {file.name} слишком большой. Максимальный размер 20 МБ.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                        except Exception as e:
-                            print(f"Ошибка загрузки файла {file.name}: {e}")
-                            raise
-                            return Response({'error': f'{str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-        except Student.DoesNotExist:
-            return Response({'error': f'Студент {record_book} не найден'}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return Response({'error': f'{str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        return Response(status=status.HTTP_201_CREATED)
+        return Response(
+            {"detail": "Достижение успешно загружено и отправлено на модерацию."}, 
+            status=status.HTTP_201_CREATED
+        )

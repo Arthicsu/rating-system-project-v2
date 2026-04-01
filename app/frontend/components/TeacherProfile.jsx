@@ -2,27 +2,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import api from '@/lib/axios';
 
-const getSemesterRanges = () => {
-  const currentYear = new Date().getFullYear();
-  return [
-    { 
-      label: `Весна ${currentYear}`, 
-      start: new Date(currentYear, 1, 1), // 1 Февраля
-      end: new Date(currentYear, 7, 31)   // 31 Августа
-    },
-    { 
-      label: `Осень ${currentYear - 1}`, // Прошлая осень
-      start: new Date(currentYear - 1, 8, 1), // 1 Сентября
-      end: new Date(currentYear, 0, 31)   // 31 Января
-    },
-    { 
-        label: `Осень ${currentYear}`, // Текущая/Будущая осень
-        start: new Date(currentYear, 8, 1), 
-        end: new Date(currentYear + 1, 0, 31) 
-      },
-    { label: 'За всё время', start: null, end: null }
-  ];
-};
 
 export default function TeacherProfile({profile, isOwner}) {
   const [activeTab, setActiveTab] = useState(`my-group`);
@@ -48,8 +27,10 @@ export default function TeacherProfile({profile, isOwner}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [requestsSearchTerm, setRequestsSearchTerm] = useState('');
   
-  const semesterOptions = getSemesterRanges();
-  const [selectedSemester, setSelectedSemester] = useState(semesterOptions[0].label);
+  const [rejectionReasonsList, setRejectionReasonsList] = useState([]);
+  const [semesterOptions, setSemesterOptions] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedSemester, setSelectedSemester] = useState('');
 
   const openModal = (type, doc) => setModalState({ 
       type, 
@@ -66,7 +47,7 @@ export default function TeacherProfile({profile, isOwner}) {
   const filteredStudents = useMemo(() => {
     let students = localProfile.students_list || [];
     if (selectedGroupId != 'all') {
-      students = students.filter(s => s.group_id == Number(selectedGroupId));
+      students = students.filter(s => String(s.group_id) == String(selectedGroupId));
     }
     if (searchTerm.trim() != '') {
       const lowerTerm = searchTerm.toLowerCase();
@@ -82,7 +63,7 @@ export default function TeacherProfile({profile, isOwner}) {
   const filteredDocs = useMemo(() => {
     let docs = localProfile.pending_documents || [];
     if (selectedGroupId != 'all') {
-      docs = docs.filter(d => d.group_id == Number(selectedGroupId));
+      docs = docs.filter(d => String(d.group_id) == String(selectedGroupId));
     }
     const currentRange = semesterOptions.find(opt => opt.label == selectedSemester);
     if (currentRange && currentRange.start) {
@@ -102,40 +83,36 @@ export default function TeacherProfile({profile, isOwner}) {
 
   const dynamicStats = useMemo(() => {
     const students = filteredStudents;
-    const count = students.length;
-    
-    if (count == 0) return {
-      total_students: 0, avg_score: 0, max_score: 0, min_score: 0,
-      active_requests: 0, top5: [], categories: {}
+    const defaults = {
+      total_students: 0,
+      avg_score: 0,
+      max_score: 0,
+      min_score: 0,
+      active_requests: 0,
+      top5: [],
+      categories: {}
     };
+
+    if (students.length == 0) return {...defaults, active_requests: filteredDocs.length};
 
     const scores = students.map(s => s.total_score);
-    const totalSum = scores.reduce((acc, val) => acc + val, 0);
     
-    // Распределение по категориям (суммируем баллы из студентов)
-    const catStats = {
-      "Учебная": students.reduce((acc, s) => acc + (s.academic_score || 0), 0),
-      "Научная": students.reduce((acc, s) => acc + (s.research_score || 0), 0),
-      "Спорт": students.reduce((acc, s) => acc + (s.sport_score || 0), 0),
-      "Общественная": students.reduce((acc, s) => acc + (s.social_score || 0), 0),
-      "Культурно-творческая": students.reduce((acc, s) => acc + (s.cultural_score || 0), 0),
-    };
-
-    // Топ 5
-    const top5 = [...students]
-      .sort((a, b) => b.total_score - a.total_score)
-      .slice(0, 5);
+    const catStats = {};
+    categories.forEach(cat => {
+      const fieldName = `${cat.code}_score`;
+      catStats[cat.label] = students.reduce((acc, s) => acc + (s[fieldName] || 0), 0);
+    });
 
     return {
-      total_students: count,
-      avg_score: Math.round(totalSum / count),
+      total_students: students.length,
+      avg_score: Math.round(scores.reduce((a, b) => a + b, 0) / students.length),
       max_score: Math.max(...scores),
       min_score: Math.min(...scores),
       active_requests: filteredDocs.length,
-      top5: top5,
+      top5: [...students].sort((a, b) => b.total_score - a.total_score).slice(0, 5),
       categories: catStats
     };
-  }, [filteredStudents, filteredDocs]);
+  }, [filteredStudents, filteredDocs, categories]);
 
   const handleApprove = async () => {
     if (!modalState.targetId) return;
@@ -215,13 +192,28 @@ export default function TeacherProfile({profile, isOwner}) {
     selectedGroupId === 'all'
       ? 'Все группы'
       : (groupsList.find(g => String(g.id) === String(selectedGroupId))?.name || 'Все группы');
-  const reasonsRejectArr = [
-    "Неверно указана категория",
-    "Неверно указано достижение / уровень",
-    "Неверно загружен файл с достижением",
-    "Неверно указан результат / место",
-    "Неверное описание"
-  ];
+
+  useEffect(() => {
+    const fetchLookups = async () => {
+      try {
+        const [reasonsRes, semestersRes, catsRes] = await Promise.all([
+          api.get('/university/api/v1/rejection-reasons/'),
+          api.get('/university/api/v1/academic-years/'),
+          api.get('/user/api/v1/category-achievements/')
+        ]);
+        
+        setRejectionReasonsList(reasonsRes.data);
+        setSemesterOptions(semestersRes.data);
+        setCategories(catsRes.data);
+
+        const current = semestersRes.data.find(s => s.is_current);
+        if (current) setSelectedSemester(current.label);
+      } catch (err) {
+        console.error("Ошибка загрузки справочников", err);
+      }
+    };
+    fetchLookups();
+  }, []);
 
   return (
     <>
@@ -247,7 +239,7 @@ export default function TeacherProfile({profile, isOwner}) {
                   )}
                   {groupsList.map((g) => (
                     <option key={g.id} value={String(g.id)}>
-                      {g.name}
+                      {g.name} ({g.academic_year})
                     </option>
                   ))}
                   {groupsList.length == 0 && <option value="all">Нет групп</option>}
@@ -579,7 +571,7 @@ export default function TeacherProfile({profile, isOwner}) {
                 </div>
 
                 {/* Нижний блок: распределение и топ-5 */}
-                <div className="gird gap-5 grid-cols-[1.1fr,1.3fr] md:grid md:grid-cols-2">
+                <div className="grid gap-5 grid-cols-[1.1fr,1.3fr] md:grid md:grid-cols-2">
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
                     <h3 className="mb-4 border-b border-slate-200 pb-2 text-sm font-semibold text-slate-900">
                       Распределение баллов
@@ -723,17 +715,17 @@ export default function TeacherProfile({profile, isOwner}) {
             </h2>
             <form className="space-y-3" onSubmit={handleReject}>
               <div className="space-y-2.5">
-                {reasonsRejectArr.map((reason, i) => (
+                {rejectionReasonsList.map((reason) => (
                   <label
-                    key={i}
+                    key={reason.id}
                     className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 transition hover:border-sky-400 hover:bg-sky-50 sm:text-sm"
                   >
-                    <span className="pr-2">{reason}</span>
+                    <span className="pr-2">{reason.text}</span>
                     <input
                       type="checkbox"
                       className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                      onChange={() => toggleReason(reason)}
-                      checked={rejectReasons.includes(reason)}
+                      onChange={() => toggleReason(reason.id)}
+                      checked={rejectReasons.includes(reason.id)}
                     />
                   </label>
                 ))}

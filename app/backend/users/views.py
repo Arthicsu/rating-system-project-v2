@@ -49,13 +49,13 @@ def get_response_data_for_user(user):
             
         elif getattr(user, 'is_dean', False) and staff.faculty:
             pending_docs_count = Document.objects.filter(
-                student__faculty=staff.faculty,
+                user__student_profile__faculty=staff.faculty,
                 status__code='approved'
             ).count()
             
         elif getattr(user, 'is_dept_staff', False) and staff.department:
             pending_docs_count = Document.objects.filter(
-                student__group__specialty__department=staff.department,
+                user__student_profile__group__specialty__department=staff.department,
                 status__code='pending'
             ).count()
 
@@ -345,9 +345,9 @@ class ProfileAPIView(APIView):
 
             # Список документов на проверку (позже в зависимости от роли будет разные списки)
             pending_docs = Document.objects.filter(
-                student__in=students_queryset,
+                user__student_profile__in=students_queryset,
                 status__code=doc_status_filter
-            ).select_related('student', 'student__group')
+            ).select_related('user__student_profile', 'user__student_profile__group')
 
             # Формируем список документов с данными студента
             pending_docs_data = PendingDocumentSerializer(pending_docs, many=True, context={'request': request}).data

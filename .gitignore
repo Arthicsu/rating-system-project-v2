@@ -38,3 +38,4 @@ __pycache__/
 .idea
 db.sqlite3
 static/main/fonts
+staticfiles

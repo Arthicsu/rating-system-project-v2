@@ -12,6 +12,8 @@ services:
       db:
         condition: service_healthy
         restart: true
+      seaweedfs:
+        condition: service_started
   frontend:
       build: ./app/frontend
       container_name: app_frontend
@@ -43,5 +45,19 @@ services:
       retries: 5
       start_period: 15s
       timeout: 10s
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs
+    ports:
+      - "8333:8333"
+      - "9333:9333"
+      - "8888:8888"
+    command: 'server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json'
+    volumes:
+      - seaweedfs_data:/data
+      - ./app/backend/config-files/seaweedfs/s3.json:/etc/seaweedfs/s3.json
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  seaweedfs_data:

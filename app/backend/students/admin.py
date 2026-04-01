@@ -12,7 +12,10 @@ from users.models import User
 
 from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus, DocumentFile
 
+import logging
 
+
+logger = logging.getLogger(__name__)
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin, CsvImport):
@@ -28,6 +31,8 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
 
     def process_import_csv(self, request, data):
         new_credentials = []
+        total_rows = len(data)
+        logger.info(f"Начало обработки: {total_rows} строк.")
 
         with transaction.atomic():
             g_student, _ = DjangoGroup.objects.get_or_create(name='Student')
@@ -49,8 +54,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                 for s in Student.objects.select_related('user').all()
             }
             
-            for row in data:
-                total_processed += 1
+            for index, row in enumerate(data, 1):
                 def clean_val(key):
                     val = str(row.get(key, '')).strip()
                     return '' if val.upper() == 'NULL' else val
@@ -93,7 +97,6 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                     user.patronymic = patronymic
                     user.save()
                 else:
-                    created_counter += 1
                     # Если студента нет, создаем/обновляем юзера по username
                     username = email if email else f"student_{external_id}"
                     password = generate_password()
@@ -134,17 +137,12 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                     }
                 )
 
-                if created_counter > 0 and created_counter % 10 == 0:
-                    # Не выводили ли мы уже сообщение для этого десятка
-                    last_notified = getattr(self, '_last_notified_count', 0)
-                    if created_counter != last_notified:
-                        self.message_user(
-                            request, 
-                            f"Создано {created_counter} новых студентов...", 
-                            messages.INFO
-                        )
-                        self._last_notified_count = created_counter
-
+                if index % 50 == 0 or index == total_rows:
+                    percent = (index / total_rows) * 100
+                    print(f">>> Обработано: {index}/{total_rows} ({percent:.1f}%)")
+                    logger.info(f"Progress: {index}/{total_rows}")
+        
+        print("Обработка завершена успешно.\n")
         if new_credentials:
             filename, _ = log_generated_passwords(new_credentials, prefix="students")
             self.message_user(
@@ -309,7 +307,7 @@ class DocumentFileInline(admin.TabularInline):
     """
     model = DocumentFile
     extra = 0  # Чтобы не отображались лишние пустые строки
-    fields = ('original_file_name', 'file_url', 'order', 'uploaded_at')
+    fields = ('original_file_name', 'file', 'order', 'uploaded_at')
     readonly_fields = ('uploaded_at',)
 
 @admin.register(Document)
