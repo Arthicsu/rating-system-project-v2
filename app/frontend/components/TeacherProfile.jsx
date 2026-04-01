@@ -459,9 +459,9 @@ export default function TeacherProfile({profile, isOwner}) {
                               </div>
                             </td>
                             <td className="px-3 py-2.5 text-xs text-slate-800 sm:text-sm">
-                              {doc.file_url ? (
+                              {doc.file ? (
                                 <a
-                                  href={doc.file_url}
+                                  href={doc.file}
                                   target="_blank"
                                   className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900 sm:text-xs"
                                 >

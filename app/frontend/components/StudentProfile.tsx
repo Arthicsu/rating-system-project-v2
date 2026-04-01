@@ -1,11 +1,30 @@
 import {Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
+import api from '@/lib/axios';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 function AchievementItem({ doc } : {doc: any}) {
   const statusIcon = doc.status_display == 'rejected' ? 'fa-circle-xmark' : 'fa-file-lines';
+  const downloadFile = async (fileId: number, fileName: string) => {
+    try {
+      const response = await api.get(`/student/api/v1/document/download/${fileId}/`, {
+        responseType: 'blob',
+      });
 
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Ошибка при скачивании:', error);
+    }
+  };
   return (
     <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:p-4.5">
       <div className="flex flex-1 items-start gap-3">
@@ -43,16 +62,14 @@ function AchievementItem({ doc } : {doc: any}) {
                 {new Date(doc.uploaded_at).toLocaleDateString()}
               </span>
               {doc.files.map((file: any, index: number) => (
-                <a
+                <button
                   key={file.id}
-                  href={file.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  onClick={() => downloadFile(file.id, file.original_file_name)}
                   className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900"
                 >
                   <i className="fa-solid fa-paperclip" />
                   {file.original_file_name || `Файл ${index + 1}`}
-                </a>
+                </button>
               ))}
             </div>
           )}

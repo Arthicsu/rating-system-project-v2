@@ -1,3 +1,4 @@
+
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -9,25 +10,24 @@ from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
+from django.shortcuts import get_object_or_404
+from django.http import StreamingHttpResponse
 
 from .serializers import DocumentSerializer, StudentProfileSerializer, CategorySerializer
 from .models import Document, Student, Level, AchievementResult, DocType, Category, AchievementType, DocumentStatus, DocumentFile
 from .scoring import get_cached_metadata, get_scoring_structure, calculate_achievement_score
 
 
-from rest_framework.generics import CreateAPIView
+from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import AchievementUploadSerializer
 
-import json, uuid
-# from supabase import create_client, Client
-# from backend.settings import SUPABASE_KEY, SUPABASE_URL, SUPABASE_BUCKET_NAME
-
-
-# supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+from urllib.parse import quote
+import json, uuid,  requests
 
 
 @authentication_classes([SessionAuthentication])
@@ -161,7 +161,31 @@ def get_achievement_config(request) -> Response:
     }
     return Response(data)
 
-class AchievementUploadView(CreateAPIView):
+class DocumentDownloadApiView(APIView):
+    def get(self, request, file_id):
+        file_obj = get_object_or_404(DocumentFile, id=file_id)
+
+        s3_url = file_obj.file.url 
+        
+        try:
+            response = requests.get(s3_url, stream=True, timeout=5)
+            response.raise_for_status()
+            
+            proxy_response = StreamingHttpResponse(
+                response.iter_content(chunk_size=8192),
+                content_type=response.headers.get('Content-Type', 'application/octet-stream')
+            )
+            
+            filename = quote(file_obj.original_file_name)
+            proxy_response['Content-Disposition'] = f"attachment; filename*=UTF-8''{filename}"
+            
+            return proxy_response
+            
+        except requests.exceptions.RequestException as e:
+            print(f"S3 Proxy Error: {e}")
+            return Response({"error": "Хранилище файлов временно недоступно"}, status=503)
+
+class AchievementUploadCreateAPIView(CreateAPIView):
     """
     Обрабатывает загрузку нового достижения студента и файлов в SeaweedFS.
     

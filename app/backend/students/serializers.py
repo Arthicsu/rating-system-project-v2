@@ -102,7 +102,7 @@ class CategorySerializer(serializers.ModelSerializer):
         ]
 
 ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc'}
-ALLOWED_CONTENT_TYPES = {'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'}
+ALLOWED_CONTENT_TYPES = {'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/octet-stream'}
 class AchievementUploadSerializer(serializers.Serializer):
     record_book = serializers.CharField(required=True)
     category = serializers.SlugRelatedField(queryset=Category.objects.all(), slug_field='code')
@@ -119,7 +119,9 @@ class AchievementUploadSerializer(serializers.Serializer):
 
     def validate_files(self, files):
         max_size = 20 * 1024 * 1024  # Ограничение на размер файла (20 МБ)
+        print(f"DEBUG: Files received: {len(files)}")
         for file in files:
+            print(f"DEBUG: File: {file.name}, MIME: {file.content_type}")
             if file.size > max_size:
                 raise serializers.ValidationError(f"Файл {file.name} слишком большой. Максимальный размер 20 МБ.")
             
