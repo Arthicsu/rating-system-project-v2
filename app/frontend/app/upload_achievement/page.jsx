@@ -46,9 +46,8 @@ export default function UploadAchievement() {
         setResultsList(results);
         setDocTypesList(doc_types);
         setLoading(false);
-      } catch (e) {
-        console.error("Failed to load config", e);
-        alert("Ошибка при загрузке структуры данных");
+      } catch (error) {
+        alert("Ошибка: " + error);
       }
     };
     fetchConfig();
@@ -121,18 +120,23 @@ const handleSubmit = async () => {
     }
 
     try {
-      formData.forEach(element => {
-          console.log(element)
-      });
+      // formData.forEach(element => {
+      //     console.log(element)
+      // });
 
       const response = await api.post('/student/api/v1/upload/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      alert('Достижение успешно загружено!');
+      alert(response.data.message);
       router.push('/profile');
     } catch (error) {
-      console.error(error);
-      alert('Ошибка при загрузке. Проверьте данные.');
+      if (error.response.data.files) {
+        alert('Ошибка: ' + error.response.data.files[0]);
+      } else if (error.response.data.student) {
+        alert('Ошибка: ' + error.response.data.student);
+      } else {
+        alert('Ошибка при отправке достижения');
+      }
     }    
   };
 
@@ -436,6 +440,7 @@ const handleSubmit = async () => {
                   <input
                     type="file"
                     multiple
+                    accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, .doc"
                     className="hidden"
                     onChange={(e) => { const selected = Array.from(e.target.files || []); setFiles(selected);}}
                   />

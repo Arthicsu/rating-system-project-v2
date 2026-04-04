@@ -5,6 +5,9 @@ from .models import Student, Document, Category, DocumentFile, Level, Achievemen
 from .scoring import calculate_achievement_score
 
 import os
+ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc'}
+ALLOWED_CONTENT_TYPES = {'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/octet-stream'}
+
 class StudentRatingSerializer(serializers.ModelSerializer):
     """
     Сериализатор для модели Student.
@@ -68,13 +71,14 @@ class DocumentSerializer(serializers.ModelSerializer):
         ]
         
 class PendingDocumentSerializer(DocumentSerializer):
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
     student_id = serializers.IntegerField(source='user.student_profile.id', read_only=True)
     student_name = serializers.CharField(source='user.student_profile.get_full_username', read_only=True)
     group_id = serializers.IntegerField(source='user.student_profile.group.id', read_only=True)
     record_book = serializers.CharField(source='user.student_profile.record_book', read_only=True, default="—")
 
     class Meta(DocumentSerializer.Meta):
-        fields = DocumentSerializer.Meta.fields + ['student_id', 'student_name', 'group_id', 'record_book']
+        fields = DocumentSerializer.Meta.fields + ['user_id', 'student_id', 'student_name', 'group_id', 'record_book']
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     group = serializers.CharField(source='group.name', read_only=True, default="Без группы")
@@ -101,8 +105,6 @@ class CategorySerializer(serializers.ModelSerializer):
             'code', 'label',
         ]
 
-ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc'}
-ALLOWED_CONTENT_TYPES = {'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/octet-stream'}
 class AchievementUploadSerializer(serializers.Serializer):
     record_book = serializers.CharField(required=True)
     category = serializers.SlugRelatedField(queryset=Category.objects.all(), slug_field='code')
@@ -111,23 +113,17 @@ class AchievementUploadSerializer(serializers.Serializer):
     result = serializers.SlugRelatedField(queryset=AchievementResult.objects.all(), slug_field='code', required=False, allow_null=True)
     achievement = serializers.CharField()
     doc_type = serializers.SlugRelatedField(queryset=DocType.objects.all(), slug_field='code', default='other')
-    files = serializers.ListField(
-        child=serializers.FileField(), 
-        write_only=True,
-        required=True
-    )
+    files = serializers.ListField(child=serializers.FileField(), write_only=True, required=True)
 
     def validate_files(self, files):
         max_size = 20 * 1024 * 1024  # Ограничение на размер файла (20 МБ)
-        print(f"DEBUG: Files received: {len(files)}")
         for file in files:
-            print(f"DEBUG: File: {file.name}, MIME: {file.content_type}")
             if file.size > max_size:
                 raise serializers.ValidationError(f"Файл {file.name} слишком большой. Максимальный размер 20 МБ.")
             
             ext = os.path.splitext(file.name)[1].lower()
             if ext not in ALLOWED_EXTENSIONS:
-                raise serializers.ValidationError(f"Формат {ext} не поддерживается для файла {file.name}. Разрешены: {', '.join(ALLOWED_EXTENSIONS)}")
+                raise serializers.ValidationError(f"Формат {ext} не поддерживается для файла {file.name}.")
             
             # Проверка mime-типа
             if file.content_type not in ALLOWED_CONTENT_TYPES:
@@ -145,10 +141,10 @@ class AchievementUploadSerializer(serializers.Serializer):
         try:
             student = Student.objects.select_related('user').get(record_book__iexact=data['record_book'].strip())
             if not student.user:
-                raise serializers.ValidationError({"record_book": "К профилю студента не привязан пользователь."})
+                raise serializers.ValidationError({"student": "К профилю студента не привязан пользователь."})
             data['user'] = student.user
         except Student.DoesNotExist:
-            raise serializers.ValidationError({"record_book": "Студент не найден."})
+            raise serializers.ValidationError({"student": "Студент не найден."})
 
         return data
 

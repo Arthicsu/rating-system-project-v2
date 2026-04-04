@@ -18,7 +18,7 @@ from .models import Document, Student, Level, AchievementResult, DocType, Catego
 from .scoring import get_cached_metadata, get_scoring_structure, calculate_achievement_score
 
 
-from rest_framework.views import APIView
+from rest_framework.views import APIView, PermissionDenied
 from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
@@ -159,16 +159,69 @@ def get_achievement_config(request) -> Response:
         "results": results,
         "doc_types": get_cached_metadata(DocType, 'meta_doc_types')
     }
-    return Response(data)
+    return Response(data, status=status.HTTP_200_OK)
 
 class DocumentDownloadApiView(APIView):
-    def get(self, request, file_id):
-        file_obj = get_object_or_404(DocumentFile, id=file_id)
+    """
+    API-представление для безопасного скачивания прикреплённых файлов документов.
 
-        s3_url = file_obj.file.url 
+    Проксирует запрос к хранилищу, проверяя права пользователя
+    и ограничивая размер скачиваемого файла.
+    
+    Предотвращает прямой доступ к URL-адресам файлов.
+    """
+    
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get(self, request, file_id):
+        """
+        Обрабатывает GET-запрос на скачивание файла по его ID.
+
+        Проверяет:
+        - Существование файла.
+        - Права пользователя на скачивание (владелец или персонал).
+        - Размер файла (не более 20 МБ).
+
+        При успехе проксирует содержимое файла от хранилища клиенту с корректным заголовком Content-Disposition.
+
+        Параметры:
+            request (Request): Объект HTTP-запроса с аутентифицированным пользователем.
+            file_id (int): Идентификатор объекта DocumentFile.
+
+        Возвращает:
+            StreamingHttpResponse: Потоковый ответ с содержимым файла.
+            Или JSON-ошибку при:
+                - 403 Forbidden - нет прав.
+                - 400 Bad Request - файл слишком большой.
+                - 503 Service Unavailable - ошибка подключения к хранилищу.
+
+        Логика:
+            - Получает объект DocumentFile по ID.
+            - Проверяет доступ через метод can_download.
+            - Ограничивает размер файла 20 МБ.
+            - Выполняет потоковый запрос к AWS S3.
+            - Передаёт содержимое клиенту с сохранением оригинального имени файла.
+
+        Особенности:
+            - Использует StreamingHttpResponse для эффективной передачи больших файлов без загрузки в память.
+            - Имя файла кодируется в UTF-8 с помощью quote для корректного отображения кириллицы.
+            - Таймаут запроса к AWS - 5 секунд.
+        """
+        
+        file_obj = get_object_or_404(DocumentFile, id=file_id)
+        
+        if not self.can_download(request.user, file_obj):
+            raise PermissionDenied("У вас нет прав на скачивание этого файла")
+        
+        if file_obj.file.size > 20 * 1024 * 1024:  # Ограничение на размер файла (20 МБ)
+            return Response({"error": "Файл слишком большой"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        aws_url = file_obj.file.url
         
         try:
-            response = requests.get(s3_url, stream=True, timeout=5)
+            response = requests.get(aws_url, stream=True, timeout=5)
             response.raise_for_status()
             
             proxy_response = StreamingHttpResponse(
@@ -182,8 +235,11 @@ class DocumentDownloadApiView(APIView):
             return proxy_response
             
         except requests.exceptions.RequestException as e:
-            print(f"S3 Proxy Error: {e}")
-            return Response({"error": "Хранилище файлов временно недоступно"}, status=503)
+            print(f"AWS Proxy Error: {e}")
+            return Response({"error": "AWS временно недоступен"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    
+    def can_download(self, user, file_obj):
+        return user.id == file_obj.document.user_id or user.is_staff
 
 class AchievementUploadCreateAPIView(CreateAPIView):
     """
@@ -199,11 +255,39 @@ class AchievementUploadCreateAPIView(CreateAPIView):
     pagination_class = None
     
     def create(self, request, *args, **kwargs):
+        """
+        Обрабатывает POST-запрос на создание нового достижения.
+
+        Выполняет валидацию входных данных с помощью сериализатора.
+        При успешной валидации — сохраняет объект Document и связанные файлы.
+        Возвращает сообщение об успехе или ошибку.
+
+        Параметры:
+            request (Request): HTTP-запрос с данными формы и файлами.
+            *args: Дополнительные позиционные аргументы.
+            **kwargs: Дополнительные именованные аргументы.
+
+        Возвращает:
+            Response:
+                - 201 Created: Если достижение и файлы успешно сохранены.
+                - 400 Bad Request: Если данные не прошли валидацию.
+                - 500 Internal Server Error: Если произошла ошибка при сохранении.
+
+        Особенности:
+            - Доступ разрешён только аутентифицированным пользователям.
+            - Поддерживает загрузку файлов через MultiPartParser и FormParser.
+            - После валидации вызывается perform_create, который запускает логику сохранения.
+            - Ожидается, что сериализатор сам обрабатывает загрузку файлов во внешнее хранилище.
+            - В текущей реализации есть избыточная проверка is_valid() после raise_exception=True —
+              это избыточно и может быть упрощено.
+
+        Примечание:
+            Текст ошибки возвращается как serializer.errors[0] — это некорректно, так как errors — словарь.
+            Правильнее было бы вернуть весь словарь errors целиком.
+        """
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         
-        return Response(
-            {"detail": "Достижение успешно загружено и отправлено на модерацию."}, 
-            status=status.HTTP_201_CREATED
-        )
+        return Response({"message": "Достижение успешно загружено"}, status=status.HTTP_201_CREATED)

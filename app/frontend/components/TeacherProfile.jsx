@@ -145,8 +145,7 @@ export default function TeacherProfile({profile, isOwner}) {
 
       closeModal();
     } catch (error) {
-      console.error("Ошибка при одобрении:", error);
-      alert("Не удалось одобрить заявку");
+      alert("Ошибка: " + error);
     }
   };
 
@@ -173,8 +172,7 @@ export default function TeacherProfile({profile, isOwner}) {
 
       closeModal();
     } catch (error) {
-      console.error("Ошибка при отклонении:", error);
-      alert("Не удалось отклонить заявку");
+      alert("Ошибка: " + error);
     }
   };
 
@@ -208,8 +206,8 @@ export default function TeacherProfile({profile, isOwner}) {
 
         const current = semestersRes.data.find(s => s.is_current);
         if (current) setSelectedSemester(current.label);
-      } catch (err) {
-        console.error("Ошибка загрузки справочников", err);
+      } catch (error) {
+        alert("Ошибка: " + error);
       }
     };
     fetchLookups();

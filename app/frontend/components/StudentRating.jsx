@@ -38,14 +38,14 @@ export default function StudentRating() {
         }));
         setTabs([{ id: 'common', label: 'Общий рейтинг' }, ...dynamicTabs]);
       })
-      .catch(err => console.error('Ошибка загрузки категорий:', err));
+      .catch(error => alert('Ошибка: ', error));
   }, []);
 
   // Загрузка опций для фильтров
   useEffect(() => {
     api.get('/user/api/v1/rating-filters/')
       .then(res => setFilterOptions(res.data))
-      .catch(err => console.error('Ошибка загрузки фильтров:', err));
+      .catch(error => console.error('Ошибка: ', error));
   }, []);
 
   useEffect(() => {
@@ -64,8 +64,8 @@ export default function StudentRating() {
         
         setStudents(response.data.results);
         setTotalCount(response.data.count);
-      } catch (err) {
-        console.error('Ошибка при получении рейтинга:', err);
+      } catch (error) {
+        console.error('Ошибка: ', error);
       } finally {
         setLoading(false);
       }

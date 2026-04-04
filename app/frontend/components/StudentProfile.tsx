@@ -22,9 +22,10 @@ function AchievementItem({ doc } : {doc: any}) {
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Ошибка при скачивании:', error);
+      console.error('Ошибка:', error);
     }
   };
+  
   return (
     <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:p-4.5">
       <div className="flex flex-1 items-start gap-3">
