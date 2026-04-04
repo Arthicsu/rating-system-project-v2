@@ -39,3 +39,4 @@ __pycache__/
 db.sqlite3
 static/main/fonts
 staticfiles
+config-files/import_passwords
