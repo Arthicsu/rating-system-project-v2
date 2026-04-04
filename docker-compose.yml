@@ -13,7 +13,7 @@ services:
         condition: service_healthy
         restart: true
       seaweedfs:
-        condition: service_started
+        condition: service_healthy
   frontend:
       build: ./app/frontend
       container_name: app_frontend
@@ -43,7 +43,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       retries: 5
-      start_period: 15s
+      start_period: 10s
       timeout: 10s
   seaweedfs:
     image: chrislusf/seaweedfs:latest
@@ -52,11 +52,21 @@ services:
       - "8333:8333"
       - "9333:9333"
       - "8888:8888"
-    command: 'server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json'
+    environment:
+      AWS_ACCESS_KEY_ID: ${SEAWEEDFS_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${SEAWEEDFS_SECRET_KEY}
+      AWS_STORAGE_BUCKET_NAME: ${SEAWEEDFS_BUCKET_NAME}
+    entrypoint: ["/bin/sh", "/entrypoint.sh"] 
     volumes:
       - seaweedfs_data:/data
-      - ./app/backend/config-files/seaweedfs/s3.json:/etc/seaweedfs/s3.json
+      - ./seaweedfs-entrypoint.sh:/entrypoint.sh:ro
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9333/cluster/status"]
+      interval: 15s
+      retries: 3
+      start_period: 10s 
+      timeout: 10s
 
 volumes:
   postgres_data:
