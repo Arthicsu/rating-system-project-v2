@@ -95,13 +95,15 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                     user.first_name = first_name
                     user.last_name = last_name
                     user.patronymic = patronymic
+                    user.email = email
                     user.save()
                 else:
                     # Если студента нет, создаем/обновляем юзера по username
-                    username = email if email else f"student_{external_id}"
+                    username = email if email else f"student_{external_id}@bgitu.ru"
                     password = generate_password()
                     user = User.objects.create_user(
                         username=username,
+                        email=email,
                         password=password,
                         first_name=first_name,
                         last_name=last_name,
