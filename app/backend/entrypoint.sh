@@ -35,8 +35,8 @@ check_vars
 create_bucket
 
 
-echo "Running migrations..."
-python manage.py migrate
+# echo "Running migrations..."
+# python manage.py migrate
 
 # Для Nginx
 echo "Collecting static files..."
