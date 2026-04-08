@@ -204,10 +204,11 @@ class RatingFiltersAPIView(GenericAPIView):
     def get(self, request):
         faculties = Faculty.objects.values('id', 'short_name', 'name')
         courses = Group.objects.values_list('course', flat=True).distinct().order_by('course')
-        
-        groups = Group.objects.annotate(
-            faculty_short_name=F('specialty__faculty__short_name')
-        ).values('id', 'name', 'course', 'faculty_short_name', 'academic_year')
+        # Добавляем в выборку только те группы, в которых есть студенты
+        groups = (Group.objects.filter(students__isnull=False)
+              .annotate(faculty_short_name=F('specialty__faculty__short_name'))
+              .values('id', 'name', 'course', 'faculty_short_name', 'academic_year')
+              .distinct())
 
         return Response({
             "faculties": list(faculties),
@@ -310,7 +311,8 @@ class ProfileAPIView(APIView):
             
             # Определяем зону видимости (scope)
             students_queryset = Student.objects.all()
-            managed_groups_queryset = Group.objects.all()
+            # Добавляем в выборку только те группы, в которых есть студенты
+            managed_groups_queryset = Group.objects.filter(students__isnull=False).distinct()
             doc_status_filter = 'approved'
             if user.is_rectorate:
                 response_data["scope"] = "university"
