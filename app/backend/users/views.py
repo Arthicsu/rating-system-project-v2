@@ -183,21 +183,6 @@ class LogoutAPIView(APIView):
         return Response(status=status.HTTP_200_OK)
 
 @method_decorator(cache_page(60 * 60 * 2), name='dispatch')
-class GroupAPIView(ListAPIView): 
-    permission_classes = [AllowAny]
-    authentication_classes = [SessionAuthentication]
-    queryset = Group.objects.select_related('specialty__faculty').all()
-    serializer_class = GroupSerializer
-    pagination_class = None
-
-    @extend_schema(
-        summary="Список всех учебных групп",
-        description="Возвращает полный список групп с информацией о факультете и специальности."
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-@method_decorator(cache_page(60 * 60 * 2), name='dispatch')
 class RatingFiltersAPIView(GenericAPIView):
     permission_classes = [AllowAny]
     authentication_classes = [SessionAuthentication]
