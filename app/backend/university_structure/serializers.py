@@ -55,4 +55,4 @@ class RejectionReasonSerializer(serializers.ModelSerializer):
 class AcademicYearSerializer(serializers.ModelSerializer):
     class Meta:
         model = AcademicYear
-        fields = ['label', 'start_date', 'end_date', 'is_current']
+        fields = ['id', 'label', 'start_date', 'end_date', 'is_current']
