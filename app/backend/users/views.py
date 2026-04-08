@@ -166,7 +166,7 @@ class LoginAPIView(GenericAPIView):
             return Response({"detail": "Неверный логин или пароль"}, status=status.HTTP_401_UNAUTHORIZED)
         
 class CheckAuthAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     def get(self, request):
         if request.user.is_authenticated:
@@ -176,7 +176,7 @@ class CheckAuthAPIView(APIView):
         return Response({"isAuthenticated": False}, status=status.HTTP_401_UNAUTHORIZED)
 
 class LogoutAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     def post(self, request):
         logout(request)
@@ -184,7 +184,7 @@ class LogoutAPIView(APIView):
 
 @method_decorator(cache_page(60 * 60 * 2), name='dispatch')
 class RatingFiltersAPIView(GenericAPIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
 
     @extend_schema(
@@ -218,7 +218,7 @@ class RatingFiltersAPIView(GenericAPIView):
 
 @method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
 class CategoryAchievementAPIView(ListAPIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     serializer_class = CategorySerializer
     queryset = Category.objects.all()
@@ -230,7 +230,7 @@ class CategoryAchievementAPIView(ListAPIView):
 @method_decorator(cache_page(60 * 15), name='dispatch')
 @method_decorator(vary_on_headers('Cookie'), name='dispatch')
 class RatingListAPIView(StudentRatingQuerySetMixin, ListAPIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     serializer_class = StudentRatingSerializer
     

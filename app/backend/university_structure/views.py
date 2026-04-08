@@ -216,7 +216,7 @@ class AcademicYearListView(ListAPIView):
 
 @method_decorator(cache_page(60 * 60 * 2), name='dispatch')
 class GroupAPIView(ListAPIView): 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     queryset = Group.objects.select_related('specialty__faculty').all()
     serializer_class = GroupSerializer
