@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/axios';
+import { useMySession } from '@/context/AuthContext';
 
 function getShortName(fullName = '') {
   const parts = fullName.trim().split(/\s+/);
@@ -14,8 +15,10 @@ function getShortName(fullName = '') {
 }
 
 export default function StudentRating() {
+  const { user } = useMySession();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exportLoading, setExportLoading] = useState(false);
   const [filterOptions, setFilterOptions] = useState({ faculties: [], courses: [], groups: [] });
   
   const [selectedFaculty, setSelectedFaculty] = useState('all');
@@ -92,6 +95,41 @@ export default function StudentRating() {
     setter(value);
     setPage(1);
   };
+
+ const handleExportToExcel = async () => {
+    setExportLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedFaculty !== 'all') params.append('faculty', selectedFaculty);
+      if (selectedCourse !== 'all') params.append('course', selectedCourse);
+      if (activeTab !== 'common') params.append('category', activeTab);
+      params.append('page', String(page));
+      const response = await api.get('/university/api/v1/export-rating-to-excel/', {
+        params,
+        responseType: 'blob'
+      });
+      const disposition = response.headers['content-disposition'];
+      const fileNameFromHeader = disposition?.match(/filename="?([^"]+)"?/)?.[1];
+      const fileName = fileNameFromHeader || `rating-page-${page}.xlsx`;
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Ошибка при выгрузке Excel:', error);
+      alert('Не удалось выгрузить Excel файл');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   return (
     <div className="pt-25">
       {/* Фильтры баллов */}
@@ -366,6 +404,23 @@ export default function StudentRating() {
                   </button>
                 </div>
               </div>
+              {user?.isStaff && (
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-[11px] sm:text-xs text-slate-600">
+                    В выгрузке можно выбирать разные факультеты, курсы и группы. Если выбрать вид
+                    деятельности, итоговая сумма будет рассчитана именно по выбранной
+                    деятельности.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleExportToExcel}
+                    disabled={exportLoading || loading}
+                    className="inline-flex items-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs sm:text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {exportLoading ? 'Выгрузка...' : 'Выгрузить в Excel'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
