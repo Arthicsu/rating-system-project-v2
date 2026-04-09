@@ -112,6 +112,7 @@ class AchievementUploadSerializer(serializers.Serializer):
     level = serializers.SlugRelatedField(queryset=Level.objects.all(), slug_field='code', required=False, allow_null=True)
     result = serializers.SlugRelatedField(queryset=AchievementResult.objects.all(), slug_field='code', required=False, allow_null=True)
     achievement = serializers.CharField()
+    date_received = serializers.DateField(required=False)
     doc_type = serializers.SlugRelatedField(queryset=DocType.objects.all(), slug_field='code', default='other')
     files = serializers.ListField(child=serializers.FileField(), write_only=True, required=True)
 

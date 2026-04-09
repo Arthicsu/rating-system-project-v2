@@ -23,6 +23,7 @@ export default function UploadAchievement() {
   const [level, setLevel] = useState(null);
   const [result, setResult] = useState(null);
   const [docType, setDocType] = useState(null);
+  const [dateReceived, setDateReceived] = useState('');
 
   const [showCategory, setShowCategory] = useState(false);
   const [showSubType, setShowSubType] = useState(false);
@@ -97,8 +98,8 @@ export default function UploadAchievement() {
   };
 
 const handleSubmit = async () => {
-    if (!recordBook || !category || !subType || !achievementName || !docType) {
-      alert("Пожалуйста, заполните все обязательные поля (категория, вид, тип документа, название).");
+    if (!recordBook || !category || !subType || !achievementName || !docType || !dateReceived) {
+      alert("Пожалуйста, заполните все обязательные поля (категория, вид, тип документа, название, дата получения).");
       return;
     }
 
@@ -107,6 +108,7 @@ const handleSubmit = async () => {
     formData.append('category', category);
     formData.append('sub_type', subType.value);
     formData.append('achievement', achievementName);
+    formData.append('date_received', dateReceived);
     
     if (docType) {
         formData.append('doc_type', docType.value);
@@ -425,6 +427,19 @@ const handleSubmit = async () => {
                   placeholder="Например: Грамота за 1 место в..."
                   value={achievementName}
                   onChange={(e) => setAchievementName(e.target.value)}
+                />
+              </div>
+
+              {/* Дата получения достижения */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-slate-500">
+                  *Дата получения достижения
+                </label>
+                <input
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-500/70"
+                  type="date"
+                  value={dateReceived}
+                  onChange={(e) => setDateReceived(e.target.value)}
                 />
               </div>
 

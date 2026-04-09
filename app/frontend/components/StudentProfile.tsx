@@ -6,6 +6,12 @@ ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, 
 
 function AchievementItem({ doc } : {doc: any}) {
   const statusIcon = doc.status_display == 'rejected' ? 'fa-circle-xmark' : 'fa-file-lines';
+  const receivedDateText = doc.date_received
+    ? new Date(doc.date_received).toLocaleDateString('ru-RU')
+    : 'Не указана';
+  const uploadedDateText = doc.uploaded_at
+    ? new Date(doc.uploaded_at).toLocaleDateString('ru-RU')
+    : '—';
   const downloadFile = async (fileId: number, fileName: string) => {
     try {
       const response = await api.get(`/student/api/v1/document/download/${fileId}/`, {
@@ -56,13 +62,17 @@ function AchievementItem({ doc } : {doc: any}) {
             )}
           </div>
 
-          {doc.files && doc.files.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-              <span className="inline-flex items-center gap-1">
-                <i className="fa-regular fa-calendar" />
-                {new Date(doc.uploaded_at).toLocaleDateString()}
-              </span>
-              {doc.files.map((file: any, index: number) => (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+            <span className="inline-flex items-center gap-1">
+              <i className="fa-regular fa-calendar-check" />
+              Дата получения: {receivedDateText}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <i className="fa-regular fa-calendar" />
+              Дата загрузки: {uploadedDateText}
+            </span>
+            {doc.files && doc.files.length > 0 &&
+              doc.files.map((file: any, index: number) => (
                 <button
                   key={file.id}
                   onClick={() => downloadFile(file.id, file.original_file_name)}
@@ -72,8 +82,7 @@ function AchievementItem({ doc } : {doc: any}) {
                   {file.original_file_name || `Файл ${index + 1}`}
                 </button>
               ))}
-            </div>
-          )}
+          </div>
         </div>
       </div>
 
