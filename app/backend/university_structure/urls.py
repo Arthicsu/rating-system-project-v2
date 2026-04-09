@@ -8,5 +8,7 @@ urlpatterns = [
     path('api/v1/export-rating-to-excel/', views.RatingExportAPIView.as_view(), name='api_export_rating_to_xlsx'),
     path('api/v1/rejection-reasons/', views.RejectionReasonListView.as_view(), name='api_rejection_reasons'),
     path('api/v1/academic-years/', views.AcademicYearListView.as_view(), name='api_academic_years'),
-    path('api/v1/groups/', views.GroupAPIView.as_view(), name='api_groups'), # Нигде не используется
+    path('api/v1/filtered-groups/', views.FilteredGroupListAPIView.as_view(), name='api_filtered_groups'),
+    path('api/v1/filtered-students/', views.FilteredStudentListAPIView.as_view(), name='api_filtered_students'),
+    path('api/v1/filtered-dashboard-stats', views.FilteredDashboardStatsAPIView.as_view(), name='api_filtered_dashboard_stats'),
 ]

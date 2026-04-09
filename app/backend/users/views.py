@@ -1,7 +1,6 @@
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, inline_serializer
 from drf_spectacular.types import OpenApiTypes
 
-
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
@@ -24,7 +23,7 @@ from .serializers import StudentRegistrationSerializer, AuthUserResponseSerializ
 from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
 from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer
 from core.pagination import StandardResultsSetPagination
-from core.student_rating_query_set_mixin import StudentRatingQuerySetMixin
+from core.students_query_set_mixin import StudentWithAccessMixin, StudentRatingQuerySetMixin
 
 User = get_user_model()
 pagination_class = StandardResultsSetPagination
@@ -233,17 +232,11 @@ class RatingListAPIView(StudentRatingQuerySetMixin, ListAPIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     serializer_class = StudentRatingSerializer
-    
-    def get(self, request, *args, **kwargs):
-        """
-        super().get сам вызовет get_queryset, пагинацию и сериализатор.
-        """
-        return super().get(request, *args, **kwargs)
-    
+        
     def get_queryset(self):
         return self.get_base_rating_queryset()
 
-class ProfileAPIView(APIView):
+class ProfileAPIView(StudentWithAccessMixin, APIView):
     """
     API-представление для получения профиля текущего пользователя.
 
@@ -309,56 +302,6 @@ class ProfileAPIView(APIView):
             response_data["department"] = staff.department.name if staff.department else "Не указан"
             response_data["faculty"] = staff.faculty.name if staff.faculty else "Не указан"
             
-            # Определяем зону видимости (scope)
-            students_queryset = Student.objects.all()
-            # Добавляем в выборку только те группы, в которых есть студенты
-            managed_groups_queryset = Group.objects.filter(students__isnull=False).distinct()
-            doc_status_filter = 'approved'
-            if user.is_rectorate:
-                response_data["scope"] = "university"
-            elif user.is_dean:
-                response_data["scope"] = "faculty"
-                students_queryset = students_queryset.filter(faculty=staff.faculty)
-                managed_groups_queryset = managed_groups_queryset.filter(specialty__faculty=staff.faculty)
-            elif user.is_dept_staff:
-                response_data["scope"] = "department"
-                students_queryset = students_queryset.filter(group__specialty__department=staff.department)
-                managed_groups_queryset = managed_groups_queryset.filter(specialty__department=staff.department)
-                response_data["department"] = staff.department.name if staff.department else "Не указана"
-                doc_status_filter = 'pending'
-            
-            students_list_data = StudentProfileSerializer(students_queryset.select_related('group', 'faculty'), many=True, context={'request': request}).data
-            group_list_data = GroupSerializer(managed_groups_queryset, many=True, context={'request': request}).data
-
-            # Список документов на проверку (позже в зависимости от роли будет разные списки)
-            pending_docs = Document.objects.filter(
-                user__student_profile__in=students_queryset,
-                status__code=doc_status_filter
-            ).select_related('user__student_profile', 'user__student_profile__group')
-
-            # Формируем список документов с данными студента
-            pending_docs_data = PendingDocumentSerializer(pending_docs, many=True, context={'request': request}).data
-
-            stats_data = students_queryset.aggregate(
-                total_students=Count('id'),
-                avg_score=Avg(
-                    F('academic_score') + F('research_score') + 
-                    F('sport_score') + F('social_score') + F('cultural_score')
-                )
-            )
-            
-            stats = {
-                "total_students": stats_data['total_students'] or 0,
-                "avg_score": round(stats_data['avg_score'] or 0, 2)
-            }
-
-            response_data.update({
-                "managed_groups": group_list_data,
-                "students_list": students_list_data,
-                "pending_documents": pending_docs_data,
-                "stats": stats,
-            })
-
         return Response(response_data)
 
 @method_decorator(cache_page(60), name='dispatch')

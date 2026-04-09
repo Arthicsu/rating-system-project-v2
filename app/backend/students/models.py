@@ -1,9 +1,10 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.db.models import F, GeneratedField, IntegerField
 
 from university_structure.models import Group, Faculty, Department
-
+from core.students_manager import StudentQuerySet
 import uuid
 
 
@@ -37,29 +38,28 @@ class Student(models.Model):
     social_score = models.PositiveIntegerField(default=0)
     cultural_score = models.PositiveIntegerField(default=0)
     
+    total_score = GeneratedField(
+        expression=(
+            F('academic_score') + 
+            F('research_score') + 
+            F('sport_score') + 
+            F('social_score') + 
+            F('cultural_score')
+        ),
+        output_field=IntegerField(),
+        db_persist=True
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
-    @property
-    def total_score(self) -> int:
-        """
-        Вычисляемое свойство: общий рейтинг студента.
-
-        Суммирует все виды баллов студента: академические, научные, спортивные,
-        социальные и культурные.
-
-        Возвращает общее количество баллов студента.
-        """
-        return (
-            self.academic_score +
-            self.research_score +
-            self.sport_score +
-            self.social_score +
-            self.cultural_score
-        )
+    objects = StudentQuerySet.as_manager()
 
     class Meta:
         verbose_name = "Профиль студента"
         verbose_name_plural = "Профили студентов"
+        indexes = [
+            models.Index(fields=['-total_score']),
+        ]
 
     def __str__(self):
         group_name = self.group.name if self.group else "Без группы"
