@@ -44,6 +44,28 @@ export default function TeacherProfile({profile, isOwner}) {
       setRejectReasons([]); 
   };
   
+  useEffect(() => {
+    const fetchLookups = async () => {
+      try {
+        const [reasonsRes, semestersRes, catsRes] = await Promise.all([
+          api.get('/university/api/v1/rejection-reasons/'),
+          api.get('/university/api/v1/academic-years/'),
+          api.get('/user/api/v1/category-achievements/')
+        ]);
+        
+        setRejectionReasonsList(reasonsRes.data);
+        setSemesterOptions(semestersRes.data);
+        setCategories(catsRes.data);
+
+      const current = semestersRes.data.find(s => s.is_current);
+      if (current) setSelectedSemester(String(current.id));
+      } catch (error) {
+        alert("Ошибка: " + error);
+      }
+    };
+    fetchLookups();
+  }, []);
+
   const filteredStudents = useMemo(() => {
     let students = localProfile.students_list || [];
     if (selectedGroupId != 'all') {
@@ -62,16 +84,28 @@ export default function TeacherProfile({profile, isOwner}) {
 
   const filteredDocs = useMemo(() => {
     let docs = localProfile.pending_documents || [];
+
+    // Фильтр по группе
     if (selectedGroupId != 'all') {
       docs = docs.filter(d => String(d.group_id) == String(selectedGroupId));
     }
-    const currentRange = semesterOptions.find(opt => opt.label == selectedSemester);
-    if (currentRange && currentRange.start) {
-        docs = docs.filter(d => {
-            const docDate = new Date(d.uploaded_at); 
-            return docDate >= currentRange.start && docDate <= currentRange.end;
-        });
+
+    // Фильтр по семестру
+    const currentRange = semesterOptions.find(opt => String(opt.id) == String(selectedSemester));
+    if (currentRange && currentRange.start_date && currentRange.end_date) {
+      const start = new Date(currentRange.start_date);
+      const end = new Date(currentRange.end_date);
+      
+      // Конец дня, чтобы захватить документы за последнюю дату
+      end.setHours(23, 59, 59, 999);
+
+      docs = docs.filter(d => {
+        const docDate = new Date(d.uploaded_at); 
+        return docDate >= start && docDate <= end;
+      });
     }
+
+    // Поиск по имени
     if (requestsSearchTerm.trim() != '') {
       const lowerTerm = requestsSearchTerm.toLowerCase();
       docs = docs.filter(d =>
@@ -79,7 +113,7 @@ export default function TeacherProfile({profile, isOwner}) {
       );
     }
     return docs;
-  }, [localProfile.pending_documents, selectedGroupId, selectedSemester, requestsSearchTerm]);
+  }, [localProfile.pending_documents, selectedGroupId, selectedSemester, requestsSearchTerm, semesterOptions]);
 
   const dynamicStats = useMemo(() => {
     const students = filteredStudents;
@@ -191,28 +225,6 @@ export default function TeacherProfile({profile, isOwner}) {
       ? 'Все группы'
       : (groupsList.find(g => String(g.id) === String(selectedGroupId))?.name || 'Все группы');
 
-  useEffect(() => {
-    const fetchLookups = async () => {
-      try {
-        const [reasonsRes, semestersRes, catsRes] = await Promise.all([
-          api.get('/university/api/v1/rejection-reasons/'),
-          api.get('/university/api/v1/academic-years/'),
-          api.get('/user/api/v1/category-achievements/')
-        ]);
-        
-        setRejectionReasonsList(reasonsRes.data);
-        setSemesterOptions(semestersRes.data);
-        setCategories(catsRes.data);
-
-        const current = semestersRes.data.find(s => s.is_current);
-        if (current) setSelectedSemester(current.label);
-      } catch (error) {
-        alert("Ошибка: " + error);
-      }
-    };
-    fetchLookups();
-  }, []);
-
   return (
     <>
       <main className="min-h-screen bg-slate-50 pt-24 pb-10">
@@ -253,7 +265,7 @@ export default function TeacherProfile({profile, isOwner}) {
                   onChange={(e) => setSelectedSemester(e.target.value)}
                 >
                   {semesterOptions.map((opt) => (
-                    <option key={opt.label} value={opt.label}>
+                    <option key={opt.id} value={opt.id}>
                       {opt.label}
                     </option>
                   ))}
