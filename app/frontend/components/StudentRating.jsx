@@ -57,10 +57,9 @@ export default function StudentRating() {
       setLoading(true);
       try {
         const params = new URLSearchParams();
-        if (selectedFaculty !== 'all') params.append('faculty', selectedFaculty);
+        if (selectedFaculty !== 'all') params.append('faculty_id', selectedFaculty);
         if (selectedCourse !== 'all') params.append('course', selectedCourse);
-        if (selectedGroup !== 'all') params.append('group', selectedGroup);
-        
+        if (selectedGroup !== 'all') params.append('group_id', selectedGroup);
         params.append('category', activeTab);
         params.append('page', String(page));
 
@@ -80,8 +79,8 @@ export default function StudentRating() {
   // Доступные группы на основе выбранного факультета и курса
   const availableGroups = useMemo(() => {
     return filterOptions.groups.filter(g => {
-      const matchFaculty = selectedFaculty === 'all' || g.faculty_short_name === selectedFaculty;
-      const matchCourse = selectedCourse === 'all' || String(g.course) === selectedCourse;
+      const matchFaculty = selectedFaculty === 'all' || String(g.faculty_id) === String(selectedFaculty);
+      const matchCourse = selectedCourse === 'all' || String(g.course) === String(selectedCourse);
       return matchFaculty && matchCourse;
     });
   }, [filterOptions.groups, selectedFaculty, selectedCourse]);
@@ -101,20 +100,24 @@ export default function StudentRating() {
     setExportLoading(true);
     try {
       const params = new URLSearchParams();
-      if (selectedFaculty !== 'all') params.append('faculty', selectedFaculty);
+      if (selectedFaculty !== 'all') params.append('faculty_id', selectedFaculty);
       if (selectedCourse !== 'all') params.append('course', selectedCourse);
+      if (selectedGroup !== 'all') params.append('group_id', selectedGroup);
       if (activeTab !== 'common') params.append('category', activeTab);
       params.append('page', String(page));
+      
       const response = await api.get('/university/api/v1/export-rating-to-excel/', {
         params,
         responseType: 'blob'
       });
+      
       const disposition = response.headers['content-disposition'];
       const fileNameFromHeader = disposition?.match(/filename="?([^"]+)"?/)?.[1];
       const fileName = fileNameFromHeader || `rating-page-${page}.xlsx`;
       const blob = new Blob([response.data], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
+      
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = downloadUrl;
@@ -122,6 +125,7 @@ export default function StudentRating() {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error('Ошибка при выгрузке Excel:', error);
@@ -219,7 +223,7 @@ export default function StudentRating() {
                   >
                     <option value="all">Все</option>
                     {filterOptions.faculties.map(f => (
-                      <option key={f.id} value={f.short_name}>{f.short_name}</option>
+                      <option key={f.id} value={f.id}>{f.short_name}</option>
                     ))}
                   </select>
                 </div>
@@ -297,7 +301,7 @@ export default function StudentRating() {
                         >
                           <option value="all">Все</option>
                           {filterOptions.faculties.map(f => (
-                            <option key={f.id} value={f.short_name}>{f.short_name}</option>
+                            <option key={f.id} value={f.id}>{f.short_name}</option>
                           ))}
                         </select>
                       </div>

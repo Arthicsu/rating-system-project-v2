@@ -18,7 +18,8 @@ export default function TeacherProfile({profile, isOwner}) {
   });
 
   const [selectedGroupId, setSelectedGroupId] = useState('all');
-  const [selectedSemester, setSelectedSemester] = useState({ id: '', label: '' });
+  const [selectedSemesterId, setSelectedSemesterId] = useState('');
+  const [selectedSemesterLabel, setSelectedSemesterLabel] = useState('');
   
   const [searchTerm, setSearchTerm] = useState('');
   const [requestsSearchTerm, setRequestsSearchTerm] = useState('');
@@ -56,7 +57,10 @@ export default function TeacherProfile({profile, isOwner}) {
         setGroupsList(groupsRes.data || []);
 
         const current = semestersRes.data.find(s => s.is_current);
-        if (current) setSelectedSemester({ id: current.id, label: current.label });
+        if (current){
+          setSelectedSemesterId(current.id);
+          setSelectedSemesterLabel(current.label);
+        }
         
         if (groupsRes.data && groupsRes.data.length > 0) {
           setSelectedGroupId(groupsRes.data[0].id);
@@ -70,7 +74,7 @@ export default function TeacherProfile({profile, isOwner}) {
 
   useEffect(() => {
     const fetchDashboard = async () => {
-      if (!selectedGroupId || !selectedSemester.id) return; 
+      if (!selectedGroupId || !selectedSemesterId) return; 
       
       try {
         const params = new URLSearchParams();
@@ -78,7 +82,7 @@ export default function TeacherProfile({profile, isOwner}) {
         params.append('page', 1);
 
         const statsParams = new URLSearchParams(params);
-        statsParams.append('academic_year', selectedSemester.id);
+        statsParams.append('academic_year', selectedSemesterId);
         const [studentsRes, statsRes] = await Promise.all([
           api.get('/university/api/v1/filtered-students/', { params } ),
           api.get('/university/api/v1/filtered-dashboard-stats/', { params: statsParams })
@@ -93,7 +97,7 @@ export default function TeacherProfile({profile, isOwner}) {
       }
     };
     fetchDashboard();
-  }, [selectedGroupId, selectedSemester.id]);
+  }, [selectedGroupId, selectedSemesterId]);
 
   const filteredStudents = useMemo(() => {
     let students = studentsData;
@@ -236,8 +240,12 @@ export default function TeacherProfile({profile, isOwner}) {
                 </label>
                 <select
                   className="w-full min-w-40 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
-                  value={selectedSemester.id}
-                  onChange={(e) => setSelectedSemester(e.target.value)}
+                  value={selectedSemesterId}
+                  onChange={(e) => {
+                    const selected = semesterOptions.find(opt => opt.id == e.target.value);
+                    setSelectedSemesterId(selected.id);
+                    setSelectedSemesterLabel(selected.label);
+                  }}
                 >
                   {semesterOptions.map((opt) => (
                     <option key={opt.id} value={opt.id}>
@@ -383,7 +391,7 @@ export default function TeacherProfile({profile, isOwner}) {
                   <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
                     Заявки: {currentGroupName},{' '}
                     <span className="text-xs font-normal text-slate-500 sm:text-sm">
-                      ({selectedSemester.label})
+                      ({selectedSemesterLabel})
                     </span>
                   </h2>
                 </div>
@@ -495,7 +503,7 @@ export default function TeacherProfile({profile, isOwner}) {
                             colSpan={8}
                             className="px-4 py-6 text-center text-xs text-slate-500 sm:text-sm"
                           >
-                            Нет заявок за период "{selectedSemester.id}" в группе "
+                            Нет заявок за период "{selectedSemesterLabel}" в группе "
                             {currentGroupName}"
                           </td>
                         </tr>
@@ -513,7 +521,7 @@ export default function TeacherProfile({profile, isOwner}) {
                 <h2 className="mb-5 text-sm font-semibold text-slate-900 sm:text-base">
                   Аналитика: {currentGroupName}{' '}
                   <span className="text-xs font-normal text-slate-500 sm:text-sm">
-                    ({selectedSemester.label})
+                    ({selectedSemesterLabel})
                   </span>
                 </h2>
 
