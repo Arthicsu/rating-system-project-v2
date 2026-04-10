@@ -206,10 +206,15 @@ export default function TeacherProfile({profile, isOwner}) {
       return;
     }
 
+    const reasonsText = rejectReasons.map(id => {
+      const reason = rejectionReasonsList.find(r => r.id === id);
+      return reason ? reason.text : '';
+    }).filter(Boolean);
+
     try {
       await api.post(`/university/api/v1/document/${modalState.targetId}/review/`, {
         action: 'reject',
-        reasons: rejectReasons
+        reasons: reasonsText
       });
 
       setPendingDocsData(prev => prev.filter(doc => doc.id != modalState.targetId));
@@ -220,9 +225,33 @@ export default function TeacherProfile({profile, isOwner}) {
     }
   };
 
+  const toggleReason = (reason) => {
+    setRejectReasons(prev => 
+      prev.includes(reason) ? prev.filter(r => r != reason) : [...prev, reason]
+    );
+  };
+
   const currentGroupName = selectedGroupId == 'all'
     ? 'Все группы'
     : (groupsList.find(g => String(g.id) == String(selectedGroupId))?.name || 'Все группы');
+    
+  const downloadFile = async (fileId, fileName) => {
+    try {
+      const response = await api.get(`/student/api/v1/document/download/${fileId}/`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Ошибка скачивания файла:', error);
+    }
+  };
     
   return (
     <>

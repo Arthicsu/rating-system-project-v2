@@ -86,7 +86,7 @@ function AchievementItem({ doc } : {doc: any}) {
         </div>
       </div>
 
-      {doc.status == 'rejected' ? (
+      {doc.status == 3 ? (
         <div className="max-w-xs rounded-xl bg-rose-50 px-3 py-2 md:text-xs lg:text-sm">
           <span className="font-medium text-rose-700">Причина:</span>{' '}
           <span className='text-black text-[14px] font-semibold'>{doc.rejection_reason || 'Не указана'}</span>
