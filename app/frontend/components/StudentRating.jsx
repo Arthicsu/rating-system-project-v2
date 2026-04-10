@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/axios';
 import { useMySession } from '@/context/AuthContext';
+import Pagination from '@/components/Pagination';
 
 function getShortName(fullName = '') {
   const parts = fullName.trim().split(/\s+/);
@@ -373,37 +374,13 @@ export default function StudentRating() {
               </table>
               
               {/* Блок пагинации */}
-              <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4 px-2">
-                <div className="text-xs text-slate-500">
-                  Показано {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalCount)} из {totalCount}
-                </div>
-                
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage(prev => Math.max(prev - 1, 1))}
-                    disabled={page === 1 || loading}
-                    className="flex h-8 w-8 items-center justify-center rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-
-                  <div className="flex h-8 items-center px-3 text-sm font-medium text-slate-700">
-                    {page}
-                  </div>
-
-                  <button
-                    onClick={() => setPage(prev => prev + 1)}
-                    disabled={page * PAGE_SIZE >= totalCount || loading}
-                    className="flex h-8 w-8 items-center justify-center rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+              <Pagination 
+                page={page}
+                totalCount={totalCount}
+                pageSize={PAGE_SIZE}
+                loading={loading}
+                onPageChange={setPage}
+              />
               {user?.isStaff && (
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[11px] sm:text-xs text-slate-600">

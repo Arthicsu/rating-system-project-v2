@@ -1,12 +1,14 @@
 `use client`;
 import { useState, useMemo, useEffect } from 'react';
 import api from '@/lib/axios';
-
+import Pagination from '@/components/Pagination';
 
 export default function TeacherProfile({profile, isOwner}) {
   const [activeTab, setActiveTab] = useState(`my-group`);
-  const [localProfile, setLocalProfile] = useState(profile);
-  const [rejectReasons, setRejectReasons] = useState([]);
+  const [groupsList, setGroupsList] = useState([]);
+  const [studentsData, setStudentsData] = useState([]);
+  const [pendingDocsData, setPendingDocsData] = useState([]);
+  const [stats, setStats] = useState({ total_students: 0, avg_score: 0 });
 
   const [modalState, setModalState] = useState({
     type: null,
@@ -15,22 +17,16 @@ export default function TeacherProfile({profile, isOwner}) {
     targetStudentId: null
   });
 
-  const getInitialGroupId = () => {
-    const managed = profile.managed_groups || [];
-    const curated = profile.curated_groups || [];
-    const groupsSource = managed.length > 0 ? managed : curated;
-    return groupsSource.length > 0 ? String(groupsSource[0].id) : 'all';
-  };
-
-  const initialGroupId = getInitialGroupId();
-  const [selectedGroupId, setSelectedGroupId] = useState(initialGroupId);
+  const [selectedGroupId, setSelectedGroupId] = useState('all');
+  const [selectedSemester, setSelectedSemester] = useState({ id: '', label: '' });
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [requestsSearchTerm, setRequestsSearchTerm] = useState('');
   
   const [rejectionReasonsList, setRejectionReasonsList] = useState([]);
   const [semesterOptions, setSemesterOptions] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedSemester, setSelectedSemester] = useState('');
+  const [rejectReasons, setRejectReasons] = useState([]);
 
   const openModal = (type, doc) => setModalState({ 
       type, 
@@ -47,30 +43,60 @@ export default function TeacherProfile({profile, isOwner}) {
   useEffect(() => {
     const fetchLookups = async () => {
       try {
-        const [reasonsRes, semestersRes, catsRes] = await Promise.all([
+        const [reasonsRes, semestersRes, catsRes, groupsRes] = await Promise.all([
           api.get('/university/api/v1/rejection-reasons/'),
           api.get('/university/api/v1/academic-years/'),
-          api.get('/user/api/v1/category-achievements/')
+          api.get('/user/api/v1/category-achievements/'),
+          api.get('/university/api/v1/filtered-groups/')
         ]);
         
         setRejectionReasonsList(reasonsRes.data);
         setSemesterOptions(semestersRes.data);
         setCategories(catsRes.data);
+        setGroupsList(groupsRes.data || []);
 
-      const current = semestersRes.data.find(s => s.is_current);
-      if (current) setSelectedSemester(String(current.id));
+        const current = semestersRes.data.find(s => s.is_current);
+        if (current) setSelectedSemester({ id: current.id, label: current.label });
+        
+        if (groupsRes.data && groupsRes.data.length > 0) {
+          setSelectedGroupId(groupsRes.data[0].id);
+        }
       } catch (error) {
-        alert("Ошибка: " + error);
+        console.error("Ошибка загрузки справочников: ", error);
       }
     };
     fetchLookups();
   }, []);
 
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      if (!selectedGroupId || !selectedSemester.id) return; 
+      
+      try {
+        const params = new URLSearchParams();
+        params.append('group_id', selectedGroupId);
+        params.append('page', 1);
+
+        const statsParams = new URLSearchParams(params);
+        statsParams.append('academic_year', selectedSemester.id);
+        const [studentsRes, statsRes] = await Promise.all([
+          api.get('/university/api/v1/filtered-students/', { params } ),
+          api.get('/university/api/v1/filtered-dashboard-stats/', { params: statsParams })
+        ]);
+
+        setStudentsData(studentsRes.data.results);
+        setPendingDocsData(statsRes.data.pending_documents);
+        setStats(statsRes.data.stats);
+        
+      } catch (error) {
+        console.error("Ошибка загрузки данных дашборда: ", error);
+      }
+    };
+    fetchDashboard();
+  }, [selectedGroupId, selectedSemester.id]);
+
   const filteredStudents = useMemo(() => {
-    let students = localProfile.students_list || [];
-    if (selectedGroupId != 'all') {
-      students = students.filter(s => String(s.group_id) == String(selectedGroupId));
-    }
+    let students = studentsData;
     if (searchTerm.trim() != '') {
       const lowerTerm = searchTerm.toLowerCase();
       students = students.filter(s => 
@@ -79,33 +105,10 @@ export default function TeacherProfile({profile, isOwner}) {
       );
     }
     return students;
-  }, [localProfile.students_list, selectedGroupId, searchTerm]);
-
+  }, [studentsData, searchTerm]);
 
   const filteredDocs = useMemo(() => {
-    let docs = localProfile.pending_documents || [];
-
-    // Фильтр по группе
-    if (selectedGroupId != 'all') {
-      docs = docs.filter(d => String(d.group_id) == String(selectedGroupId));
-    }
-
-    // Фильтр по семестру
-    const currentRange = semesterOptions.find(opt => String(opt.id) == String(selectedSemester));
-    if (currentRange && currentRange.start_date && currentRange.end_date) {
-      const start = new Date(currentRange.start_date);
-      const end = new Date(currentRange.end_date);
-      
-      // Конец дня, чтобы захватить документы за последнюю дату
-      end.setHours(23, 59, 59, 999);
-
-      docs = docs.filter(d => {
-        const docDate = new Date(d.uploaded_at); 
-        return docDate >= start && docDate <= end;
-      });
-    }
-
-    // Поиск по имени
+    let docs = pendingDocsData;
     if (requestsSearchTerm.trim() != '') {
       const lowerTerm = requestsSearchTerm.toLowerCase();
       docs = docs.filter(d =>
@@ -113,21 +116,21 @@ export default function TeacherProfile({profile, isOwner}) {
       );
     }
     return docs;
-  }, [localProfile.pending_documents, selectedGroupId, selectedSemester, requestsSearchTerm, semesterOptions]);
+  }, [pendingDocsData, requestsSearchTerm]);
 
   const dynamicStats = useMemo(() => {
     const students = filteredStudents;
     const defaults = {
-      total_students: 0,
-      avg_score: 0,
+      total_students: stats.total_students,
+      avg_score: stats.avg_score,
       max_score: 0,
       min_score: 0,
-      active_requests: 0,
+      active_requests: filteredDocs.length,
       top5: [],
       categories: {}
     };
 
-    if (students.length == 0) return {...defaults, active_requests: filteredDocs.length};
+    if (students.length == 0) return defaults;
 
     const scores = students.map(s => s.total_score);
     
@@ -138,44 +141,31 @@ export default function TeacherProfile({profile, isOwner}) {
     });
 
     return {
-      total_students: students.length,
-      avg_score: Math.round(scores.reduce((a, b) => a + b, 0) / students.length),
+      total_students: stats.total_students, 
+      avg_score: stats.avg_score,
       max_score: Math.max(...scores),
       min_score: Math.min(...scores),
       active_requests: filteredDocs.length,
       top5: [...students].sort((a, b) => b.total_score - a.total_score).slice(0, 5),
       categories: catStats
     };
-  }, [filteredStudents, filteredDocs, categories]);
+  }, [filteredStudents, filteredDocs, categories, stats]);
 
   const handleApprove = async () => {
     if (!modalState.targetId) return;
 
     try {
-      console.log(modalState.targetId)
       await api.post(`/university/api/v1/document/${modalState.targetId}/review/`, {
         action: 'approve'
       });
 
-      setLocalProfile(prev => {
-          const newPending = prev.pending_documents.filter(doc => doc.id != modalState.targetId);
-          
-          const newStudentsList = prev.students_list.map(student => {
-              if (student.id == modalState.targetStudentId) {
-                  return {
-                      ...student,
-                      total_score: student.total_score + modalState.targetScore
-                  };
-              }
-              return student;
-          });
-
-          return {
-              ...prev,
-              pending_documents: newPending,
-              students_list: newStudentsList
-          };
-      });
+      setPendingDocsData(prev => prev.filter(doc => doc.id != modalState.targetId));
+      setStudentsData(prev => prev.map(student => {
+          if (student.id == modalState.targetStudentId) {
+              return { ...student, total_score: student.total_score + modalState.targetScore };
+          }
+          return student;
+      }));
 
       closeModal();
     } catch (error) {
@@ -193,16 +183,12 @@ export default function TeacherProfile({profile, isOwner}) {
     }
 
     try {
-      console.log(modalState.targetId)
       await api.post(`/university/api/v1/document/${modalState.targetId}/review/`, {
         action: 'reject',
         reasons: rejectReasons
       });
 
-      setLocalProfile(prev => ({
-        ...prev,
-        pending_documents: prev.pending_documents.filter(doc => doc.id !== modalState.targetId)
-      }));
+      setPendingDocsData(prev => prev.filter(doc => doc.id != modalState.targetId));
 
       closeModal();
     } catch (error) {
@@ -210,21 +196,10 @@ export default function TeacherProfile({profile, isOwner}) {
     }
   };
 
-  const toggleReason = (reason) => {
-    setRejectReasons(prev => 
-      prev.includes(reason) ? prev.filter(r => r != reason) : [...prev, reason]
-    );
-  };
-
-  const curatedGroups = profile.curated_groups && profile.curated_groups.length > 0 ? profile.curated_groups.map(g => g.name).join(', ') : "Нет курируемых групп";
-  const groupsList = (localProfile.managed_groups && localProfile.managed_groups.length > 0)
-    ? localProfile.managed_groups
-    : (profile.curated_groups || []);
-  const currentGroupName =
-    selectedGroupId === 'all'
-      ? 'Все группы'
-      : (groupsList.find(g => String(g.id) === String(selectedGroupId))?.name || 'Все группы');
-
+  const currentGroupName = selectedGroupId == 'all'
+    ? 'Все группы'
+    : (groupsList.find(g => String(g.id) == String(selectedGroupId))?.name || 'Все группы');
+    
   return (
     <>
       <main className="min-h-screen bg-slate-50 pt-24 pb-10">
@@ -261,7 +236,7 @@ export default function TeacherProfile({profile, isOwner}) {
                 </label>
                 <select
                   className="w-full min-w-40 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
-                  value={selectedSemester}
+                  value={selectedSemester.id}
                   onChange={(e) => setSelectedSemester(e.target.value)}
                 >
                   {semesterOptions.map((opt) => (
@@ -406,9 +381,9 @@ export default function TeacherProfile({profile, isOwner}) {
               <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.10)] sm:p-5">
                 <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
-                    Заявки: {selectedSemester},{' '}
-                    <span className="font-semibold text-slate-900">
-                      {currentGroupName}
+                    Заявки: {currentGroupName},{' '}
+                    <span className="text-xs font-normal text-slate-500 sm:text-sm">
+                      ({selectedSemester.label})
                     </span>
                   </h2>
                 </div>
@@ -469,24 +444,24 @@ export default function TeacherProfile({profile, isOwner}) {
                               </div>
                             </td>
                             <td className="px-3 py-2.5 text-xs text-slate-800 sm:text-sm">
-                              {doc.file ? (
-                                <a
-                                  href={doc.file}
-                                  target="_blank"
-                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900 sm:text-xs"
-                                >
-                                  <i className="fa-solid fa-file" />
-                                  Документ
-                                </a>
+                              {doc.files && doc.files.length > 0 ? (
+                                doc.files.map((file, index) => (
+                                  <button
+                                    key={file.id}
+                                    onClick={() => downloadFile(file.id, file.original_file_name)}
+                                    className="mb-1 inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900 sm:text-xs"
+                                  >
+                                    <i className="fa-solid fa-file" />
+                                    {file.original_file_name || `Файл ${index + 1}`}
+                                  </button>
+                                ))
                               ) : (
                                 <span className="text-[11px] text-slate-400 sm:text-xs">
                                   Нет файла
                                 </span>
                               )}
                               <div className="mt-1 text-[10px] text-slate-400">
-                                {new Date(doc.uploaded_at).toLocaleDateString(
-                                  'ru-RU'
-                                )}
+                                {new Date(doc.uploaded_at).toLocaleDateString('ru-RU')}
                               </div>
                             </td>
                             <td className="px-3 py-2.5 text-xs font-semibold text-emerald-600 sm:text-sm">
@@ -520,7 +495,7 @@ export default function TeacherProfile({profile, isOwner}) {
                             colSpan={8}
                             className="px-4 py-6 text-center text-xs text-slate-500 sm:text-sm"
                           >
-                            Нет заявок за период "{selectedSemester}" в группе "
+                            Нет заявок за период "{selectedSemester.id}" в группе "
                             {currentGroupName}"
                           </td>
                         </tr>
@@ -538,7 +513,7 @@ export default function TeacherProfile({profile, isOwner}) {
                 <h2 className="mb-5 text-sm font-semibold text-slate-900 sm:text-base">
                   Аналитика: {currentGroupName}{' '}
                   <span className="text-xs font-normal text-slate-500 sm:text-sm">
-                    ({selectedSemester})
+                    ({selectedSemester.label})
                   </span>
                 </h2>
 
@@ -584,7 +559,7 @@ export default function TeacherProfile({profile, isOwner}) {
                 <div className="grid gap-5 grid-cols-[1.1fr,1.3fr] md:grid md:grid-cols-2">
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
                     <h3 className="mb-4 border-b border-slate-200 pb-2 text-sm font-semibold text-slate-900">
-                      Распределение баллов
+                      Распределение баллов по группе
                     </h3>
                     <div className="space-y-3">
                       {Object.entries(dynamicStats.categories).map(

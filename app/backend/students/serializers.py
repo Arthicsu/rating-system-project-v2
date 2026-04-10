@@ -73,7 +73,7 @@ class DocumentSerializer(serializers.ModelSerializer):
 class PendingDocumentSerializer(DocumentSerializer):
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     student_id = serializers.IntegerField(source='user.student_profile.id', read_only=True)
-    student_name = serializers.CharField(source='user.student_profile.get_full_username', read_only=True)
+    student_name = serializers.CharField(source='user.student_profile.full_name', read_only=True)
     group_id = serializers.IntegerField(source='user.student_profile.group.id', read_only=True)
     record_book = serializers.CharField(source='user.student_profile.record_book', read_only=True, default="—")
 

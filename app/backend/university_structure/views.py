@@ -271,19 +271,36 @@ class FilteredDashboardStatsAPIView(StudentWithAccessMixin, GenericAPIView):
         # Получаем студентов с учетом прав и фильтров
         students_queryset = self.get_allowed_students(user)
 
+        academic_year_id = request.query_params.get('academic_year')
+        date_filter = {}
+        
+        if academic_year_id:
+            # Ищем семестр в базе
+            ay = get_object_or_404(AcademicYear, id=academic_year_id)
+            # Формируем фильтр по датам для документов
+            date_filter = {
+                'date_received__range': (ay.start_date, ay.end_date)
+            }
+
         # Считаем статистику
         stats_data = students_queryset.aggregate(
             total_students=Count('id'),
             avg_score=Avg('total_score') 
         )
         
+        stats = {
+            "total_students": stats_data['total_students'] or 0,
+            "avg_score": round(stats_data['avg_score'] or 0, 2)
+        }
+
         # В зависимости от роли разные статусы документов для фильтрования
         doc_status = 'pending' if user.is_dept_staff else 'approved'
         # Получаем отфильтрованные документы
         pending_docs_queryset = Document.objects.filter(
             user__student_profile__in=students_queryset,
-            status__code=doc_status
-        ).select_related('user__student_profile', 'user__student_profile__group')
+            status__code=doc_status,
+            **date_filter
+        ).select_related('user__student_profile', 'user__student_profile__group').order_by('-uploaded_at')
 
         # Пропускаем документы через пагинатор
         page = self.paginate_queryset(pending_docs_queryset)
@@ -296,7 +313,7 @@ class FilteredDashboardStatsAPIView(StudentWithAccessMixin, GenericAPIView):
             response = self.get_paginated_response(serializer.data)
             
             # Добавляем статистику в ответ пагинатора
-            response.data['stats'] = stats_data
+            response.data['stats'] = stats
             
             response.data['pending_documents'] = response.data.pop('results')
             
@@ -305,6 +322,6 @@ class FilteredDashboardStatsAPIView(StudentWithAccessMixin, GenericAPIView):
         # Если пагинатор отключен - Fallback
         serializer = PendingDocumentSerializer(pending_docs_queryset, many=True, context={'request': request})
         return Response({
-            "stats": stats_data,
+            "stats": stats,
             "pending_documents": serializer.data
         })
