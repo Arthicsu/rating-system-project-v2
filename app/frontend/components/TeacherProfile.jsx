@@ -21,6 +21,10 @@ export default function TeacherProfile({profile, isOwner}) {
   const [selectedSemesterId, setSelectedSemesterId] = useState('');
   const [selectedSemesterLabel, setSelectedSemesterLabel] = useState('');
   
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [loading, setLoading] = useState(false);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [requestsSearchTerm, setRequestsSearchTerm] = useState('');
   
@@ -28,6 +32,7 @@ export default function TeacherProfile({profile, isOwner}) {
   const [semesterOptions, setSemesterOptions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [rejectReasons, setRejectReasons] = useState([]);
+  const [pageSize] = useState(20);  // Количество записей на страницу
 
   const openModal = (type, doc) => setModalState({ 
       type, 
@@ -39,6 +44,15 @@ export default function TeacherProfile({profile, isOwner}) {
   const closeModal = () => {
       setModalState({ type: null, targetId: null, targetScore: 0, targetStudentId: null });
       setRejectReasons([]); 
+  };
+  
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+  
+  const handleGroupChange = (groupId) => {
+    setSelectedGroupId(groupId);
+    setCurrentPage(1);
   };
   
   useEffect(() => {
@@ -75,13 +89,16 @@ export default function TeacherProfile({profile, isOwner}) {
   useEffect(() => {
     const fetchDashboard = async () => {
       if (!selectedGroupId || !selectedSemesterId) return; 
+      setLoading(true);
       
       try {
         const params = new URLSearchParams();
         params.append('group_id', selectedGroupId);
-        params.append('page', 1);
+        params.append('page', currentPage);
+        params.append('page_size', pageSize);
 
-        const statsParams = new URLSearchParams(params);
+        const statsParams = new URLSearchParams();
+        statsParams.append('group_id', selectedGroupId);
         statsParams.append('academic_year', selectedSemesterId);
         const [studentsRes, statsRes] = await Promise.all([
           api.get('/university/api/v1/filtered-students/', { params } ),
@@ -89,15 +106,18 @@ export default function TeacherProfile({profile, isOwner}) {
         ]);
 
         setStudentsData(studentsRes.data.results);
+        setTotalStudents(studentsRes.data.count);
         setPendingDocsData(statsRes.data.pending_documents);
         setStats(statsRes.data.stats);
         
       } catch (error) {
         console.error("Ошибка загрузки данных дашборда: ", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchDashboard();
-  }, [selectedGroupId, selectedSemesterId]);
+  }, [selectedGroupId, selectedSemesterId, currentPage]);
 
   const filteredStudents = useMemo(() => {
     let students = studentsData;
@@ -221,7 +241,7 @@ export default function TeacherProfile({profile, isOwner}) {
                 <select
                   className="w-full min-w-35 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
                   value={selectedGroupId}
-                  onChange={(e) => setSelectedGroupId(e.target.value)}
+                  onChange={(e) => handleGroupChange(e.target.value)}
                 >
                   {groupsList.length > 0 && (
                     <option value="all">Все группы</option>
@@ -307,7 +327,7 @@ export default function TeacherProfile({profile, isOwner}) {
                   <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
                     Список студентов группы {currentGroupName}{' '}
                     <span className="text-xs font-normal text-slate-500">
-                      (студентов: {filteredStudents.length})
+                      (всего: {totalStudents})
                     </span>
                   </h2>
                   <div className="relative flex items-center">
@@ -380,6 +400,14 @@ export default function TeacherProfile({profile, isOwner}) {
                     </tbody>
                   </table>
                 </div>
+                
+                <Pagination
+                  page={currentPage}
+                  totalCount={totalStudents}
+                  pageSize={pageSize}
+                  loading={loading}
+                  onPageChange={handlePageChange}
+                />
               </div>
             </div>
           )}

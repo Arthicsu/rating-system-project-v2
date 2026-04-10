@@ -30,7 +30,7 @@ export default function StudentRating() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const PAGE_SIZE = 20; // Количество записей на страницу
+  const [pageSize] = useState(20); // Количество записей на страницу
 
   // Загрузка категорий
   useEffect(() => {
@@ -357,7 +357,7 @@ export default function StudentRating() {
                     <tr key={student.user_id} className="border-b border-[#f0f0f0] text-xs sm:text-xs md:text-sm last:border-b-0 hover:bg-slate-50">
                       <td className="p-1 sm:p-2 md:px-4  md:py-3 text-center align-middle">
                         <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-[11px] md:text-sm font-bold text-white">
-                          {(page - 1) * PAGE_SIZE + index + 1}
+                          {(page - 1) * pageSize + index + 1}
                         </div>
                       </td>
                       <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-[#333]">
@@ -381,7 +381,7 @@ export default function StudentRating() {
               <Pagination 
                 page={page}
                 totalCount={totalCount}
-                pageSize={PAGE_SIZE}
+                pageSize={pageSize}
                 loading={loading}
                 onPageChange={setPage}
               />
