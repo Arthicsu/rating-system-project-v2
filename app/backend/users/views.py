@@ -21,7 +21,7 @@ from university_structure.models import Faculty, Group
 from students.models import Document, Student, Category
 from .serializers import StudentRegistrationSerializer, AuthUserResponseSerializer, LoginRequestSerializer
 from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
-from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer
+from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RatingFiltersResponseSerializer
 from core.pagination import StandardResultsSetPagination
 from core.students_query_set_mixin import StudentWithAccessMixin, StudentRatingQuerySetMixin
 
@@ -183,37 +183,27 @@ class LogoutAPIView(APIView):
 
 @method_decorator(cache_page(60 * 60 * 2), name='dispatch')
 class RatingFiltersAPIView(GenericAPIView):
+    """
+    Данные для фильтров рейтинга.
+    Возвращает списки факультетов, курсов и групп для построения фильтров на клиенте.
+    """
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
 
     @extend_schema(
-        summary="Данные для фильтров рейтинга",
-        description="Возвращает списки факультетов, курсов и групп для построения фильтров на клиенте.",
-        responses={
-            200: inline_serializer(
-                name='RatingFiltersResponse',
-                fields={
-                    "faculties": serializers.ListField(child=serializers.DictField()),
-                    "courses": serializers.ListField(child=serializers.IntegerField()),
-                    "groups": serializers.ListField(child=serializers.DictField()),
-                }
-            )
-        }
+        responses={200: RatingFiltersResponseSerializer()}
     )
     def get(self, request):
         faculties = Faculty.objects.values('id', 'short_name', 'name')
         courses = Group.objects.values_list('course', flat=True).distinct().order_by('course')
-        # Добавляем в выборку только те группы, в которых есть студенты
-        groups = (Group.objects.filter(students__isnull=False)
-              .annotate(faculty_short_name=F('specialty__faculty__short_name'))
-              .values('id', 'name', 'course', 'faculty_short_name', 'academic_year')
-              .distinct())
-
-        return Response({
-            "faculties": list(faculties),
-            "courses": list(courses),
-            "groups": list(groups),
-        }, status=status.HTTP_200_OK)      
+        groups = Group.objects.filter(students__isnull=False).select_related('specialty__faculty').distinct()
+        
+        serializer = RatingFiltersResponseSerializer({
+            'faculties': faculties,
+            'courses': courses,
+            'groups': groups,
+        })
+        return Response(serializer.data, status=status.HTTP_200_OK)    
 
 @method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
 class CategoryAchievementAPIView(ListAPIView):

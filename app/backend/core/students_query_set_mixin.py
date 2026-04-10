@@ -6,12 +6,12 @@ class StudentFilterMixin:
         params = self.request.query_params
         filters = {}
         
-        if params.get('faculty') and params.get('faculty') != 'all':
-            filters['faculty__short_name'] = params.get('faculty')
+        if params.get('faculty_id') and params.get('faculty_id') != 'all':
+            filters['faculty__id'] = params.get('faculty_id')
         if params.get('course') and params.get('course') != 'all':
             filters['group__course'] = params.get('course')
         if params.get('group_id') and params.get('group_id') != 'all':
-            filters['group_id'] = params.get('group_id')
+            filters['group__id'] = params.get('group_id')
             
         return queryset.filter(**filters)
 

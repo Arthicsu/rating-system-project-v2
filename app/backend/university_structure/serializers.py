@@ -56,3 +56,24 @@ class AcademicYearSerializer(serializers.ModelSerializer):
     class Meta:
         model = AcademicYear
         fields = ['id', 'label', 'start_date', 'end_date', 'is_current']
+
+class FacultyFilterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Faculty
+        fields = ['id', 'short_name', 'name']
+
+class CourseFilterSerializer(serializers.Serializer):
+    course = serializers.IntegerField()
+
+class GroupFilterSerializer(serializers.ModelSerializer):
+    faculty_id = serializers.IntegerField(source='specialty.faculty.id', read_only=True)
+    faculty_name = serializers.CharField(source='specialty.faculty.short_name', read_only=True)
+    
+    class Meta:
+        model = Group
+        fields = ['id', 'name', 'course', 'faculty_id', 'faculty_name', 'academic_year']
+
+class RatingFiltersResponseSerializer(serializers.Serializer):
+    faculties = FacultyFilterSerializer(many=True, read_only=True)
+    courses = serializers.ListField(child=serializers.IntegerField(), read_only=True)
+    groups = GroupFilterSerializer(many=True, read_only=True)

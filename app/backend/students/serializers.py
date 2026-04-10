@@ -16,10 +16,11 @@ class StudentRatingSerializer(serializers.ModelSerializer):
     Включает основные поля студента, такие как личные данные, учебная группа, курс и различные баллы,
     используемые для рейтинговой оценки внеучебной деятельности студента.
     """
-    
+    group_id = serializers.IntegerField(source='group.id', read_only=True)
     group = serializers.CharField(source='group.name', read_only=True, default="Без группы")
     course = serializers.IntegerField(source='group.course', read_only=True, default=0)
     faculty = serializers.CharField(source='faculty.short_name', read_only=True, default="—")
+    faculty_id = serializers.IntegerField(source='faculty.id', read_only=True, default=0)
     total_score = serializers.ReadOnlyField()
 
     class Meta:
@@ -29,8 +30,10 @@ class StudentRatingSerializer(serializers.ModelSerializer):
             'user_id', 
             'full_name', 
             'group', 
+            'group_id', 
             'course', 
             'faculty',
+            'faculty_id',
             'total_score',
             'academic_score', 
             'research_score', 
