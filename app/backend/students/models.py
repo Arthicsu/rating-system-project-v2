@@ -235,6 +235,10 @@ class Document(models.Model):
         verbose_name = "Документ"
         verbose_name_plural = "Документы"
         ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['status', 'user']),
+            models.Index(fields=['-uploaded_at']),
+        ]
 
 def achievement_directory_path(instance, filename):
     """

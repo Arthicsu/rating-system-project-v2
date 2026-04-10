@@ -294,7 +294,6 @@ class ProfileAPIView(StudentWithAccessMixin, APIView):
             
         return Response(response_data)
 
-@method_decorator(cache_page(60), name='dispatch')
 class PublicProfileAPIView(APIView):
     """
     API-представление для просмотра профиля студента.

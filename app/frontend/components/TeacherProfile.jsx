@@ -32,7 +32,7 @@ export default function TeacherProfile({profile, isOwner}) {
   const [semesterOptions, setSemesterOptions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [rejectReasons, setRejectReasons] = useState([]);
-  const [pageSize] = useState(20);  // Количество записей на страницу
+  const [pageSize] = useState(20);
 
   const openModal = (type, doc) => setModalState({ 
       type, 
@@ -442,133 +442,125 @@ export default function TeacherProfile({profile, isOwner}) {
           )}
 
           {activeTab == `pending-requests` && (
-            <div className="mt-5">
-              <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.10)] sm:p-5">
-                <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
-                    Заявки: {currentGroupName},{' '}
-                    <span className="text-xs font-normal text-slate-500 sm:text-sm">
-                      ({selectedSemesterLabel})
-                    </span>
-                  </h2>
-                </div>
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="relative flex items-center">
-                    <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 text-[11px] text-slate-400" />
-                    <input
-                      type="text"
-                      className="w-55 rounded-full border border-slate-200 bg-white py-1.5 pl-7 pr-3 text-xs text-slate-900 placeholder:text-slate-400 outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
-                      placeholder="Поиск по ФИО"
-                      value={requestsSearchTerm}
-                      onChange={(e) => setRequestsSearchTerm(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
-                  <table className="min-w-full text-left text-[11px] text-slate-500 sm:text-xs md:text-sm">
-                    <thead className="bg-slate-500 text-[10px] font-semibold uppercase tracking-wide text-slate-100 sm:text-[11px]">
-                      <tr>
-                        <th className="px-3 py-2.5">ФИО студента</th>
-                        <th className="px-3 py-2.5">Категория</th>
-                        <th className="px-3 py-2.5">Достижение / Уровень</th>
-                        <th className="px-3 py-2.5">Результат / Место</th>
-                        <th className="px-3 py-2.5">Описание</th>
-                        <th className="px-3 py-2.5">Документ / Дата</th>
-                        <th className="px-3 py-2.5">Баллы</th>
-                        <th className="px-3 py-2.5 text-right">Действия</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredDocs.length > 0 ? (
-                        filteredDocs.map((doc) => (
-                          <tr
-                            key={doc.id}
-                            className="border-t border-slate-100 align-top hover:bg-slate-50/70"
-                          >
-                            <td className="px-3 py-2.5">
-                              <div className="text-xs font-medium text-slate-900 sm:text-sm">
-                                {doc.student_name}
-                              </div>
-                              <div className="mt-0.5 text-[11px] text-slate-500">
-                                {doc.record_book}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2.5 text-xs text-slate-800 sm:text-sm">
-                              {doc.category_display}
-                            </td>
-                            <td className="px-3 py-2.5 text-xs text-slate-800 sm:text-sm">
-                              {doc.sub_type_display} / {doc.level_display}
-                            </td>
-                            <td className="px-3 py-2.5 text-xs text-slate-800 sm:text-sm">
-                              {doc.result_display}
-                            </td>
-                            <td className="px-3 py-2.5 text-xs text-slate-800 sm:text-sm max-w-80 align-top">
-                              <div className="max-h-14 overflow-y-auto wrap-break-word whitespace-normal pr-1">
-                                {doc.achievement}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2.5 text-xs text-slate-800 sm:text-sm">
-                              {doc.files && doc.files.length > 0 ? (
-                                doc.files.map((file, index) => (
-                                  <button
-                                    key={file.id}
-                                    onClick={() => downloadFile(file.id, file.original_file_name)}
-                                    className="mb-1 inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900 sm:text-xs"
-                                  >
-                                    <i className="fa-solid fa-file" />
-                                    {file.original_file_name || `Файл ${index + 1}`}
-                                  </button>
-                                ))
-                              ) : (
-                                <span className="text-[11px] text-slate-400 sm:text-xs">
-                                  Нет файла
-                                </span>
-                              )}
-                              <div className="mt-1 text-[10px] text-slate-400">
-                                {new Date(doc.uploaded_at).toLocaleDateString('ru-RU')}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2.5 text-xs font-semibold text-emerald-600 sm:text-sm">
-                              +{doc.score}
-                            </td>
-                            <td className="px-3 py-2.5 text-right">
-                              <div className="flex flex-wrap justify-end gap-2">
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-1"
-                                  onClick={() => openModal('approve', doc)}
-                                  title="Одобрить"
-                                >
-                                  Одобрить
-                                </button>
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center justify-center rounded-lg bg-rose-700 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-rose-800 focus:outline-none focus:ring-2 focus:ring-rose-700 focus:ring-offset-1"
-                                  onClick={() => openModal('reject', doc)}
-                                  title="Отклонить"
-                                >
-                                  Отклонить
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={8}
-                            className="px-4 py-6 text-center text-xs text-slate-500 sm:text-sm"
-                          >
-                            Нет заявок за период "{selectedSemesterLabel}" в группе "
-                            {currentGroupName}"
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+            <div className="mt-5 space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
+                  Заявки: {currentGroupName}, {selectedSemesterLabel}
+                </h2>
+                <div className="relative w-full sm:w-64">
+                  <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400" />
+                  <input
+                    type="text"
+                    className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-7 pr-3 text-xs text-slate-900 placeholder:text-sm placeholder:text-slate-400 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
+                    placeholder="Поиск по ФИО..."
+                    value={requestsSearchTerm}
+                    onChange={(e) => setRequestsSearchTerm(e.target.value)}
+                  />
                 </div>
               </div>
+
+              {filteredDocs.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2">
+                  {filteredDocs.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_4px_12px_rgba(15,23,42,0.08)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)] transition-shadow"
+                    >
+                      <div className="mb-3 flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">
+                            {doc.student_name}
+                          </p>
+                          <p className="text-xs text-slate-500">{doc.record_book}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                            +{doc.score}
+                          </span>
+                          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                            {doc.category_display}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mb-3">
+                        <p className="text-sm text-slate-800">{doc.achievement}</p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
+                            {doc.sub_type_display}
+                          </span>
+                          {doc.level_display && doc.level_display !== 'None' && (
+                            <span className="rounded bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700">
+                              {doc.level_display}
+                            </span>
+                          )}
+                          {doc.result_display && doc.result_display !== 'None' && (
+                            <span className="rounded bg-purple-50 px-2 py-0.5 text-[11px] text-purple-700">
+                              {doc.result_display}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mb-3 flex items-center gap-4 text-xs text-slate-500">
+                        {doc.files && doc.files.length > 0 ? (
+                          doc.files.map((file, index) => (
+                            <button
+                              key={file.id}
+                              onClick={() => downloadFile(file.id, file.original_file_name)}
+                              className="inline-flex items-center gap-1 text-sky-600 hover:text-sky-800"
+                            >
+                              <i className="fa-solid fa-file" />
+                              <span className="truncate max-w-[120px]">{file.original_file_name || `Файл ${index + 1}`}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <span className="text-slate-400">
+                            <i className="fa-solid fa-file-circle-xmark mr-1" />
+                            Нет файла
+                          </span>
+                        )}
+                        <span>
+                          <i className="fa-regular fa-calendar mr-1" />
+                          {new Date(doc.uploaded_at).toLocaleDateString('ru-RU')}
+                        </span>
+                      </div>
+
+                      {doc.rejection_reason && (
+                        <div className="mb-3 rounded-lg bg-rose-50 p-2.5 text-xs text-rose-700">
+                          <i className="fa-solid fa-circle-exclamation mr-1" />
+                          <span className="font-medium">Причина отклонения:</span> {doc.rejection_reason}
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openModal('approve', doc)}
+                          className="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                        >
+                          <i className="fa-solid fa-check mr-1.5" />
+                          Одобрить
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openModal('reject', doc)}
+                          className="flex-1 rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-700"
+                        >
+                          <i className="fa-solid fa-xmark mr-1.5" />
+                          Отклонить
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+                  <p className="text-sm text-slate-500">
+                    Нет заявок за период "{selectedSemesterLabel}" в группе "{currentGroupName}"
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
