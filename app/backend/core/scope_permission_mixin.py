@@ -12,7 +12,7 @@ class ScopePermissionMixin:
     видимости текущего пользователя (факультет/кафедра).
     """
     
-    def check_document_scope(self, user, document) -> bool:
+    def check_staff_scope(self, user, document) -> bool:
         """
         Проверяет, имеет ли пользователь права на модерацию документа.
         Возвращает True, если документ принадлежит области видимости пользователя.
@@ -50,7 +50,7 @@ class ScopePermissionMixin:
             id=doc_id
         )
         
-        if not self.check_document_scope(user, doc):
+        if not self.check_staff_scope(user, doc):
             return None, Response(
                 {"error": "Документ находится за пределами вашей области модерации"},
                 status=status.HTTP_403_FORBIDDEN

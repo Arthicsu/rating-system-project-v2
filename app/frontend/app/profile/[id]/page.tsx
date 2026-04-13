@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import api from '@/lib/axios';
 import Link from "next/link";
 import StudentProfile from '@/components/StudentProfile';
-import TeacherProfile from '@/components/TeacherProfile';
+import StaffProfile from '@/components/StaffProfile';
 
 export default function Profile() {
     const [profile, setProfile] = useState<any>(null);
@@ -29,7 +29,7 @@ export default function Profile() {
     return (
       <>
           {isStaff ? (
-              <TeacherProfile profile={profile} isOwner={isOwner}/>
+              <StaffProfile profile={profile} isOwner={isOwner}/>
           ):(
               <StudentProfile profile={profile} isOwner={isOwner}/>
           )}

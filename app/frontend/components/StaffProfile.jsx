@@ -1,9 +1,11 @@
-`use client`;
+'use client';
 import { useState, useMemo, useEffect } from 'react';
 import api from '@/lib/axios';
 import Pagination from '@/components/Pagination';
+import { useDownloadFile } from '@/hooks/useDownloadFile';
 
-export default function TeacherProfile({profile, isOwner}) {
+export default function StaffProfile({profile, isOwner}) {
+  const { downloadFile } = useDownloadFile();
   const [activeTab, setActiveTab] = useState(`my-group`);
   const [groupsList, setGroupsList] = useState([]);
   const [studentsData, setStudentsData] = useState([]);
@@ -234,24 +236,6 @@ export default function TeacherProfile({profile, isOwner}) {
   const currentGroupName = selectedGroupId == 'all'
     ? 'Все группы'
     : (groupsList.find(g => String(g.id) == String(selectedGroupId))?.name || 'Все группы');
-    
-  const downloadFile = async (fileId, fileName) => {
-    try {
-      const response = await api.get(`/student/api/v1/document/download/${fileId}/`, {
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Ошибка скачивания файла:', error);
-    }
-  };
     
   return (
     <>
@@ -619,7 +603,7 @@ export default function TeacherProfile({profile, isOwner}) {
                 </div>
 
                 {/* Нижний блок: распределение и топ-5 */}
-                <div className="grid gap-5 grid-cols-[1.1fr,1.3fr] md:grid md:grid-cols-2">
+                <div className="grid gap-5 grid-cols-[1.1fr,1.3fr] md: grid-cols-2">
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
                     <h3 className="mb-4 border-b border-slate-200 pb-2 text-sm font-semibold text-slate-900">
                       Распределение баллов по группе
