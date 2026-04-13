@@ -1,22 +1,19 @@
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, inline_serializer
-from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.views import APIView
-from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
+from rest_framework.generics import GenericAPIView, ListAPIView
 from rest_framework.response import Response
-from rest_framework import status, serializers
+from rest_framework import status
 
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.http import HttpResponse
-from django.db.models import Avg, F, Count, Q, ExpressionWrapper, IntegerField, Sum, Value, Exists, OuterRef
+from django.db.models import Avg, Count, Exists, OuterRef
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
 
-from .serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RejectionReasonSerializer, AcademicYearSerializer
+from .serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RejectionReasonSerializer, AcademicYearSerializer, ReviewDocumentRequestSerializer
 from .models import Faculty, Group, RejectionReason, AcademicYear
 from students.models import Document, Student, DocumentStatus
 from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
@@ -24,9 +21,11 @@ from students.serializers import DocumentSerializer, PendingDocumentSerializer, 
 from core.pagination import StandardResultsSetPagination
 from core.export_rating_excel import generate_rating_excel_pandas
 from core.students_query_set_mixin import StudentFilterMixin, StudentWithAccessMixin, StudentRatingQuerySetMixin
+from core.scope_permission_mixin import ScopePermissionMixin
 
 
 pagination_class = StandardResultsSetPagination
+
 
 class RatingExportAPIView(StudentRatingQuerySetMixin, GenericAPIView):
     permission_classes = [AllowAny]
@@ -45,7 +44,7 @@ class RatingExportAPIView(StudentRatingQuerySetMixin, GenericAPIView):
         response['Content-Disposition'] = 'attachment; filename="student_rating.xlsx"'
         return response
 
-class ReviewDocumentAPIView(APIView):
+class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
     """
     API-представление для модерации документов студентов преподавателем.
 
@@ -53,45 +52,13 @@ class ReviewDocumentAPIView(APIView):
     подтверждающие достижения. 
     При подтверждении - начисляются баллы в соответствии с категорией.
     """
+    
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]  
+    permission_classes = [IsAuthenticated]
+    serializer_class = ReviewDocumentRequestSerializer
     pagination_class = None
-    @extend_schema(
-            summary="Модерация документа",
-            description="Подтверждение или отклонение документа. При подтверждении начисляются баллы.",
-            request=inline_serializer(
-                name='ReviewDocumentRequest',
-                fields={
-                    'action': serializers.ChoiceField(choices=['approve', 'reject']),
-                    'reasons': serializers.ListField(
-                        child=serializers.CharField(), 
-                        required=False, 
-                        help_text="Список причин при отклонении"
-                    )
-                }
-            ),
-            responses={
-                200: OpenApiTypes.OBJECT,
-                400: OpenApiTypes.OBJECT,
-                403: OpenApiTypes.OBJECT,
-                404: OpenApiTypes.OBJECT,
-            },
-            examples=[
-                OpenApiExample(
-                    "Пример отклонения",
-                    value={
-                        "action": "reject",
-                        "reasons": ["Неверно указано достижение / уровень"]
-                    },
-                    request_only=True,
-                ),
-                OpenApiExample(
-                    "Успешный ответ (approve)",
-                    value={"message": "Документ подтвержден, баллы начислены"},
-                    response_only=True,
-                )
-            ]
-        )
+    lookup_url_kwarg = 'doc_id'
+        
     @transaction.atomic
     def post(self, request, doc_id):
         """
@@ -103,44 +70,37 @@ class ReviewDocumentAPIView(APIView):
         - 'reject': документ отклоняется с указанием причин.
 
         Параметры:
-            request (Request): HTTP-запрос, содержащий:
-                - action (str): Действие - 'approve' или 'reject'.
-                - reasons (list or str, опционально): Причины отклонения (для действия 'reject').
-            doc_id (int): Идентификатор документа, который необходимо проверить.
+        request (Request): HTTP-запрос, содержащий:
+            - action (str): Действие - 'approve' или 'reject'.
+            - reasons (list or str, опционально): Причины отклонения (для действия 'reject').
+        doc_id (int): Идентификатор документа, который необходимо проверить.
 
         Возвращает:
-            Response:
-                - 200 OK: Действие выполнено успешно.
-                - 403 Forbidden: Пользователь не является преподавателем.
-                - 400 Bad Request: Передано неверное или неизвестное действие.
-                - 404 Not Found: Документ с таким ID не найден.
+        Response:
+            - 200 OK: Действие выполнено успешно.
+            - 403 Forbidden: Пользователь не является преподавателем.
+            - 400 Bad Request: Передано неверное или неизвестное действие.
+            - 404 Not Found: Документ с таким ID не найден.
 
         Логика:
-            - Проверяется, что текущий пользователь - преподаватель.
-            - Находится документ по doc_id.
-            - При подтверждении:
-                * Статус меняется на 'approved'.
-                * Баллы из документа добавляются к соответствующему полю студента (учебные, научные и т.д.).
-            - При отклонении:
-                * Статус меняется на 'rejected'.
-                * Указанные причины сохраняются в rejection_reason.
-
-        Пример тела запроса для подтверждения:
-            {"action": "approve"}
-
-        Пример тела запроса для отклонения:
-            {"action": "reject", "reasons": ["Неверный документ", "Нечитаемый файл"]}
-
-        Особенности:
-            - Используется сессионная аутентификация и проверка прав доступа.
-            - Начисление баллов происходит строго по категории документа.
-            - Повторное подтверждение уже подтверждённого документа игнорируется.
+        - Проверяется, что текущий пользователь - преподаватель.
+        - Находится документ по doc_id.
+        - При подтверждении:
+            * Статус меняется на 'approved'.
+            * Баллы из документа добавляются к соответствующему полю студента (учебные, научные и т.д.).
+        - При отклонении:
+            * Статус меняется на 'rejected'.
+            * Указанные причины сохраняются в rejection_reason.
         """
         is_staff = hasattr(request.user, 'staff_profile')
         if not is_staff:
             return Response({"error": "Нет прав модерации"}, status=status.HTTP_403_FORBIDDEN)
 
-        doc = get_object_or_404(Document.objects.select_related('status', 'category', 'user__student_profile'), id=doc_id)
+        doc = get_object_or_404(Document.objects.select_related('status', 'category', 'user__student_profile', 'user__student_profile__faculty', 'user__student_profile__department'), id=doc_id)
+        
+        if not self.check_document_scope(request.user, doc):
+            return Response({"error": "Документ находится за пределами вашей области модерации"}, status=status.HTTP_403_FORBIDDEN)
+        
         action = request.data.get('action')
 
         status_pending = get_object_or_404(DocumentStatus, code='pending')

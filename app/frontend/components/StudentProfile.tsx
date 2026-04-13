@@ -78,7 +78,7 @@ function AchievementItem({ doc } : {doc: any}) {
                   onClick={() => downloadFile(file.id, file.original_file_name)}
                   className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900"
                 >
-                  <i className="fa-solid fa-paperclip" />
+                  <i className="fa-solid fa-file" />
                   {file.original_file_name || `Файл ${index + 1}`}
                 </button>
               ))}

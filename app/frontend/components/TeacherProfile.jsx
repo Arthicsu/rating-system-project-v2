@@ -501,7 +501,17 @@ export default function TeacherProfile({profile, isOwner}) {
                           )}
                         </div>
                       </div>
-
+                      {/* временно */}
+                      <div className="mb-3 flex items-center gap-4 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1">
+                          <i className="fa-regular fa-calendar-check" />
+                          Дата получения: {new Date(doc.date_received).toLocaleDateString('ru-RU')}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <i className="fa-regular fa-calendar" />
+                          Дата загрузки: {new Date(doc.uploaded_at).toLocaleDateString('ru-RU')}
+                        </span>
+                      </div>
                       <div className="mb-3 flex items-center gap-4 text-xs text-slate-500">
                         {doc.files && doc.files.length > 0 ? (
                           doc.files.map((file, index) => (
@@ -520,10 +530,6 @@ export default function TeacherProfile({profile, isOwner}) {
                             Нет файла
                           </span>
                         )}
-                        <span>
-                          <i className="fa-regular fa-calendar mr-1" />
-                          {new Date(doc.uploaded_at).toLocaleDateString('ru-RU')}
-                        </span>
                       </div>
 
                       {doc.rejection_reason && (
