@@ -1,38 +1,50 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/axios';
-import Link from "next/link";
+import toast from 'react-hot-toast';
 import StudentProfile from '@/components/StudentProfile';
-import StaffProfile from '@/components/StaffProfile';
+import type Profile from '@/interfaces/ProfileInterfaces';
 
-export default function Profile() {
-    const [profile, setProfile] = useState<any>(null);
-    const params = useParams();
-    const [isLoading, setIsLoading] = useState(false);
-    const { id } = useParams();
+export default function ProfilePage() {
+  const router = useRouter();
+  const params = useParams();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const id = params.id as string;
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get(`/user/api/v1/profile/${id}/`);
+        const profileData: Profile = res.data;
+        
+        if (profileData.type === 'staff') {
+          router.push('/staff-profile');
+          return;
+        }
+        
+        setProfile(profileData);
+      } catch (error) {
+        toast.error('Ошибка: ' + error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (id) {
+      fetchProfile();
+    }
+  }, [id, router]);
 
-    useEffect(() => {
-        setIsLoading(true);
-        api.get(`/user/api/v1/profile/${id}/`) 
-            .then(res => setProfile(res.data))
-            .catch(err => console.error("Ошибка доступа", err))
-            .finally(() => setIsLoading(false));
-    }, [params.id]);
+  if (isLoading) {
+    return <div className="p-10 text-center">Загрузка профиля...</div>;
+  }
+  
+  if (!profile) {
+    return <div className="p-10 text-center">Данный профиль не найден.</div>;
+  }
 
-    if (isLoading) return <div className="p-10 text-center">Загрузка профиля...</div>;
-    if (!profile) return <div className="p-10 text-center">Данный профиль не найден.</div>;
-    const isStaff = profile.type == "staff";
-    const isOwner = profile.is_own_profile;
-    return (
-      <>
-          {isStaff ? (
-              <StaffProfile profile={profile} isOwner={isOwner}/>
-          ):(
-              <StudentProfile profile={profile} isOwner={isOwner}/>
-          )}
-      </>
-    );
+  return <StudentProfile profile={profile} isOwner={profile.is_own_profile} />;
 }

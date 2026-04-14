@@ -4,6 +4,7 @@ import '../styles/normalize.css';
 import './globals.css';
 import Header from '../components/Header.jsx';
 import { AuthProvider } from '../context/AuthContext';
+import { Toaster } from 'react-hot-toast';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AuthProvider> 
           <Header />
+          <Toaster />
           {children}
         </AuthProvider>
       </body>

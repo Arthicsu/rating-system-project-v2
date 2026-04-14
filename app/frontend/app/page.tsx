@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import Login from '@/components/Login';
 import { useMySession } from '@/context/AuthContext';
 import RatingPage from '@/app/rating/page';

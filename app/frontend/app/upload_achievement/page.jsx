@@ -1,10 +1,11 @@
 'use client';
 
-
 import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import { useRouter } from 'next/navigation';
 import { useMySession } from '@/context/AuthContext';
+import toast from 'react-hot-toast';
+
 export default function UploadAchievement() {
   const router = useRouter();
   const { user, loading: authLoading } = useMySession();
@@ -48,7 +49,7 @@ export default function UploadAchievement() {
         setDocTypesList(doc_types);
         setLoading(false);
       } catch (error) {
-        alert("Ошибка: " + error);
+        toast.error("Ошибка: " + error);
       }
     };
     fetchConfig();
@@ -99,7 +100,7 @@ export default function UploadAchievement() {
 
 const handleSubmit = async () => {
     if (!recordBook || !category || !subType || !achievementName || !docType || !dateReceived) {
-      alert("Пожалуйста, заполните все обязательные поля (категория, вид, тип документа, название, дата получения).");
+      toast.error("Пожалуйста, заполните все обязательные поля (категория, вид, тип документа, название, дата получения).");
       return;
     }
 
@@ -122,22 +123,18 @@ const handleSubmit = async () => {
     }
 
     try {
-      // formData.forEach(element => {
-      //     console.log(element)
-      // });
-
       const response = await api.post('/student/api/v1/upload/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      alert(response.data.message);
+      toast.success(response.data.message);
       router.push('/profile');
     } catch (error) {
-      if (error.response.data.files) {
-        alert('Ошибка: ' + error.response.data.files[0]);
-      } else if (error.response.data.student) {
-        alert('Ошибка: ' + error.response.data.student);
+      if (error.response?.data?.files) {
+        toast.error('Ошибка: ' + error.response.data.files[0]);
+      } else if (error.response?.data?.student) {
+        toast.error('Ошибка: ' + error.response.data.student);
       } else {
-        alert('Ошибка при отправке достижения');
+        toast.error('Ошибка при отправке достижения');
       }
     }    
   };

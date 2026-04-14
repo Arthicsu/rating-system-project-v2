@@ -1,89 +1,19 @@
+'use client';
+
 import {Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
-import api from '@/lib/axios';
-import { useDownloadFile } from '@/hooks/useDownloadFile';
+import AchievementItem from '@/components/AchievementItem';
+import type Profile from '@/interfaces/ProfileInterfaces';
+import type Achievement from '@/interfaces/AchievementInterfaces';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-function AchievementItem({ doc } : {doc: any}) {
-  const { downloadFile } = useDownloadFile();
-  const statusIcon = doc.status_display == 'rejected' ? 'fa-circle-xmark' : 'fa-file-lines';
-  const receivedDateText = doc.date_received
-    ? new Date(doc.date_received).toLocaleDateString('ru-RU')
-    : 'Не указана';
-  const uploadedDateText = doc.uploaded_at
-    ? new Date(doc.uploaded_at).toLocaleDateString('ru-RU')
-    : '—';
-  
-  return (
-    <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:p-4.5">
-      <div className="flex flex-1 items-start gap-3">
-        <div className="mt-1 flex px-1.5 sm:px-2 lg:px-2 py-1.5 sm:py-2 lg:py-2 items-center justify-center rounded-full bg-slate-900/90 text-white">
-          <i className={`fa-regular ${statusIcon} text-sm`} />
-        </div>
-        <div className="min-w-0 space-y-1">
-          <p className="text-sm font-medium text-slate-900 wrap-break-word">
-            {doc.achievement}
-          </p>
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600">
-            <i className="fa-regular fa-bookmark mr-1" />
-            <span className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800">
-              {doc.category_display}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700">
-              {doc.sub_type_display}
-            </span>
-            {doc.level && (
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700">
-                {doc.level_display}
-              </span>
-            )}
-            {doc.result && (
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700">
-                {doc.result_display}
-              </span>
-            )}
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-            <span className="inline-flex items-center gap-1">
-              <i className="fa-regular fa-calendar-check" />
-              Дата получения: {receivedDateText}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <i className="fa-regular fa-calendar" />
-              Дата загрузки: {uploadedDateText}
-            </span>
-            {doc.files && doc.files.length > 0 &&
-              doc.files.map((file: any, index: number) => (
-                <button
-                  key={file.id}
-                  onClick={() => downloadFile(file.id, file.original_file_name)}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900"
-                >
-                  <i className="fa-solid fa-file" />
-                  {file.original_file_name || `Файл ${index + 1}`}
-                </button>
-              ))}
-          </div>
-        </div>
-      </div>
-
-      {doc.status == 3 ? (
-        <div className="max-w-xs rounded-xl bg-rose-50 px-3 py-2 md:text-xs lg:text-sm">
-          <span className="font-medium text-rose-700">Причина:</span>{' '}
-          <span className='text-black text-[14px] font-semibold'>{doc.rejection_reason || 'Не указана'}</span>
-        </div>
-      ) : (
-        <div className="ml-2 flex items-center whitespace-nowrap rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-600">
-          +{doc.score}
-        </div>
-      )}
-    </div>
-  );
+interface StudentProfileProps {
+  profile: Profile;
+  isOwner: boolean;
 }
 
-export default function StudentProfile({ profile, isOwner }: { profile: any, isOwner: any }) {
+export default function StudentProfile({ profile, isOwner }: StudentProfileProps) {
   const data = {
     labels: profile.radar_stats.labels,
     datasets: [
@@ -111,16 +41,15 @@ export default function StudentProfile({ profile, isOwner }: { profile: any, isO
     },
   };
 
-  const documents = profile.documents || [];
-  const approvedDocs = documents.filter((d: any) => d.status_display == 'approved');
-  const pendingDocs = documents.filter((d: any) => d.status_display == 'pending');
-  const rejectedDocs = documents.filter((d: any) => d.status_display == 'rejected');
+  const documents: Achievement[] = profile.documents || [];
+  const approvedDocs = documents.filter((d) => d.status_display === 'approved');
+  const pendingDocs = documents.filter((d) => d.status_display === 'pending');
+  const rejectedDocs = documents.filter((d) => d.status_display === 'rejected');
 
   return (
     <>
       <section className="min-h-screen bg-slate-50 pt-24 pb-10">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
-          {/* Основная карточка профиля */}
           <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1.5">
@@ -130,7 +59,7 @@ export default function StudentProfile({ profile, isOwner }: { profile: any, isO
                 <p className="text-xs text-slate-500 sm:text-sm">
                   Зачетная книжка:{' '}
                   <span className="font-medium text-slate-800">
-                    {profile.record_book}
+                    {profile.record_book || '—'}
                   </span>
                 </p>
                 <p className="text-xs text-slate-500 sm:text-sm">
@@ -153,7 +82,6 @@ export default function StudentProfile({ profile, isOwner }: { profile: any, isO
               </div>
             </div>
 
-            {/* Сетка статистики */}
             <div className="mt-6 flex flex-col gap-5 lg:grid lg:grid-cols-3">
               <div className="space-y-3 col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -184,15 +112,13 @@ export default function StudentProfile({ profile, isOwner }: { profile: any, isO
                   Диаграмма распределения баллов
                 </p>
                 <div className="relative h-72">
-                  <Radar data={data} options={options as any} />
+                  <Radar data={data} options={options} />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Достижения */}
           <div className="mt-6 space-y-5">
-            {/* Подтвержденные */}
             {approvedDocs.length > 0 && (
               <div className="rounded-2xl border border-emerald-100 bg-slate-500/80 p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
@@ -204,14 +130,13 @@ export default function StudentProfile({ profile, isOwner }: { profile: any, isO
                   </h2>
                 </div>
                 <div className="space-y-3">
-                  {approvedDocs.map((doc: any) => (
+                  {approvedDocs.map((doc: Achievement) => (
                     <AchievementItem key={doc.id} doc={doc} />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* В ожидании */}
             {isOwner && pendingDocs.length > 0 && (
               <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
@@ -223,14 +148,13 @@ export default function StudentProfile({ profile, isOwner }: { profile: any, isO
                   </h2>
                 </div>
                 <div className="space-y-3">
-                  {pendingDocs.map((doc: any) => (
+                  {pendingDocs.map((doc: Achievement) => (
                     <AchievementItem key={doc.id} doc={doc} />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Отклоненные */}
             {isOwner && rejectedDocs.length > 0 && (
               <div className="rounded-2xl border border-rose-100 bg-rose-200 p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
@@ -242,7 +166,7 @@ export default function StudentProfile({ profile, isOwner }: { profile: any, isO
                   </h2>
                 </div>
                 <div className="space-y-3">
-                  {rejectedDocs.map((doc: any) => (
+                  {rejectedDocs.map((doc: Achievement) => (
                     <AchievementItem key={doc.id} doc={doc} />
                   ))}
                 </div>
@@ -266,4 +190,4 @@ export default function StudentProfile({ profile, isOwner }: { profile: any, isO
       </section>
     </>
   );
- }
+}

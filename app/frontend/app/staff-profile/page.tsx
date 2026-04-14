@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import api from '@/lib/axios';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
+import toast from 'react-hot-toast';
 
 import Pagination from '@/components/Pagination';
 import ModalApprove from '@/components/modals/modalApprove';
@@ -207,7 +208,7 @@ export default function StaffProfilePage() {
 
       closeModal();
     } catch (error) {
-      alert("Ошибка: " + error);
+      toast.error("Ошибка: " + error);
     }
   };
 
@@ -216,7 +217,7 @@ export default function StaffProfilePage() {
     if (!modalState.targetId) return;
 
     if (rejectReasons.length === 0) {
-      alert("Выберите хотя бы одну причину");
+      toast.error("Выберите хотя бы одну причину");
       return;
     }
 
@@ -235,7 +236,7 @@ export default function StaffProfilePage() {
 
       closeModal();
     } catch (error) {
-      alert("Ошибка: " + error);
+      toast.error("Ошибка: " + error);
     }
   };
 

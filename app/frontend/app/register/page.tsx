@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMySession } from '@/context/AuthContext';
+import toast from 'react-hot-toast';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,7 +33,7 @@ export default function RegisterPage() {
 
     if (formData.password !== formData.passwordConfirm) {
       setError('Пароли не совпадают');
-      alert('Пароли не совпадают');
+      toast.error('Пароли не совпадают');
       setIsLoading(false);
       return;
     }
@@ -48,12 +49,12 @@ export default function RegisterPage() {
       });
 
       router.push('/');
-    } catch (err: any) {
-      const errorData = err.response?.data;
+    } catch (error: any) {
+      const errorData = error.response?.data;
       if (errorData) {
-        alert(JSON.stringify(errorData));
+        toast.error(JSON.stringify(errorData));
       } else {
-        alert('Ошибка регистрации. Повторите попытку позже.');
+        toast.error('Ошибка регистрации. Повторите попытку позже.');
       }
     } finally {
       setIsLoading(false);

@@ -1,11 +1,5 @@
-interface PaginationProps {
-  page: number;
-  totalCount: number;
-  pageSize: number;
-  loading?: boolean;
-  onPageChange: (page: number) => void;
-}
-
+import PaginationProps from '@/interfaces/RatingInterfaces'
+ 
 export default function Pagination({ page, totalCount, pageSize, loading, onPageChange }: PaginationProps) {
   const totalPages = Math.ceil(totalCount / pageSize);
   

@@ -1,12 +1,14 @@
 export default interface Profile {
+  id?: number;
   full_name: string;
-  record_book: string;
+  record_book: string | null;
   faculty: string;
   course: number;
   group: string;
   total_score: number;
   type: string;
   is_own_profile: boolean;
+  isStaff?: boolean;
   radar_stats: {
     labels: string[];
     data: number[];

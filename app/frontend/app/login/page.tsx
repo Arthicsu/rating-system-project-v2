@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMySession } from '@/context/AuthContext';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const { loginUser, user } = useMySession();
@@ -29,12 +30,12 @@ export default function LoginPage() {
     try {
       await loginUser(formData);
       router.push('/');
-    } catch (err: any) {
-      const errorData = err.response?.data;
+    } catch (error: any) {
+      const errorData = error.response?.data;
       if (errorData) {
-        alert(JSON.stringify(errorData));
+        toast.error(errorData.message);
       } else {
-        alert('Ошибка авторизации. Повторите попытку позже.');
+        toast.error('Ошибка авторизации. Повторите попытку позже.');
       }
     } finally {
       setIsLoading(false);

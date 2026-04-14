@@ -2,9 +2,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/axios';
 import { useMySession } from '@/context/AuthContext';
+import toast from 'react-hot-toast';
 import Pagination from '@/components/Pagination';
+import type { FilterOptions, Tab } from '@/interfaces/RatingInterfaces'
+import type Student from '@/interfaces/StudentInterfaces';
 
-function getShortName(fullName = string) {
+function getShortName(fullName: string) {
   const parts = fullName.trim().split(/\s+/);
   if (parts.length <= 1) return fullName;
   const [lastName, ...rest] = parts;
@@ -13,27 +16,6 @@ function getShortName(fullName = string) {
     .map((p) => (p[0] || '').toUpperCase() + '.')
     .join('');
   return `${lastName} ${initials}`;
-}
-
-interface FilterOptions {
-  faculties: Array<{ id: number; short_name: string }>;
-  courses: Array<number>;
-  groups: Array<{ id: number; name: string; course: number; faculty_id: number; academic_year: string }>;
-}
-
-interface Student {
-  user_id: number;
-  full_name: string;
-  total_score: number;
-  faculty: string;
-  course: number;
-  group: string;
-  [key: string]: unknown;
-}
-
-interface Tab {
-  id: string;
-  label: string;
 }
 
 export default function RatingPage() {
@@ -62,7 +44,7 @@ export default function RatingPage() {
         }));
         setTabs([{ id: 'common', label: 'Общий рейтинг' }, ...dynamicTabs]);
       })
-      .catch(error => alert('Ошибка: ', error));
+      .catch(error => toast.error('Ошибка: ' + error));
   }, []);
 
   useEffect(() => {
@@ -148,7 +130,7 @@ export default function RatingPage() {
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error('Ошибка при выгрузке Excel:', error);
-      alert('Не удалось выгрузить Excel файл');
+      toast.error('Не удалось выгрузить Excel файл');
     } finally {
       setExportLoading(false);
     }
@@ -159,7 +141,11 @@ export default function RatingPage() {
       <div className="mb-5 w-full bg-transparent">
         <div className="mx-auto max-w-350 px-5">
           <div className="block sm:hidden">
+            <label htmlFor='tab-select' className="block text-[11px] font-medium text-slate-500">
+              Фильтры рейтинга
+            </label>
             <select
+              id="tab-select"
               className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-xs text-[#333] shadow-[0_2px_10px_rgba(0,0,0,0.05)] focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
               value={activeTab}
               onChange={(e) => handleTabChange(e.target.value)}
@@ -377,7 +363,7 @@ export default function RatingPage() {
                         <span className="hidden md:inline">{student.full_name}</span>
                       </td>
                       <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm font-bold text-sky-700">
-                        {student[scoreKey]}
+                        {Number(student[scoreKey])}
                       </td>
                       <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.faculty}</td>
                       <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.course}</td>
