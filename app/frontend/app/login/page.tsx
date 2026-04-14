@@ -1,20 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMySession } from '@/context/AuthContext';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import type LoginFormData from '@/interfaces/LoginInterfaces';
+import type ApiError from '@/interfaces/GeneralInterfaces';
 
 export default function LoginPage() {
-  const { loginUser, user } = useMySession();
-  const [formData, setFormData] = useState({ username: '', password: '' });
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const { loginUser, user } = useMySession();
+  const [formData, setFormData] = useState<LoginFormData>({
+    username: '',
+    password: '',
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (user && !isLoading) {
@@ -24,16 +25,23 @@ export default function LoginPage() {
 
   if (user) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e: ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
       await loginUser(formData);
       router.push('/');
-    } catch (error: any) {
+    } catch (err) {
+      const error = err as ApiError;
       const errorData = error.response?.data;
-      if (errorData) {
-        toast.error(errorData.message);
+      
+      if (errorData?.message) {
+        toast.error(String(errorData.message));
       } else {
         toast.error('Ошибка авторизации. Повторите попытку позже.');
       }
@@ -41,6 +49,8 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  const inputClasses = "h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700";
 
   return (
     <section className="min-h-screen bg-[#EDEFF3] px-4 pt-35 pb-10">
@@ -53,7 +63,9 @@ export default function LoginPage() {
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1">
-              <label className="text-sm text-slate-600">Логин (для обучающихся E-Mail)</label>
+              <label htmlFor="username" className="text-sm font-medium text-slate-600">
+                Логин (для обучающихся E-Mail)
+              </label>
               <input
                 type="text"
                 id="username"
@@ -66,11 +78,13 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm text-slate-600">Пароль</label>
+              <label htmlFor="password" className="text-sm font-medium text-slate-600">
+                Пароль
+              </label>
               <input
                 type="password"
+                id="password"
                 name="password"
-                id="passwordInput"
                 value={formData.password}
                 onChange={handleChange}
                 required
@@ -79,7 +93,6 @@ export default function LoginPage() {
             </div>
 
             <button
-              name="login"
               type="submit"
               disabled={isLoading}
               className="mt-2 w-full rounded-md bg-[#0050CF] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#002D6E] disabled:cursor-not-allowed disabled:bg-[#6B7A99]"
@@ -92,8 +105,8 @@ export default function LoginPage() {
             <Link className="text-[#0050CF] hover:text-[#002D6E] underline underline-offset-2" href="/register">
               Зарегистрироваться
             </Link>
-            <span className="h-5 w-px bg-[#D3D8E5]" />
-            <Link className="text-[#0050CF] hover:text-[#002D6E] underline underline-offset-2" href="/restore">
+            <span className="h-5 w-px bg-slate-300" />
+            <Link className="text-sky-700 hover:text-sky-900 underline underline-offset-2" href="/restore">
               Восстановить пароль
             </Link>
           </p>

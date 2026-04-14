@@ -1,4 +1,4 @@
-export interface Achievement {
+export default interface Achievement {
   id: number;
   achievement: string;
   status: number;
