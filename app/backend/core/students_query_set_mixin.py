@@ -1,8 +1,59 @@
-from students.models import Student
+from django.db.models import Prefetch
+from students.models import Student, Category, Document
+from students.serializers import StudentProfileSerializer
+
 
 class StudentFilterMixin:
-    """Парсинг параметров и фильтрация по факультету, курсу или группе."""
+    """
+    Парсинг параметров и фильтрация по факультету, курсу или группе.
+    """
+    
+    def get_student_radar_data(self, student):
+        """Динамическое формирование данных радара из конфига"""
+        categories = Category.objects.all()
+        labels = []
+        values = []
+        
+        for category in categories:
+            labels.append(category.label)
+            values.append(getattr(student, f"{category.code}_score", 0))
+            
+        return {"labels": labels, "data": values}
+
+    def get_student_full_profile(self, student, is_own_profile=False):
+        """
+        Возвращает данные профиля студента для отображения в интерфейсе.
+        Формирует сериализованные данные профиля, а также добавляет структуру данных для отображения радарной диаграммы активности студента.
+
+        Параметры:
+            user (User): Объект пользователя, чей профиль запрашивается.
+                Ожидается, что у пользователя есть связанный профиль студента (user.student_profile).
+            request (Request): Объект HTTP-запроса. Используется для передачи контекста сериализатору.
+
+        Возвращает:
+            dict: Словарь с данными профиля студента, включающий:
+                - Основные поля из StudentProfileSerializer.
+                - Дополнительное поле "radar_stats" с метками и значениями баллов по пяти направлениям:
+                    - Общественная - social_score
+                    - Учебная - academic_score
+                    - Спорт - sport_score
+                    - Творческая - cultural_score
+                    - Научная - research_score
+        """
+        serializer = StudentProfileSerializer(student, context={'request': self.request})
+        data = serializer.data
+        data["radar_stats"] = self.get_student_radar_data(student)
+        
+        if is_own_profile or self.request.user.groups.filter(name__in=['Department', 'Dean', 'Rectorate']).exists():
+            data["email"] = student.email
+            data["phone"] = getattr(student, 'phone', None)
+            
+        return data
+
     def apply_filters(self, queryset):
+        """
+        Парсинг параметров и фильтрация по факультету, курсу или группе.
+        """
         params = self.request.query_params
         filters = {}
         
@@ -48,7 +99,9 @@ class StudentRatingQuerySetMixin(StudentFilterMixin):
         return queryset.by_category(category)
 
 class StudentWithAccessMixin(StudentFilterMixin):
-    """Получение выборки студентов в зависимости от роли"""
+    """
+    Получение выборки студентов в зависимости от роли
+    """
     def get_allowed_students(self, user):
         queryset = Student.objects.select_related(
             'group__specialty__faculty', 'faculty', 'user'

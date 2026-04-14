@@ -162,7 +162,7 @@ class LoginAPIView(GenericAPIView):
 
             return Response(response_data, status=status.HTTP_200_OK)
         else:
-            return Response({"detail": "Неверный логин или пароль"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"message": "Неверный логин или пароль"}, status=status.HTTP_401_UNAUTHORIZED)
         
 class CheckAuthAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -332,7 +332,7 @@ class PublicProfileAPIView(APIView):
         Примечание:
             - Используется централизованная функция get_student_full_profile для формирования ответа.
             - Права доступа управляются через группы Django
-        """        
+        """
 
         is_staff = hasattr(request.user, 'staff_profile')
         
@@ -341,7 +341,7 @@ class PublicProfileAPIView(APIView):
         is_own_profile = (request.user.id == target_student.user.id)
 
         if not is_own_profile and not is_staff:
-            return Response({"detail": "У вас нет прав для просмотра этого профиля."}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"message": "У вас нет прав для просмотра этого профиля."}, status=status.HTTP_403_FORBIDDEN)
 
         response_data = get_student_full_profile(target_student, request, is_own_profile)
         return Response(response_data)
