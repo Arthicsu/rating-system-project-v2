@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import Login from '@/components/Login';
-import StudentRating from '@/components/StudentRating';
 import { useMySession } from '@/context/AuthContext';
+import RatingPage from '@/app/rating/page';
 
 export default function Main() {
   const { loading, user } = useMySession();
@@ -20,7 +20,7 @@ export default function Main() {
   return (
     <>
       {isAuth ? (
-          <StudentRating/>
+          <RatingPage/>
       ):(
           <Login/>
       )}
