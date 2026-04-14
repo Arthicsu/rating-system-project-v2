@@ -5,6 +5,7 @@ import api from '@/lib/axios';
 import { useRouter } from 'next/navigation';
 import { useMySession } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
+import { Skeleton } from 'boneyard-js/react';
 
 export default function UploadAchievement() {
   const router = useRouter();
@@ -57,9 +58,33 @@ export default function UploadAchievement() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-slate-50">
-        <p className="text-sm text-slate-500">Загрузка...</p>
-      </div>
+      <section className="min-h-screen bg-slate-50 pt-24 pb-10">
+        <div className="mx-auto max-w-350 px-4 sm:px-5">
+          <Skeleton name="upload-form" loading={false}>
+            <div className="grid gap-6 rounded-2xl border border-slate-100 bg-white p-4 sm:p-5 animate-pulse">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <div className="h-4 w-32 rounded bg-slate-200" />
+                  <div className="h-10 w-full rounded-lg bg-slate-200" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="h-4 w-20 rounded bg-slate-200" />
+                  <div className="h-10 w-full rounded-lg bg-slate-200" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="h-4 w-32 rounded bg-slate-200" />
+                  <div className="h-10 w-full rounded-lg bg-slate-200" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="h-4 w-40 rounded bg-slate-200" />
+                  <div className="h-10 w-full rounded-lg bg-slate-200" />
+                </div>
+                <div className="h-10 w-32 rounded-full bg-slate-200" />
+              </div>
+            </div>
+          </Skeleton>
+        </div>
+      </section>
     );
   }
 
@@ -153,9 +178,10 @@ const handleSubmit = async () => {
             </p>
           </div>
 
-          <div className="grid gap-6 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)] sm:p-5">
-            {/* Левая колонка: форма */}
-            <div className="space-y-4" onClick={closeAllDropdowns}>
+          <Skeleton name="upload-form-fields" loading={false}>
+            <div className="grid gap-6 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)] sm:p-5">
+              {/* Левая колонка: форма */}
+              <div className="space-y-4" onClick={closeAllDropdowns}>
               {/* Номер зачетной */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-medium text-slate-500">
@@ -510,6 +536,7 @@ const handleSubmit = async () => {
               </p>
             </div>
           </div>
+          </Skeleton>
         </div>
       </section>
     </>

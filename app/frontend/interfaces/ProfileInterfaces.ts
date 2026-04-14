@@ -1,4 +1,4 @@
-export default interface Profile {
+interface Profile {
   id?: number;
   full_name: string;
   record_book: string | null;
@@ -28,4 +28,10 @@ export default interface Profile {
     rejection_reason: string | null;
     files: Array<{ id: number; original_file_name: string }>;
   }>;
+}
+
+export default interface StudentProfileProps {
+  profile?: Profile;
+  isOwner: boolean;
+  loading?: boolean;
 }

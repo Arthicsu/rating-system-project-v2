@@ -1,4 +1,4 @@
-export default interface Achievement {
+interface Achievement {
   id: number;
   achievement: string;
   status: number;
@@ -12,4 +12,9 @@ export default interface Achievement {
   score: number;
   rejection_reason: string | null;
   files: Array<{ id: number; original_file_name: string }>;
+}
+
+export default interface AchievementItemProps {
+  doc?: Achievement;
+  loading?: boolean;
 }

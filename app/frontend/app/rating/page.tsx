@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import Pagination from '@/components/Pagination';
 import type { FilterOptions, Tab } from '@/interfaces/RatingInterfaces'
 import type Student from '@/interfaces/StudentInterfaces';
+import { Skeleton } from 'boneyard-js/react';
 
 function getShortName(fullName: string) {
   const parts = fullName.trim().split(/\s+/);
@@ -270,9 +271,10 @@ export default function RatingPage() {
 
           <div className="rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
             <div className="w-full overflow-x-auto">
-              <table className="min-w-full border-collapse">
-                <thead>
-                  <tr className="bg-slate-500 text-white">
+              <Skeleton name="rating-table" loading={false}>
+                <table className="min-w-full border-collapse">
+                  <thead>
+                    <tr className="bg-slate-500 text-white">
                     <th className="w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
                     </th>
                     <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
@@ -380,6 +382,7 @@ export default function RatingPage() {
                 loading={loading}
                 onPageChange={setPage}
               />
+              </Skeleton>
               {user?.isStaff && (
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[11px] sm:text-xs text-slate-600">

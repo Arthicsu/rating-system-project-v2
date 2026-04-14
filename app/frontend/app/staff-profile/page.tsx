@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect } from 'react';
 import api from '@/lib/axios';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
 import toast from 'react-hot-toast';
+import { Skeleton } from 'boneyard-js/react';
+import '@/bones/registry'
 
 import Pagination from '@/components/Pagination';
 import ModalApprove from '@/components/modals/modalApprove';
@@ -370,47 +372,48 @@ export default function StaffProfilePage() {
                 </div>
 
                 <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
-                  <table className="min-w-full text-left text-xs text-slate-500 sm:text-sm">
-                    <thead className="bg-slate-500 text-[11px] font-semibold uppercase tracking-wide text-slate-100">
-                      <tr>
-                        <th className="w-12 px-3 py-2.5 text-center font-normal sm:w-16">
-                        </th>
-                        <th className="px-4 py-2.5">ФИО студента</th>
-                        <th className="px-4 py-2.5">Зачетная книжка</th>
-                        <th className="px-4 py-2.5">Общий балл</th>
-                        <th className="px-4 py-2.5 text-right">Действия</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredStudents.length > 0 ? (
-                        filteredStudents.map((student, idx) => (
-                          <tr
-                            key={student.id}
-                            className="border-t border-slate-100 hover:bg-slate-50/70"
-                          >
-                            <td className="px-3 py-2.5 text-center">
-                              <div className="mx-auto flex h-4 w-4 items-center justify-center rounded-full bg-sky-700 text-[11px] font-bold text-white sm:h-6 sm:w-6 md:h-7.5 md:w-7.5 md:text-sm">
-                                {idx + 1}
-                              </div>
-                            </td>
-                            <td className="px-4 py-2.5">
-                              <span className="text-xs sm:text-sm">
-                                {student.full_name}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2.5 text-xs text-slate-500 sm:text-sm">
-                              {student.record_book}
-                            </td>
-                            <td className="px-4 py-2.5 text-xs font-semibold text-sky-700 sm:text-sm">
-                              {student.total_score}
-                            </td>
-                            <td className="px-4 py-2.5 text-right">
-                              <a
-                                href={`/profile/${student.id}`}
-                                className="text-xs font-medium text-gray-700 underline-offset-2 hover:text-sky-900 hover:underline sm:text-sm"
-                              >
-                                Профиль
-                              </a>
+                  <Skeleton name="staff-students-table" loading={false}>
+                    <table className="min-w-full text-left text-xs text-slate-500 sm:text-sm">
+                      <thead className="bg-slate-500 text-[11px] font-semibold uppercase tracking-wide text-slate-100">
+                        <tr>
+                          <th className="w-12 px-3 py-2.5 text-center font-normal sm:w-16">
+                          </th>
+                          <th className="px-4 py-2.5">ФИО студента</th>
+                          <th className="px-4 py-2.5">Зачетная книжка</th>
+                          <th className="px-4 py-2.5">Общий балл</th>
+                          <th className="px-4 py-2.5 text-right">Действия</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredStudents.length > 0 ? (
+                          filteredStudents.map((student, idx) => (
+                            <tr
+                              key={student.id}
+                              className="border-t border-slate-100 hover:bg-slate-50/70"
+                            >
+                              <td className="px-3 py-2.5 text-center">
+                                <div className="mx-auto flex h-4 w-4 items-center justify-center rounded-full bg-sky-700 text-[11px] font-bold text-white sm:h-6 sm:w-6 md:h-7.5 md:w-7.5 md:text-sm">
+                                  {idx + 1}
+                                </div>
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <span className="text-xs sm:text-sm">
+                                  {student.full_name}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 text-xs text-slate-500 sm:text-sm">
+                                {student.record_book}
+                              </td>
+                              <td className="px-4 py-2.5 text-xs font-semibold text-sky-700 sm:text-sm">
+                                {student.total_score}
+                              </td>
+                              <td className="px-4 py-2.5 text-right">
+                                <a
+                                  href={`/profile/${student.id}`}
+                                  className="text-xs font-medium text-gray-700 underline-offset-2 hover:text-sky-900 hover:underline sm:text-sm"
+                                >
+                                  Профиль
+                                </a>
                             </td>
                           </tr>
                         ))
@@ -424,8 +427,9 @@ export default function StaffProfilePage() {
                           </td>
                         </tr>
                       )}
-                    </tbody>
-                  </table>
+                      </tbody>
+                    </table>
+                  </Skeleton>
                 </div>
                 
                 <Pagination

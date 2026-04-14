@@ -3,17 +3,13 @@
 import {Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
 import AchievementItem from '@/components/AchievementItem';
-import type Profile from '@/interfaces/ProfileInterfaces';
+import type StudentProfileProps from '@/interfaces/ProfileInterfaces';
 import type Achievement from '@/interfaces/AchievementInterfaces';
+import { Skeleton } from 'boneyard-js/react';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-interface StudentProfileProps {
-  profile: Profile;
-  isOwner: boolean;
-}
-
-export default function StudentProfile({ profile, isOwner }: StudentProfileProps) {
+export default function StudentProfile({ profile, isOwner, loading = false }: StudentProfileProps) {
   const data = {
     labels: profile.radar_stats.labels,
     datasets: [
@@ -41,10 +37,56 @@ export default function StudentProfile({ profile, isOwner }: StudentProfileProps
     },
   };
 
-  const documents: Achievement[] = profile.documents || [];
+  const documents: Achievement[] = profile?.documents || [];
   const approvedDocs = documents.filter((d) => d.status_display === 'approved');
   const pendingDocs = documents.filter((d) => d.status_display === 'pending');
   const rejectedDocs = documents.filter((d) => d.status_display === 'rejected');
+
+  if (loading) {
+    return (
+      <Skeleton name="student-profile" loading={false}>
+        <section className="min-h-screen bg-slate-50 pt-24 pb-10">
+          <div className="mx-auto max-w-350 px-4 sm:px-5">
+            <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5 animate-pulse">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-3">
+                  <div className="h-6 w-48 rounded bg-slate-200" />
+                  <div className="h-4 w-32 rounded bg-slate-200" />
+                  <div className="h-4 w-40 rounded bg-slate-200" />
+                </div>
+                <div className="h-16 w-24 rounded-xl bg-slate-200" />
+              </div>
+              <div className="mt-6 flex flex-col gap-5 lg:grid lg:grid-cols-3">
+                <div className="col-span-2 space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
+                  <div className="h-4 w-40 rounded bg-slate-200" />
+                  <div className="space-y-2">
+                    <div className="h-8 rounded bg-slate-200" />
+                    <div className="h-8 rounded bg-slate-200" />
+                    <div className="h-8 rounded bg-slate-200" />
+                  </div>
+                </div>
+                <div className="h-72 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
+                  <div className="h-4 w-40 rounded bg-slate-200" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </Skeleton>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <section className="min-h-screen bg-slate-50 pt-24 pb-10">
+        <div className="mx-auto max-w-350 px-4 sm:px-5">
+          <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
+            <p className="text-center text-slate-500">Профиль не найден</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <>

@@ -17,7 +17,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await api.get(`/user/api/v1/profile/${id}/`);
+        const res = await api.get(`/student/api/v1/profile/${id}/`);
         const profileData: Profile = res.data;
         
         if (profileData.type === 'staff') {
