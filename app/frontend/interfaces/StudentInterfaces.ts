@@ -1,6 +1,7 @@
 export default interface Student {
-  user_id: number;
+  id: number;
   full_name: string;
+  record_book: string | null;
   total_score: number;
   faculty: string;
   course: number;

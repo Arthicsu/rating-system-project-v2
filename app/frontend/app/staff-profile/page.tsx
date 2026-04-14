@@ -32,7 +32,7 @@ export default function StaffProfilePage() {
   });
 
   const [selectedGroupId, setSelectedGroupId] = useState('all');
-  const [selectedSemesterId, setSelectedSemesterId] = useState('');
+  const [selectedSemesterId, setSelectedSemesterId] = useState(0);
   const [selectedSemesterLabel, setSelectedSemesterLabel] = useState('');
   
   const [currentPage, setCurrentPage] = useState(1);
@@ -113,7 +113,7 @@ export default function StaffProfilePage() {
 
         const statsParams = new URLSearchParams();
         statsParams.append('group_id', selectedGroupId);
-        statsParams.append('academic_year', selectedSemesterId);
+        statsParams.append('academic_year', String(selectedSemesterId));
         const [studentsRes, statsRes] = await Promise.all([
           api.get('/university/api/v1/filtered-students/', { params } ),
           api.get('/university/api/v1/filtered-dashboard-stats/', { params: statsParams })
@@ -259,10 +259,11 @@ export default function StaffProfilePage() {
             </p>
             <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
               <div className="space-y-1.5">
-                <label className="block text-[11px] font-medium text-slate-500">
+                <label htmlFor="group-select" className="block text-[11px] font-medium text-slate-500">
                   Группа
                 </label>
                 <select
+                  id="group-select"
                   className="w-full min-w-35 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
                   value={selectedGroupId}
                   onChange={(e) => handleGroupChange(e.target.value)}
@@ -279,14 +280,15 @@ export default function StaffProfilePage() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="block text-[11px] font-medium text-slate-500">
+                <label htmlFor="semester-select" className="block text-[11px] font-medium text-slate-500">
                   Период
                 </label>
                 <select
+                  id="semester-select"
                   className="w-full min-w-40 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
                   value={selectedSemesterId}
                   onChange={(e) => {
-                    const selected = semesterOptions.find(opt => opt.id === e.target.value);
+                    const selected = semesterOptions.find(opt => opt.id === Number(e.target.value));
                     if (selected) {
                       setSelectedSemesterId(selected.id);
                       setSelectedSemesterLabel(selected.label);
