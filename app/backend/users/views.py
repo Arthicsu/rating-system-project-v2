@@ -141,7 +141,7 @@ class RegistrationAPIView(CreateAPIView):
 
 class LoginAPIView(GenericAPIView):
     permission_classes = [AllowAny]
-    authentication_classes = [SessionAuthentication]
+    authentication_classes = []
     serializer_class = LoginRequestSerializer
 
     def post(self, request, *args, **kwargs):

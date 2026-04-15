@@ -158,6 +158,7 @@ class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
             
             if action == 'approve':
                 doc.status = status_approved
+                doc.rejection_reason = ''
                 doc.verified_by = request.user
                 doc.save()
                 
@@ -193,7 +194,7 @@ class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
                 reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
                 
                 doc.status = status_pending 
-                doc.rejection_reason = f"Отклонено {request.user}: {reason_text}"
+                doc.rejection_reason = reason_text
                 doc.verified_by = request.user
                 doc.save()
                 

@@ -464,7 +464,7 @@ const handleSubmit = async () => {
                   *Файлы (необязательно)
                 </label>
                 <p className="text-[11px] text-slate-400">
-                  Максимальный размер файла: 20 МБ
+                  Максимальный размер файла: 20 МБ, максимум 3 файла
                 </p>
                 <label className="mt-1 inline-flex w-full cursor-pointer flex-col rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-left text-xs text-slate-500 transition hover:border-sky-400 hover:bg-slate-100">
                   <input
@@ -472,7 +472,15 @@ const handleSubmit = async () => {
                     multiple
                     accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, .doc"
                     className="hidden"
-                    onChange={(e) => { const selected = Array.from(e.target.files || []); setFiles(selected);}}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.files || []);
+                      if (selected.length > 3) {
+                        toast.error("Максимальное количество файлов - 3");
+                        setFiles(selected.slice(0, 3));
+                      } else {
+                        setFiles(selected);
+                      }
+                    }}
                   />
                   <span className="text-[11px] font-medium text-slate-700">
                     {files.length
@@ -480,6 +488,9 @@ const handleSubmit = async () => {
                       : 'Нажмите сюда, чтобы загрузить документ'}
                   </span>
                 </label>
+                {files.length === 3 && (
+                  <p className="text-[10px] text-amber-600">Максимальное количество файлов (3)</p>
+                )}
               </div>
 
               {/*Кнопка Загрузить*/}

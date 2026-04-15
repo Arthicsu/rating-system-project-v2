@@ -343,6 +343,11 @@ export default function RatingPage() {
                 loading={loading}
                 onPageChange={setPage}
               />
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[11px] sm:text-xs text-slate-600">
+                  Таблица рейтинга обновляется 1 раз каждые 15 минут
+                </p>
+              </div>
               </Skeleton>
               {/* {user?.isStaff && (
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

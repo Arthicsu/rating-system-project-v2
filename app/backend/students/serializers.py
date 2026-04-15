@@ -188,6 +188,11 @@ class AchievementUploadSerializer(serializers.Serializer):
 
     def validate_files(self, files):
         max_size = 20 * 1024 * 1024  # Ограничение на размер файла (20 МБ)
+        max_files = 3  # Максимальное количество файлов
+        
+        if len(files) > max_files:
+            raise serializers.ValidationError(f"Нельзя загрузить более {max_files} файлов.")
+        
         for file in files:
             if file.size > max_size:
                 raise serializers.ValidationError(f"Файл {file.name} слишком большой. Максимальный размер 20 МБ.")
