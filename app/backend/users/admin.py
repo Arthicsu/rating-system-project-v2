@@ -3,14 +3,21 @@ from django.contrib.auth.admin import UserAdmin
 from .models import User
 
 
+class StaffInline(admin.StackedInline):
+    model = User
+    extra = 0
+    fields = ('is_staff', 'is_active', 'groups')
+    readonly_fields = ('username', 'email', 'first_name', 'last_name', 'patronymic')
+
+
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'patronymic', 'get_roles', 'is_active', 'is_staff', 'is_superuser')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'patronymic', 'get_roles', 'is_active', 'is_staff', 'is_superuser', 'get_student_profile', 'get_staff_profile')
     list_filter = ('is_active', 'is_staff', 'is_superuser', 'groups')
     search_fields = ('username', 'first_name', 'last_name', 'patronymic', 'email')
 
     fieldsets = UserAdmin.fieldsets + (
-        (None, {'fields': ('patronymic',)}),
+        ('Дополнительно', {'fields': ('patronymic',)}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
         (None, {'fields': ('patronymic',)}),
@@ -19,3 +26,17 @@ class CustomUserAdmin(UserAdmin):
     @admin.display(description='Роли')
     def get_roles(self, obj):
         return ', '.join(sorted(obj.groups.values_list('name', flat=True))) or '—'
+
+    @admin.display(description='Студент', ordering='students__full_name')
+    def get_student_profile(self, obj):
+        try:
+            return obj.students.full_name if hasattr(obj, 'students') else '—'
+        except Exception:
+            return '—'
+
+    @admin.display(description='Сотрудник')
+    def get_staff_profile(self, obj):
+        try:
+            return obj.staff_profile.email if hasattr(obj, 'staff_profile') else '—'
+        except Exception:
+            return '—'

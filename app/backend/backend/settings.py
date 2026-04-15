@@ -70,7 +70,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
-EXTERNAL_SITE_URL = 'http://localhost:3000'
+EXTERNAL_SITE_URL = os.getenv('CLIENT_URL', 'http://localhost:3000')
+API_SCHEMA_URL = os.getenv('API_SCHEMA_URL', '/api/schema/swagger-ui/')
 CORS_ALLOW_CREDENTIALS = True 
 
 CORS_ALLOW_METHODS = (
@@ -118,6 +119,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.site_urls',
             ],
         },
     },

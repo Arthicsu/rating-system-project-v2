@@ -13,6 +13,7 @@ class StaffAdmin(admin.ModelAdmin, CsvImport):
     list_display = ('email', 'get_roles', 'department', 'faculty')
     list_filter = ('faculty', 'department', 'user__groups')
     search_fields = ('email', 'department__name', 'faculty__name')
+    raw_id_fields = ('user', 'department', 'faculty')
 
     def get_roles(self, obj):
         return ", ".join([group.name for group in obj.user.groups.all()])
@@ -110,6 +111,7 @@ class SpecialtyAdmin(admin.ModelAdmin, CsvImport):
     list_display = ('external_id', 'code_fgos', 'name', 'faculty', 'department')
     list_filter = ['faculty', 'department']
     search_fields = ['external_id', 'code_fgos', 'name']
+    raw_id_fields = ('faculty', 'department')
     change_list_template = "admin/specialty_change_list.html"
 
     def get_urls(self):
@@ -151,6 +153,7 @@ class SpecialtyAdmin(admin.ModelAdmin, CsvImport):
 class DepartmentAdmin(admin.ModelAdmin, CsvImport):
     list_display = ('external_id', 'short_name', 'name', 'faculty', 'head_name')
     list_filter = ('faculty',)
+    raw_id_fields = ('faculty',)
     change_list_template = "admin/department_change_list.html"
 
     def get_urls(self):
@@ -180,9 +183,10 @@ class DepartmentAdmin(admin.ModelAdmin, CsvImport):
 
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin, CsvImport):
-    list_display = ('external_id', 'name', 'get_faculty', 'get_department', 'get_specialty', 'course', 'education_level_decode', 'education_form_decode', 'academic_year')
-    list_filter = ('specialty__faculty', 'specialty__department' ,'course', 'education_form_decode')
+    list_display = ('external_id', 'name', 'get_faculty', 'get_department', 'get_specialty', 'course', 'education_form_decode', 'academic_year')
+    list_filter = ('specialty__faculty', 'specialty__department', 'course', 'education_form_decode', 'academic_year')
     search_fields = ('external_id', 'name', 'specialty__name')
+    raw_id_fields = ('specialty',)
     change_list_template = "admin/group_change_list.html"
 
     def get_faculty(self, obj):
@@ -222,7 +226,7 @@ class GroupAdmin(admin.ModelAdmin, CsvImport):
                     continue
 
                 academic_year = row.get('Учебныйгод', '-')
-                if academic_year != '2025-2026' or '2026-2027':
+                if academic_year not in ('2025-2026', '2026-2027'):
                     continue
                 
                 Group.objects.update_or_create(

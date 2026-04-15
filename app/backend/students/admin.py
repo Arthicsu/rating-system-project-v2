@@ -19,10 +19,11 @@ logger = logging.getLogger(__name__)
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin, CsvImport):
-    list_display = ('full_name', 'record_book', 'group', 'status', 'total_score')
-    list_filter = ('group__specialty__faculty', 'group__course', 'status')
+    list_display = ('full_name', 'record_book', 'group', 'admission_year', 'status', 'total_score')
+    list_filter = ('group__specialty__faculty', 'admission_year', 'group__course', 'status')
     search_fields = ('full_name', 'record_book', 'email')
-    readonly_fields = ('created_at',)
+    readonly_fields = ('created_at', 'total_score')
+    raw_id_fields = ('user', 'group', 'faculty', 'department')
     change_list_template = "admin/student_change_list.html"
 
     def get_urls(self):
@@ -290,6 +291,7 @@ class ScoringRuleInline(admin.TabularInline):
 class AchievementTypeAdmin(admin.ModelAdmin):
     list_display = ('label', 'category', 'code', 'needs_level', 'needs_result')
     list_filter = ('category',)
+    raw_id_fields = ('category',)
     inlines = [ScoringRuleInline]
 
 @admin.register(ScoringRule)
@@ -297,12 +299,16 @@ class ScoringRuleAdmin(admin.ModelAdmin):
     list_display = ('get_category', 'achievement_type', 'level', 'result', 'score')
     list_filter = ('achievement_type__category', 'level', 'result')
     search_fields = ('achievement_type__label', 'achievement_type__code')
+    raw_id_fields = ('achievement_type', 'level', 'result')
 
     # Метод для вывода категории (так как она связана через achievement_type)
     @admin.display(description='Категория', ordering='achievement_type__category')
     def get_category(self, obj):
-        return obj.achievement_type.category.label
-
+        try:
+            return obj.achievement_type.category.label
+        except Exception:
+            return '-'
+            
 class DocumentFileInline(admin.TabularInline):
     """
     Инлайн-панель для отображения и редактирования файлов, 
@@ -315,12 +321,29 @@ class DocumentFileInline(admin.TabularInline):
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = (
-        'user__student_profile__record_book', 'user__student_profile__group__specialty__faculty', 'achievement', 
-        'category', 'sub_type', 'level', 'result', 'score', 
-        'status', 'date_received'
-    )
-    inlines = [DocumentFileInline] 
-    
-    list_filter = ('status', 'category', 'date_received')
-    search_fields = ('student__full_name', 'student__record_book', 'achievement')
+    list_display = ('get_student', 'get_group', 'get_faculty', 'achievement', 'category', 'score', 'status', 'date_received')
+    list_filter = ('status', 'category', 'sub_type', 'date_received')
+    search_fields = ('user__student_profile__full_name', 'user__student_profile__record_book', 'achievement')
+    raw_id_fields = ('user', 'verified_by', 'category', 'sub_type', 'level', 'result', 'doc_type', 'status')
+    inlines = [DocumentFileInline]
+
+    @admin.display(description='Студент')
+    def get_student(self, obj):
+        try:
+            return obj.user.student_profile.full_name
+        except Exception:
+            return '-'
+
+    @admin.display(description='Группа')
+    def get_group(self, obj):
+        try:
+            return obj.user.student_profile.group
+        except Exception:
+            return '-'
+
+    @admin.display(description='Факультет')
+    def get_faculty(self, obj):
+        try:
+            return obj.user.student_profile.group.specialty.faculty
+        except Exception:
+            return '-'

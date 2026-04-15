@@ -10,4 +10,13 @@
 {% endif %}
 {% endblock %}
 
+{% block usertools %}
+{{ block.super }}
+<div class="user-tools">
+    <a href="{{ EXTERNAL_SITE_URL }}" target="_blank">Клиент</a>
+    <span class="separator">|</span>
+    <a href="{{ API_SCHEMA_URL }}" target="_blank">API Docs</a>
+</div>
+{% endblock %}
+
 {% block nav-global %}{% endblock %}
