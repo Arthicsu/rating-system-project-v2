@@ -117,16 +117,22 @@ def get_scoring_structure() -> dict:
 
     structure = {}
     
-    categories = Category.objects.prefetch_related('sub_types').all()
+    categories = Category.objects.prefetch_related('sub_types', 'sub_types__rules', 'sub_types__rules__result').all()
 
     for category in categories:
         sub_types_list = []
         for sub_type in category.sub_types.all():
+            allowed_results = [
+                rule.result.code 
+                for rule in sub_type.rules.all() 
+                if rule.result and rule.result.code != 'none'
+            ]
             sub_types_list.append({
                 "value": sub_type.code,
                 "label": sub_type.label,
                 "needsLevel": sub_type.needs_level,
-                "needsResult": sub_type.needs_result
+                "needsResult": sub_type.needs_result,
+                "allowedResults": list(set(allowed_results))
             })
 
         structure[category.code] = {

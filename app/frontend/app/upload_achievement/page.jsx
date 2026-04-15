@@ -101,16 +101,8 @@ export default function UploadAchievement() {
   const getFilteredResults = () => {
     if (!subType) return resultsList;
 
-    const rules = {
-      grades: ['excellent', 'good_excellent'],
-      olympiad: ['1', '2', '3', 'other'],
-      contest: ['1', '2', '3', 'other'],
-      competition: ['1', '2', '3', 'other'],
-      publication: ['vak_rinc', 'other'],
-    };
-
-    const allowed = rules[subType.value];
-    if (!allowed) return resultsList;
+    const allowed = subType.allowedResults;
+    if (!allowed || allowed.length === 0) return resultsList;
 
     return resultsList.filter((item) => allowed.includes(item.value));
   };
