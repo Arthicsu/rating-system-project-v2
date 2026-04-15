@@ -14,6 +14,19 @@ export interface Category {
   label: string;
 }
 
+export interface Faculty {
+  id: number;
+  short_name: string;
+  name: string;
+}
+
+export interface Department {
+  id: number;
+  short_name: string;
+  name: string;
+  faculty_id: number;
+}
+
 export interface Group {
   id: number;
   name: string;

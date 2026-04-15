@@ -14,7 +14,7 @@ interface Achievement {
   files: Array<{ id: number; original_file_name: string }>;
 }
 
-export default interface AchievementItemProps {
+export interface AchievementItemProps {
   doc?: Achievement;
   loading?: boolean;
 }

@@ -4,6 +4,7 @@ import api from '@/lib/axios';
 import { useMySession } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import Pagination from '@/components/Pagination';
+import ExportExcelButton from '@/components/ExportExcelButton';
 import type { FilterOptions, Tab } from '@/interfaces/RatingInterfaces'
 import type Student from '@/interfaces/StudentInterfaces';
 import { Skeleton } from 'boneyard-js/react';
@@ -23,7 +24,6 @@ export default function RatingPage() {
   const { user } = useMySession();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const [exportLoading, setExportLoading] = useState(false);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({ faculties: [], courses: [], groups: [] });
   
   const [selectedFaculty, setSelectedFaculty] = useState('all');
@@ -96,45 +96,6 @@ export default function RatingPage() {
   const handleFilterChange = (setter: (value: string) => void, value: string) => {
     setter(value);
     setPage(1);
-  };
-
-  const handleExportToExcel = async () => {
-    setExportLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (selectedFaculty !== 'all') params.append('faculty_id', selectedFaculty);
-      if (selectedCourse !== 'all') params.append('course', selectedCourse);
-      if (selectedGroup !== 'all') params.append('group_id', selectedGroup);
-      if (activeTab !== 'common') params.append('category', activeTab);
-      params.append('page', String(page));
-      
-      const response = await api.get('/university/api/v1/export-rating-to-excel/', {
-        params,
-        responseType: 'blob'
-      });
-      
-      const disposition = response.headers['content-disposition'];
-      const fileNameFromHeader = disposition?.match(/filename="?([^"]+)"?/)?.[1];
-      const fileName = fileNameFromHeader || `rating-page-${page}.xlsx`;
-      const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-      
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      console.error('Ошибка при выгрузке Excel:', error);
-      toast.error('Не удалось выгрузить Excel файл');
-    } finally {
-      setExportLoading(false);
-    }
   };
 
   return (
@@ -383,23 +344,24 @@ export default function RatingPage() {
                 onPageChange={setPage}
               />
               </Skeleton>
-              {user?.isStaff && (
+              {/* {user?.isStaff && (
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[11px] sm:text-xs text-slate-600">
                     В выгрузке можно выбирать разные факультеты, курсы и группы. Если выбрать вид
                     деятельности, итоговая сумма будет рассчитана именно по выбранной
                     деятельности.
                   </p>
-                  <button
-                    type="button"
-                    onClick={handleExportToExcel}
-                    disabled={exportLoading || loading}
-                    className="inline-flex items-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs sm:text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {exportLoading ? 'Выгрузка...' : 'Выгрузить в Excel'}
-                  </button>
+                  <ExportExcelButton
+                    filters={{
+                      faculty_id: selectedFaculty,
+                      course: selectedCourse,
+                      group_id: selectedGroup
+                    }}
+                    category={activeTab}
+                    page={page}
+                  />
                 </div>
-              )}
+              )} */}
             </div>
           </div>
         </div>

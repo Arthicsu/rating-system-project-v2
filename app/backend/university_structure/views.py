@@ -223,6 +223,7 @@ class AcademicYearListView(ListAPIView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
+@method_decorator(cache_page(60 * 5), name='dispatch')  
 class FilteredGroupListAPIView(StudentFilterMixin, ListAPIView):
     """
     Список доступных учебных групп.
@@ -235,14 +236,23 @@ class FilteredGroupListAPIView(StudentFilterMixin, ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
+        params = self.request.query_params
         
-        # Подзапрос на наличие студенты в группе
+        # Подзапрос на наличие студентов в группе
         has_students_subquery = Student.objects.filter(group=OuterRef('pk'))
         
         # Основной запрос без join таблицы студентов
         queryset = Group.objects.select_related('specialty__faculty').annotate(
             has_students=Exists(has_students_subquery)
-        ).filter(has_students=True)
+        ).filter(has_students=True).order_by('course', 'name')
+
+        # Фильтрация по параметрам (course, faculty_id)
+        if params.get('faculty_id') and params.get('faculty_id') != 'all':
+            queryset = queryset.filter(specialty__faculty_id=params.get('faculty_id'))
+        if params.get('course') and params.get('course') != 'all':
+            queryset = queryset.filter(course=params.get('course'))
+        if params.get('group_id') and params.get('group_id') != 'all':
+            queryset = queryset.filter(id=params.get('group_id'))
 
         return self.scope_filters_queryset(
             user, queryset, 
@@ -270,22 +280,24 @@ class FilteredDashboardStatsAPIView(StudentWithAccessMixin, GenericAPIView):
     def get(self, request, *args, **kwargs):
         user = request.user
         
-        # Получаем студентов с учетом прав и фильтров
+        # Получаем студентов с учетом прав и фильтров (scope)
         students_queryset = self.get_allowed_students(user)
+        
+        # Применяем фильтры из запроса (course, faculty)
+        group_id = request.query_params.get('group_id')
+        filtered_queryset = self.apply_filters(students_queryset)
 
         academic_year_id = request.query_params.get('academic_year')
         date_filter = {}
         
         if academic_year_id:
-            # Ищем семестр в базе
             ay = get_object_or_404(AcademicYear, id=academic_year_id)
-            # Формируем фильтр по датам для документов
             date_filter = {
                 'date_received__range': (ay.start_date, ay.end_date)
             }
 
-        # Считаем статистику
-        stats_data = students_queryset.aggregate(
+        # Считаем статистику по отфильтрованным студентам
+        stats_data = filtered_queryset.aggregate(
             total_students=Count('id'),
             avg_score=Avg('total_score') 
         )
@@ -295,11 +307,21 @@ class FilteredDashboardStatsAPIView(StudentWithAccessMixin, GenericAPIView):
             "avg_score": round(stats_data['avg_score'] or 0, 2)
         }
 
-        # В зависимости от роли разные статусы документов для фильтрования
+        # Топ-5 студентов
+        if group_id and group_id != 'all':
+            # Если выбрана конкретная группа - топ5 из этой группы
+            top5_queryset = filtered_queryset
+        else:
+            # Если "Все" - топ5 из всех студентов в scope (без фильтра course/faculty)
+            top5_queryset = students_queryset
+        
+        top5_students = top5_queryset.order_by('-total_score')[:5]
+        top5_serializer = StudentProfileSerializer(top5_students, many=True, context={'request': request})
+        
+        # Документы - всегда по отфильтрованным
         doc_status = 'pending' if user.is_dept_staff else 'approved'
-        # Получаем отфильтрованные документы
         pending_docs_queryset = Document.objects.filter(
-            user__student_profile__in=students_queryset,
+            user__student_profile__in=filtered_queryset,
             status__code=doc_status,
             **date_filter
         ).select_related('user__student_profile', 'user__student_profile__group').order_by('-uploaded_at')
@@ -316,6 +338,7 @@ class FilteredDashboardStatsAPIView(StudentWithAccessMixin, GenericAPIView):
             
             # Добавляем статистику в ответ пагинатора
             response.data['stats'] = stats
+            response.data['top5'] = top5_serializer.data
             
             response.data['pending_documents'] = response.data.pop('results')
             
@@ -325,5 +348,6 @@ class FilteredDashboardStatsAPIView(StudentWithAccessMixin, GenericAPIView):
         serializer = PendingDocumentSerializer(pending_docs_queryset, many=True, context={'request': request})
         return Response({
             "stats": stats,
+            "top5": top5_serializer.data,
             "pending_documents": serializer.data
         })

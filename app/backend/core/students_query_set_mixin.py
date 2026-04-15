@@ -93,7 +93,7 @@ class StudentRatingQuerySetMixin(StudentFilterMixin):
         category = self.request.query_params.get('category', 'common')
         
         # Берем данные
-        queryset = Student.objects.select_related('group', 'faculty').all()
+        queryset = Student.objects.select_related('group', 'faculty').order_by('user__last_name', 'user__first_name')
         
         # Сначала фильтруем, потом сортируем по категории
         queryset = self.apply_filters(queryset)
@@ -106,7 +106,7 @@ class StudentWithAccessMixin(StudentFilterMixin):
     def get_allowed_students(self, user):
         queryset = Student.objects.select_related(
             'group__specialty__faculty', 'faculty', 'user'
-        )
+        ).order_by('user__last_name', 'user__first_name')
 
         if not hasattr(user, 'staff_profile'):
             return queryset.none()

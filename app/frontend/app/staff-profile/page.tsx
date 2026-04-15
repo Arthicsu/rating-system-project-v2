@@ -8,19 +8,24 @@ import { Skeleton } from 'boneyard-js/react';
 import '@/bones/registry'
 
 import Pagination from '@/components/Pagination';
+import ExportExcelButton from '@/components/ExportExcelButton';
 import ModalApprove from '@/components/modals/modalApprove';
 import ModalReject from '@/components/modals/modalReject';
 
-import type { RejectionReason, Semester, Category, Group, Document } from '@/interfaces/StaffInterfaces';
+import type { RejectionReason, Semester, Category, Group, Document, Faculty } from '@/interfaces/StaffInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
+import { useMySession } from '@/context/AuthContext';
 
 export default function StaffProfilePage() {
+  const { user } = useMySession();
+  const isRectorate = user?.roles?.includes('Rectorate');
   const { downloadFile } = useDownloadFile();
   const [activeTab, setActiveTab] = useState('my-group');
   const [groupsList, setGroupsList] = useState<Group[]>([]);
   const [studentsData, setStudentsData] = useState<Student[]>([]);
   const [pendingDocsData, setPendingDocsData] = useState<Document[]>([]);
   const [stats, setStats] = useState({ total_students: 0, avg_score: 0 });
+  const [top5Students, setTop5Students] = useState<Student[]>([]);
 
   const [modalState, setModalState] = useState<{
     type: string | null;
@@ -35,12 +40,17 @@ export default function StaffProfilePage() {
   });
 
   const [selectedGroupId, setSelectedGroupId] = useState('all');
+  const [selectedCourse, setSelectedCourse] = useState('all');
+  const [loadTrigger, setLoadTrigger] = useState(0);
   const [selectedSemesterId, setSelectedSemesterId] = useState(0);
   const [selectedSemesterLabel, setSelectedSemesterLabel] = useState('');
   
   const [currentPage, setCurrentPage] = useState(1);
   const [totalStudents, setTotalStudents] = useState(0);
   const [loading, setLoading] = useState(false);
+  
+  const [requestsPage, setRequestsPage] = useState(1);
+  const [totalRequests, setTotalRequests] = useState(0);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [requestsSearchTerm, setRequestsSearchTerm] = useState('');
@@ -49,6 +59,9 @@ export default function StaffProfilePage() {
   const [semesterOptions, setSemesterOptions] = useState<Semester[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [rejectReasons, setRejectReasons] = useState<number[]>([]);
+  const [facultiesList, setFacultiesList] = useState<Faculty[]>([]);
+  const [selectedFacultyId, setSelectedFacultyId] = useState('all');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const pageSize = 20;
 
   const openModal = (type: string, doc: Document) => setModalState({ 
@@ -72,33 +85,44 @@ export default function StaffProfilePage() {
     setCurrentPage(1);
   };
   
+  const handleCourseChange = (courseId: string) => {
+    setSelectedCourse(courseId);
+    if (courseId === 'all') {
+      setSelectedGroupId('all');
+    }
+    setLoadTrigger(prev => prev + 1);
+  };
+  
+  const handleFacultyChange = (facultyId: string) => {
+    setSelectedFacultyId(facultyId);
+    if (facultyId === 'all') {
+      setSelectedGroupId('all');
+    }
+    setLoadTrigger(prev => prev + 1);
+  };
+  
   useEffect(() => {
     const fetchLookups = async () => {
       try {
-        const [profileRes, reasonsRes, semestersRes, catsRes, groupsRes] = await Promise.all([
+        const [profileRes, reasonsRes, semestersRes, catsRes, filtersRes] = await Promise.all([
           api.get('/university/api/v1/staff-profile/'),
           api.get('/university/api/v1/rejection-reasons/'),
           api.get('/university/api/v1/academic-years/'),
           api.get('/user/api/v1/category-achievements/'),
-          api.get('/university/api/v1/filtered-groups/')
+          api.get('/user/api/v1/rating-filters/')
         ]);
         
-        // TODO: Use profileRes.data to display staff profile info (name, department, etc.)
         console.log('Staff profile:', profileRes.data);
         
         setRejectionReasonsList(reasonsRes.data);
         setSemesterOptions(semestersRes.data);
         setCategories(catsRes.data);
-        setGroupsList(groupsRes.data || []);
+        setFacultiesList(filtersRes.data.faculties || []);
 
         const current = semestersRes.data.find((s: Semester) => s.is_current);
         if (current){
           setSelectedSemesterId(current.id);
           setSelectedSemesterLabel(current.label);
-        }
-        
-        if (groupsRes.data && groupsRes.data.length > 0) {
-          setSelectedGroupId(String(groupsRes.data[0].id));
         }
       } catch (error) {
         console.error("Ошибка загрузки справочников: ", error);
@@ -106,6 +130,30 @@ export default function StaffProfilePage() {
     };
     fetchLookups();
   }, []);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (selectedCourse !== 'all') params.append('course', selectedCourse);
+        if (selectedFacultyId !== 'all') params.append('faculty_id', selectedFacultyId);
+        
+        const groupsRes = await api.get('/university/api/v1/filtered-groups/', { params });
+        setGroupsList(groupsRes.data || []);
+        
+        if (selectedCourse === 'all' || selectedFacultyId === 'all') {
+          setSelectedGroupId('all');
+        } else if (groupsRes.data && groupsRes.data.length > 0) {
+          setSelectedGroupId(String(groupsRes.data[0].id));
+        } else {
+          setSelectedGroupId('all');
+        }
+      } catch (error) {
+        console.error("Ошибка загрузки групп: ", error);
+      }
+    };
+    fetchGroups();
+  }, [loadTrigger, selectedCourse, selectedFacultyId]);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -121,6 +169,8 @@ export default function StaffProfilePage() {
         const statsParams = new URLSearchParams();
         statsParams.append('group_id', selectedGroupId);
         statsParams.append('academic_year', String(selectedSemesterId));
+        statsParams.append('page', String(requestsPage));
+        statsParams.append('page_size', String(pageSize));
         const [studentsRes, statsRes] = await Promise.all([
           api.get('/university/api/v1/filtered-students/', { params } ),
           api.get('/university/api/v1/filtered-dashboard-stats/', { params: statsParams })
@@ -129,7 +179,9 @@ export default function StaffProfilePage() {
         setStudentsData(studentsRes.data.results);
         setTotalStudents(studentsRes.data.count);
         setPendingDocsData(statsRes.data.pending_documents);
+        setTotalRequests(statsRes.data.count || 0);
         setStats(statsRes.data.stats);
+        setTop5Students(statsRes.data.top5 || []);
         
       } catch (error) {
         console.error("Ошибка загрузки данных дашборда: ", error);
@@ -138,7 +190,7 @@ export default function StaffProfilePage() {
       }
     };
     fetchDashboard();
-  }, [selectedGroupId, selectedSemesterId, currentPage]);
+  }, [selectedGroupId, selectedSemesterId, currentPage, selectedCourse, requestsPage]);
 
   const filteredStudents = useMemo(() => {
     let students = studentsData;
@@ -171,7 +223,7 @@ export default function StaffProfilePage() {
       max_score: 0,
       min_score: 0,
       active_requests: filteredDocs.length,
-      top5: [] as Student[],
+      top5: top5Students,
       categories: {} as Record<string, number>,
     };
 
@@ -191,10 +243,10 @@ export default function StaffProfilePage() {
       max_score: Math.max(...scores),
       min_score: Math.min(...scores),
       active_requests: filteredDocs.length,
-      top5: [...students].sort((a, b) => b.total_score - a.total_score).slice(0, 5),
+      top5: top5Students,
       categories: catStats
     };
-  }, [filteredStudents, filteredDocs, categories, stats]);
+  }, [filteredStudents, filteredDocs, categories, stats, top5Students]);
 
   const handleApprove = async () => {
     if (!modalState.targetId) return;
@@ -260,15 +312,136 @@ export default function StaffProfilePage() {
     <>
       <main className="min-h-screen bg-slate-50 pt-24 pb-10">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <div className="mb-5 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.12)] sm:p-5">
+          <div className="mb-2 hidden max-[640px]:flex items-center">
+            <button
+              type="button"
+              aria-label="Фильтры"
+              onClick={() => setMobileFiltersOpen((prev) => !prev)}
+              className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] text-slate-700 shadow-sm active:scale-95 transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          {mobileFiltersOpen && (
+            <div className="mb-3 max-[640px]:block hidden rounded-lg bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.08)] text-[11px] text-slate-700">
+              <div className="space-y-2">
+                {isRectorate && (
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="m-faculty" className="text-[10px] uppercase tracking-wide text-slate-500">Факультет</label>
+                  <select
+                    id="m-faculty"
+                    value={selectedFacultyId}
+                    onChange={(e) => {
+                      handleFacultyChange(e.target.value);
+                      handleCourseChange('all');
+                      handleGroupChange('all');
+                    }}
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
+                  >
+                    <option value="all">Все</option>
+                    {facultiesList.map(f => (
+                      <option key={f.id} value={f.id}>{f.short_name}</option>
+                    ))}
+                  </select>
+                </div>
+                )}
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="m-course" className="text-[10px] uppercase tracking-wide text-slate-500">Курс</label>
+                  <select
+                    id="m-course"
+                    value={selectedCourse}
+                    onChange={(e) => handleCourseChange(e.target.value)}
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
+                  >
+                    <option value="all">Все</option>
+                    {[1, 2, 3, 4, 5].map(c => (
+                      <option key={c} value={String(c)}>{c} курс</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="m-group" className="text-[10px] uppercase tracking-wide text-slate-500">Группа</label>
+                  <select
+                    id="m-group"
+                    value={selectedGroupId}
+                    onChange={(e) => handleGroupChange(e.target.value)}
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
+                  >
+                    <option value="all">Все</option>
+                    {groupsList.map(g => (
+                      <option key={g.id} value={String(g.id)}>{g.name} ({g.academic_year})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="m-semester" className="text-[10px] uppercase tracking-wide text-slate-500">Период</label>
+                  <select
+                    id="m-semester"
+                    value={selectedSemesterId}
+                    onChange={(e) => {
+                      const selected = semesterOptions.find(opt => opt.id === Number(e.target.value));
+                      if (selected) {
+                        setSelectedSemesterId(selected.id);
+                        setSelectedSemesterLabel(selected.label);
+                      }
+                    }}
+                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
+                  >
+                    {semesterOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="hidden sm:block mb-5 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.12)] sm:p-5">
             <p className="mb-3 text-xl font-semibold text-slate-900 sm:text-2xl md:text-3xl">
               Фильтры
             </p>
-            <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 sm:gap-4">
+              {isRectorate && (
               <div className="space-y-1.5">
-                <label htmlFor="group-select" className="block text-[11px] font-medium text-slate-500">
-                  Группа
-                </label>
+                <label htmlFor="faculty-select" className="block text-[11px] font-medium text-slate-500">Факультет</label>
+                <select
+                  id="faculty-select"
+                  className="w-full min-w-28 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
+                  value={selectedFacultyId}
+                  onChange={(e) => {
+                    handleFacultyChange(e.target.value);
+                    handleCourseChange('all');
+                    handleGroupChange('all');
+                  }}
+                >
+                  <option value="all">Все факультеты</option>
+                  {facultiesList.map(f => (
+                    <option key={f.id} value={f.id}>{f.short_name}</option>
+                  ))}
+                </select>
+              </div>
+              )}
+              <div className="space-y-1.5">
+                <label htmlFor="course-select" className="block text-[11px] font-medium text-slate-500">Курс</label>
+                <select
+                  id="course-select"
+                  className="w-full min-w-28 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
+                  value={selectedCourse}
+                  onChange={(e) => handleCourseChange(e.target.value)}
+                >
+                  <option value="all">Все курсы</option>
+                  {[1, 2, 3, 4, 5].map((c) => (
+                    <option key={c} value={String(c)}>{c} курс</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="group-select" className="block text-[11px] font-medium text-slate-500">Группа</label>
                 <select
                   id="group-select"
                   className="w-full min-w-35 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
@@ -287,9 +460,7 @@ export default function StaffProfilePage() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="semester-select" className="block text-[11px] font-medium text-slate-500">
-                  Период
-                </label>
+                <label htmlFor="semester-select" className="block text-[11px] font-medium text-slate-500">Период</label>
                 <select
                   id="semester-select"
                   className="w-full min-w-40 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
@@ -363,14 +534,23 @@ export default function StaffProfilePage() {
                       (всего: {totalStudents})
                     </span>
                   </h2>
-                  <div className="relative flex items-center">
-                    <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 text-[11px] text-slate-400" />
-                    <input
-                      type="text"
-                      className="w-55 rounded-full border border-slate-200 bg-white py-1.5 pl-7 pr-3 text-xs text-slate-900 placeholder:text-sm placeholder:text-slate-400 outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
-                      placeholder="Поиск по ФИО или зачетке"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex items-center">
+                      <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 text-[11px] text-slate-400" />
+                      <input
+                        type="text"
+                        className="w-55 rounded-full border border-slate-200 bg-white py-1.5 pl-7 pr-3 text-xs text-slate-900 placeholder:text-sm placeholder:text-slate-400 outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
+                        placeholder="Поиск по ФИО или зачетке"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    <ExportExcelButton
+                      filters={{
+                        group_id: selectedGroupId,
+                        course: selectedCourse
+                      }}
+                      page={currentPage}
                     />
                   </div>
                 </div>
@@ -572,6 +752,14 @@ export default function StaffProfilePage() {
                   </p>
                 </div>
               )}
+              
+              <Pagination
+                page={requestsPage}
+                totalCount={totalRequests}
+                pageSize={pageSize}
+                loading={loading}
+                onPageChange={setRequestsPage}
+              />
             </div>
           )}
 
