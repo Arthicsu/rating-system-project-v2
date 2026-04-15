@@ -75,7 +75,10 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
 
                 group_code = clean_val('Код_Группы')
                 group = groups_map.get(group_code)
-                
+
+                if not group:
+                    continue
+
                 faculty_code = clean_val('КодФакультета')
                 faculty = faculties_map.get(faculty_code)
                 
@@ -95,7 +98,6 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                     user.first_name = first_name
                     user.last_name = last_name
                     user.patronymic = patronymic
-                    user.email = email
                     user.save()
                 else:
                     # Если студента нет, создаем/обновляем юзера по username
@@ -103,20 +105,19 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                     password = generate_password()
                     user = User.objects.create_user(
                         username=username,
-                        email=email,
                         password=password,
                         first_name=first_name,
                         last_name=last_name,
                         patronymic=patronymic,
                     )
-                    user.save() 
                     user.groups.add(g_student)
                     # Это для списка логирования ФИО, группы, логина и пароля,
                     new_credentials.append({
+                        'full_name': f"{last_name} {first_name} {patronymic}".strip(),
+                        'email': email,
                         'group_code': group_code,
                         'group': group,
                         'admission_year': admission_year,
-                        'full_name': f"{last_name} {first_name} {patronymic}".strip(),
                         'login': username,
                         'password': password
                     })

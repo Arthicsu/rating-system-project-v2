@@ -220,6 +220,10 @@ class GroupAdmin(admin.ModelAdmin, CsvImport):
                 status = clean_val('Удалена')
                 if status == 1:
                     continue
+
+                academic_year = row.get('Учебныйгод', '-')
+                if academic_year != '2025-2026' or '2026-2027':
+                    continue
                 
                 Group.objects.update_or_create(
                     external_id=row.get('Код'),
