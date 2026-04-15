@@ -43,6 +43,7 @@ class StudentFilterMixin:
         serializer = StudentProfileSerializer(student, context={'request': self.request})
         data = serializer.data
         data["radar_stats"] = self.get_student_radar_data(student)
+        data["is_own_profile"] = is_own_profile
         
         if is_own_profile or self.request.user.groups.filter(name__in=['Department', 'Dean', 'Rectorate']).exists():
             data["email"] = student.email

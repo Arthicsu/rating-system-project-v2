@@ -37,4 +37,24 @@ export interface Document {
   rejection_reason: string | null;
 }
 
+export interface StaffProfile {
+  id: number;
+  email: string;
+  department: {
+    id: number;
+    name: string;
+    short_name: string;
+  } | null;
+  faculty: {
+    id: number;
+    name: string;
+    short_name: string;
+  } | null;
+  phone: string;
+  roles: string[];
+  is_own_profile: boolean;
+  isStaff: boolean;
+  type: string;
+}
+
 export {}

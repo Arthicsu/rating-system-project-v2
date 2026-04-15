@@ -75,12 +75,16 @@ export default function StaffProfilePage() {
   useEffect(() => {
     const fetchLookups = async () => {
       try {
-        const [reasonsRes, semestersRes, catsRes, groupsRes] = await Promise.all([
+        const [profileRes, reasonsRes, semestersRes, catsRes, groupsRes] = await Promise.all([
+          api.get('/university/api/v1/staff-profile/'),
           api.get('/university/api/v1/rejection-reasons/'),
           api.get('/university/api/v1/academic-years/'),
           api.get('/user/api/v1/category-achievements/'),
           api.get('/university/api/v1/filtered-groups/')
         ]);
+        
+        // TODO: Use profileRes.data to display staff profile info (name, department, etc.)
+        console.log('Staff profile:', profileRes.data);
         
         setRejectionReasonsList(reasonsRes.data);
         setSemesterOptions(semestersRes.data);
