@@ -26,6 +26,48 @@ from core.scope_permission_mixin import ScopePermissionMixin
 
 pagination_class = StandardResultsSetPagination
 
+class StaffProfileAPIView(ScopePermissionMixin, GenericAPIView):
+    """
+    API для получения профиля сотрудника (деканат, кафедра, ректорат).
+
+    Параметры:
+        - request: Объект HTTP-запроса с аутентифицированным пользователем.
+
+    Возвращает:
+        - JSON-ответ с полями из сериализатора и мета-данные
+    """
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = StaffSerializer
+    pagination_class = None
+
+    def get(self, request):
+        user = request.user
+
+        staff = getattr(user, 'staff_profile', None)
+
+        if not staff:
+            return Response({"message": "Профиль сотрудника не найден. Для просмотра необходима учетная запись сотрудника вуза."}, status=status.HTTP_404_NOT_FOUND)
+        
+        is_own_profile = (staff.user_id == user.id)
+
+        if not is_own_profile and not staff:
+            return Response({"message": "Доступ запрещён"}, status=status.HTTP_403_FORBIDDEN)    
+
+
+        # Сериализация данных из модели
+        serializer = self.get_serializer(staff)
+        response_data = serializer.data
+
+        # Мета-данные
+        response_data.update({
+            "roles": list(staff.user.groups.values_list('name', flat=True)) if staff.user else [],
+            "is_own_profile": is_own_profile,
+            "isStaff": staff.user.is_staff if staff.user else False,
+            "type": "staff"
+        })
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 class RatingExportAPIView(StudentRatingQuerySetMixin, GenericAPIView):
     permission_classes = [AllowAny]
@@ -98,7 +140,7 @@ class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
 
         doc = get_object_or_404(Document.objects.select_related('status', 'category', 'user__student_profile', 'user__student_profile__faculty', 'user__student_profile__department'), id=doc_id)
         
-        if not self.check_document_scope(request.user, doc):
+        if not self.check_staff_scope(request.user, doc):
             return Response({"error": "Документ находится за пределами вашей области модерации"}, status=status.HTTP_403_FORBIDDEN)
         
         action = request.data.get('action')
