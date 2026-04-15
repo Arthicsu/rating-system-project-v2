@@ -24,7 +24,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
     search_fields = ('full_name', 'record_book', 'email')
     readonly_fields = ('created_at', 'total_score')
     raw_id_fields = ('user', 'group', 'faculty', 'department')
-    change_list_template = "admin/student_change_list.html"
+    change_list_template = "admin/csv_import.html"
 
     def get_urls(self):
         urls = super().get_urls()
@@ -176,8 +176,7 @@ class DocumentStatusAdmin(admin.ModelAdmin):
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin, JsonImport):
     list_display = ('code', 'label')
-
-    change_list_template = "admin/achievement_change_list.html"
+    change_list_template = "admin/json_import.html"
     
     def get_urls(self):
         return self.get_import_urls() + super().get_urls()

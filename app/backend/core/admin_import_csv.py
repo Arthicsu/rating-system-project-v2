@@ -14,6 +14,7 @@ class CsvImport:
     """
     csv_import_form_class = CsvImportForm
     import_template = "admin/import_form.html"
+    change_list_template = "admin/csv_import.html"
 
     def get_import_urls(self):
         """

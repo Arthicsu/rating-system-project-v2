@@ -14,12 +14,11 @@ class StaffAdmin(admin.ModelAdmin, CsvImport):
     list_filter = ('faculty', 'department', 'user__groups')
     search_fields = ('email', 'department__name', 'faculty__name')
     raw_id_fields = ('user', 'department', 'faculty')
+    change_list_template = "admin/csv_import.html"
 
     def get_roles(self, obj):
         return ", ".join([group.name for group in obj.user.groups.all()])
     get_roles.short_description = 'Роли (Группы)'
-
-    change_list_template = "admin/staffadmin_change_list.html"
 
     def get_urls(self):
         urls = super().get_urls()
@@ -86,7 +85,7 @@ class StaffAdmin(admin.ModelAdmin, CsvImport):
 class FacultyAdmin(admin.ModelAdmin, CsvImport):
     list_display = ('external_id', 'short_name', 'name', 'alias', 'dean_name', 'phone')
     search_fields = ('short_name', 'name')
-    change_list_template = "admin/faculty_change_list.html"
+    change_list_template = "admin/csv_import.html"
 
     def get_urls(self):
         return self.get_import_urls() + super().get_urls()
@@ -112,7 +111,7 @@ class SpecialtyAdmin(admin.ModelAdmin, CsvImport):
     list_filter = ['faculty', 'department']
     search_fields = ['external_id', 'code_fgos', 'name']
     raw_id_fields = ('faculty', 'department')
-    change_list_template = "admin/specialty_change_list.html"
+    change_list_template = "admin/csv_import.html"
 
     def get_urls(self):
         return self.get_import_urls() + super().get_urls()
@@ -154,7 +153,7 @@ class DepartmentAdmin(admin.ModelAdmin, CsvImport):
     list_display = ('external_id', 'short_name', 'name', 'faculty', 'head_name')
     list_filter = ('faculty',)
     raw_id_fields = ('faculty',)
-    change_list_template = "admin/department_change_list.html"
+    change_list_template = "admin/csv_import.html"
 
     def get_urls(self):
         return self.get_import_urls() + super().get_urls()
@@ -187,7 +186,7 @@ class GroupAdmin(admin.ModelAdmin, CsvImport):
     list_filter = ('specialty__faculty', 'specialty__department', 'course', 'education_form_decode', 'academic_year')
     search_fields = ('external_id', 'name', 'specialty__name')
     raw_id_fields = ('specialty',)
-    change_list_template = "admin/group_change_list.html"
+    change_list_template = "admin/csv_import.html"
 
     def get_faculty(self, obj):
         return obj.specialty.faculty if obj.specialty else "-"
