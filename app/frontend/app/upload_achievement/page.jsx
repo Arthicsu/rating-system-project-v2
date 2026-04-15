@@ -104,7 +104,7 @@ export default function UploadAchievement() {
     const allowed = subType.allowedResults;
     if (!allowed || allowed.length === 0) return resultsList;
 
-    return resultsList.filter((item) => allowed.includes(item.value));
+    return resultsList.filter((item) => allowed.includes(item.code));
   };
 
   const closeAllDropdowns = () => {
@@ -124,16 +124,16 @@ const handleSubmit = async () => {
     const formData = new FormData();
     formData.append('record_book', recordBook);
     formData.append('category', category);
-    formData.append('sub_type', subType.value);
+    formData.append('sub_type', subType.code);
     formData.append('achievement', achievementName);
     formData.append('date_received', dateReceived);
     
     if (docType) {
-        formData.append('doc_type', docType.value);
+        formData.append('doc_type', docType.code);
     }
 
-    if (subType.needsLevel && level) formData.append('level', level.value);
-    if (subType.needsResult && result) formData.append('result', result.value);
+    if (subType.needsLevel && level) formData.append('level', level.code);
+    if (subType.needsResult && result) formData.append('result', result.code);
     
     if (files.length) {
       files.forEach((f) => formData.append('files', f));
@@ -272,7 +272,7 @@ const handleSubmit = async () => {
                     >
                       {dataStructure[category].sub_types.map((item) => (
                         <button
-                          key={item.value}
+                          key={item.code}
                           type="button"
                           className="block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
                           onClick={() => {
@@ -321,7 +321,7 @@ const handleSubmit = async () => {
                     >
                       {levelsList.map((item) => (
                         <button
-                          key={item.value}
+                          key={item.code}
                           type="button"
                           className="block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
                           onClick={() => {
@@ -368,7 +368,7 @@ const handleSubmit = async () => {
                     >
                       {getFilteredResults().map((item) => (
                         <button
-                          key={item.value}
+                          key={item.code}
                           type="button"
                           className="block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
                           onClick={() => {
@@ -413,7 +413,7 @@ const handleSubmit = async () => {
                   <div className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 text-sm shadow-xl">
                     {docTypesList.map((item) => (
                       <button
-                        key={item.value}
+                        key={item.code}
                         type="button"
                         className="block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
                         onClick={() => {
@@ -476,7 +476,7 @@ const handleSubmit = async () => {
                   />
                   <span className="text-[11px] font-medium text-slate-700">
                     {files.length
-                      ? `Файл(ы): ${files.map((f) => f.name).join(', ')}`
+                      ? `Файл(ы): ${files.map((f, i) => `${i + 1}. ${f.name}`).join(', ')}`
                       : 'Нажмите сюда, чтобы загрузить документ'}
                   </span>
                 </label>

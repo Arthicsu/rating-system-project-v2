@@ -16,7 +16,6 @@ from rest_framework import status, serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 
-from students.views import get_student_full_profile
 from university_structure.models import Faculty, Group
 from students.models import Document, Student, Category
 from .serializers import StudentRegistrationSerializer, AuthUserResponseSerializer, LoginRequestSerializer

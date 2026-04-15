@@ -1,12 +1,79 @@
 from rest_framework import serializers
 from university_structure.models import Faculty
 from django.db import transaction
-from .models import Student, Document, Category, DocumentFile, Level, AchievementResult, DocType, AchievementType, DocumentStatus
+from django.core.cache import cache
+from .models import Student, Document, Category, DocumentFile, Level, AchievementResult, DocType, AchievementType, DocumentStatus, ScoringRule
 from .scoring import calculate_achievement_score
 
 import os
 ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc'}
 ALLOWED_CONTENT_TYPES = {'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/octet-stream'}
+
+
+class LevelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Level
+        fields = ['code', 'label']
+
+
+class AchievementResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AchievementResult
+        fields = ['code', 'label']
+
+
+class DocTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DocType
+        fields = ['code', 'label']
+
+
+class AchievementTypeSerializer(serializers.ModelSerializer):
+    allowed_results = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AchievementType
+        fields = ['code', 'label', 'needs_level', 'needs_result', 'allowed_results']
+
+    def get_allowed_results(self, obj):
+        return list(
+            set(
+                rule.result.code
+                for rule in obj.rules.all()
+                if rule.result and rule.result.code != 'none'
+            )
+        )
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    sub_types = AchievementTypeSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Category
+        fields = ['code', 'label', 'sub_types']
+
+
+class AchievementConfigSerializer(serializers.Serializer):
+    structure = serializers.SerializerMethodField()
+    levels = serializers.SerializerMethodField()
+    results = serializers.SerializerMethodField()
+    doc_types = serializers.SerializerMethodField()
+
+    def get_structure(self, obj):
+        return obj
+
+    def get_levels(self, obj):
+        return LevelSerializer(
+            Level.objects.exclude(code='none'), many=True
+        ).data
+
+    def get_results(self, obj):
+        return AchievementResultSerializer(
+            AchievementResult.objects.exclude(code='none'), many=True
+        ).data
+
+    def get_doc_types(self, obj):
+        return DocTypeSerializer(DocType.objects.all(), many=True).data
 
 class StudentRatingSerializer(serializers.ModelSerializer):
     """
