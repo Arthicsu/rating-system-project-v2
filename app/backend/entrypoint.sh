@@ -19,7 +19,7 @@ s3 = boto3.resource('s3',
     aws_secret_access_key=os.getenv('SEAWEEDFS_SECRET_KEY'),
     region_name='local'
 )
-bucket_name = os.getenv('SEAWEEDFS_BUCKET_NAME', 'achievement')
+bucket_name = os.getenv('SEAWEEDFS_BUCKET_NAME')
 bucket = s3.Bucket(bucket_name)
 
 if bucket.creation_date is None:
@@ -42,5 +42,16 @@ python manage.py migrate
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
-echo "Starting server..."
-python manage.py runserver 0.0.0.0:8000
+# Выбор сервера: USE_GUNICORN=true для prod (с Nginx)
+if [ "${USE_GUNICORN}" = "true" ]; then
+    echo "Starting Gunicorn server..."
+    exec gunicorn backend.wsgi:application \
+        --bind 0.0.0.0:8000 \
+        --workers 2 \
+        --keep-alive 5 \
+        --access-logfile - \
+        --error-logfile -
+else
+    echo "Starting server..."
+    exec python manage.py runserver 0.0.0.0:8000
+fi

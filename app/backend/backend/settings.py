@@ -126,7 +126,10 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'backend.wsgi.application'
-
+# ASGI_APPLICATION = 'backend.asgi.application'
+# GUNICORN_WORKER_CLASS = 'uvicorn.workers.UvicornWorker'
+GUNICORN_WORKERS = int(os.getenv('GUNICORN_WORKERS'))
+GUNICORN_TIMEOUT = int(os.getenv('GUNICORN_TIMEOUT'))
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
