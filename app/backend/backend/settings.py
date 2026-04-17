@@ -83,6 +83,9 @@ CORS_ALLOW_METHODS = (
     "PUT",
 )
 
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+
 # В продакшене True. Для локалки False.
 SESSION_COOKIE_SECURE = False 
 CSRF_COOKIE_SECURE = False
@@ -98,12 +101,10 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.BasePermission',
         'rest_framework.permissions.IsAuthenticated',
-        'rest_framework.permissions.AllowAny',
-        'rest_framework.permissions.IsAdminUser',
     ],
     'DEFAULT_PAGINATION_CLASS': 'core.pagination.StandardResultsSetPagination',
+    'TEST_REQUEST_DEFAULT_FORMAT': 'json',
     'PAGE_SIZE': 20
 }
 
@@ -164,12 +165,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# для теста.
-# потом на radis перейдём
+# Кэширование (Redis) 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', '6379')}/0",
+        'TIMEOUT': 300,
     }
 }
 
@@ -186,6 +187,22 @@ STORAGES = {
     },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs/django.log',
+        },
+    },
+    'root': {
+        'handlers': ['file'],
+        "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
     },
 }
 

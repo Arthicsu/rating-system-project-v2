@@ -1,7 +1,7 @@
 // frontend/app/layout.tsx
 import '@/styles/normalize.css';
 // import '../styles/style.css';
-import '@/globals.css';
+import '@/app/globals.css';
 import '@/styles/fontawesome-free-7.2.0-web/css/all.min.css';
 import Header from '@/components/Header.jsx';
 import { AuthProvider } from '@/context/AuthContext';
