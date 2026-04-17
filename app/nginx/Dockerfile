@@ -6,7 +6,7 @@ RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY conf.d /etc/nginx/conf.d/
 
-RUN mkdir -p /app/staticfiles
+RUN mkdir -p /app/staticfiles /var/cache/nginx
 
 EXPOSE 80
 

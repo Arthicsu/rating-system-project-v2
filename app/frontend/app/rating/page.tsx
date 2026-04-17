@@ -345,7 +345,7 @@ export default function RatingPage() {
               />
               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] sm:text-xs text-slate-600">
-                  Таблица рейтинга обновляется 1 раз каждые 15 минут
+                  Таблица рейтинга обновляется 1 раз каждые 5 минут
                 </p>
               </div>
               </Skeleton>

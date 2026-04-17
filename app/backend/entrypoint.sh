@@ -35,8 +35,10 @@ check_vars
 create_bucket
 
 
-echo "Running migrations..."
-python manage.py migrate
+if [ "${HAS_DUMP}" = "false" ]; then
+    echo "Running migrations..."
+    python manage.py migrate
+fi
 
 # Для Nginx
 echo "Collecting static files..."

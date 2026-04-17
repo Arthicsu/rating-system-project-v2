@@ -62,12 +62,16 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:80",
     "http://localhost:3000",
+    "http://127.0.0.1:80",
     "http://127.0.0.1:3000",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:80",
     "http://localhost:3000",
+    "http://127.0.0.1:80",
     "http://127.0.0.1:3000",
 ]
 EXTERNAL_SITE_URL = os.getenv('CLIENT_URL', 'http://localhost:3000')
@@ -226,6 +230,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = 'media/'
 CONFIG_FILE_ROOT = os.path.join(BASE_DIR, 'config-files')
 
 AUTH_USER_MODEL = 'users.User'

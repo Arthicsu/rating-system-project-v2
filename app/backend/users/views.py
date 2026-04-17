@@ -215,7 +215,7 @@ class CategoryAchievementAPIView(ListAPIView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-@method_decorator(cache_page(60 * 15), name='dispatch')
+@method_decorator(cache_page(60 * 5), name='dispatch')
 @method_decorator(vary_on_headers('Cookie'), name='dispatch')
 class RatingListAPIView(StudentRatingQuerySetMixin, ListAPIView):
     permission_classes = [IsAuthenticated]
