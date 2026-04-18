@@ -35,12 +35,23 @@ class User(AbstractUser):
 
     def get_full_username(self):
         """
-        Возвращает полное имя (пока применяем для студента) для отображения на клиенте:
+        Возвращает полное имя пользователя (применяем для студента) для отображения на клиенте:
         """
         full_name = f"{self.last_name} {self.first_name}"
         if self.patronymic:
             full_name += f" {self.patronymic}"
         return full_name.strip()
+
+    def get_user_short_name(self):
+        """
+        Возвращает сокращённое имя пользователя (Фамилия И.О.) для отображения на клиенте.
+        """
+        initials = ""
+        if self.first_name:
+            initials += self.first_name[0].upper() + "."
+        if self.patronymic:
+            initials += self.patronymic[0].upper() + "."
+        return f"{self.last_name} {initials}".strip()
 
     def get_user_display_name(self):
         """

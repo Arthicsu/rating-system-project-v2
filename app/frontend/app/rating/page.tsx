@@ -4,21 +4,9 @@ import api from '@/lib/axios';
 import { useMySession } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import Pagination from '@/components/Pagination';
-import ExportExcelButton from '@/components/ExportExcelButton';
 import type { FilterOptions, Tab } from '@/interfaces/RatingInterfaces'
 import type Student from '@/interfaces/StudentInterfaces';
 import { Skeleton } from 'boneyard-js/react';
-
-function getShortName(fullName: string) {
-  const parts = fullName.trim().split(/\s+/);
-  if (parts.length <= 1) return fullName;
-  const [lastName, ...rest] = parts;
-  const initials = rest
-    .filter(Boolean)
-    .map((p) => (p[0] || '').toUpperCase() + '.')
-    .join('');
-  return `${lastName} ${initials}`;
-}
 
 export default function RatingPage() {
   const { user } = useMySession();
@@ -222,7 +210,7 @@ export default function RatingPage() {
                   >
                     <option value="all">Все</option>
                     {availableGroups.map(g => (
-                      <option key={g.id} value={g.id}>{g.name} ({g.academic_year})</option>
+                      <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
                   </select>
                 </div>
@@ -304,7 +292,7 @@ export default function RatingPage() {
                         >
                           <option value="all">Все</option>
                           {availableGroups.map(g => (
-                            <option key={g.id} value={g.id}>{g.name} ({g.academic_year})</option>
+                            <option key={g.id} value={g.id}>{g.name}</option>
                           ))}
                         </select>
                       </div>
@@ -321,7 +309,7 @@ export default function RatingPage() {
                       </td>
                       <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-[#333]">
                         <span className="inline md:hidden">
-                          {getShortName(student.full_name)}
+                          {student.short_name}
                         </span>
                         <span className="hidden md:inline">{student.full_name}</span>
                       </td>

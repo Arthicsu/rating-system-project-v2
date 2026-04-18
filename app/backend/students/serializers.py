@@ -89,6 +89,7 @@ class StudentRatingSerializer(serializers.ModelSerializer):
     faculty = serializers.CharField(source='faculty.short_name', read_only=True, default="—")
     faculty_id = serializers.IntegerField(source='faculty.id', read_only=True, default=0)
     total_score = serializers.ReadOnlyField()
+    short_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
@@ -96,6 +97,7 @@ class StudentRatingSerializer(serializers.ModelSerializer):
             'id',
             'user_id', 
             'full_name', 
+            'short_name',
             'group', 
             'group_id', 
             'course', 
@@ -108,6 +110,11 @@ class StudentRatingSerializer(serializers.ModelSerializer):
             'social_score', 
             'cultural_score',
         ]
+
+    def get_short_name(self, obj):
+        if obj.user:
+            return obj.user.get_user_short_name()
+        return obj.full_name
 
 class DocumentFileSerializer(serializers.ModelSerializer):
     class Meta:
