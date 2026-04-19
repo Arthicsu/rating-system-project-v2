@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.db.models import F, GeneratedField, IntegerField
@@ -59,6 +59,7 @@ class Student(models.Model):
         verbose_name_plural = "Профили студентов"
         indexes = [
             models.Index(fields=['-total_score']),
+            models.Index(fields=['group', 'faculty']),
         ]
 
     def __str__(self):
@@ -160,10 +161,13 @@ class ScoringRule(models.Model):
         """
         Метакласс для настройки поведения модели.
 
-        Задаёт человекочитаемые названия и порядок сортировки записей.
+        Задаёт человекочитаемые названия �� по��ядок сортировки записей.
         """
         verbose_name = "Правило счёта"
         verbose_name_plural = "Правила счёта"
+        indexes = [
+            models.Index(fields=['achievement_type', 'level', 'result']),
+        ]
 
 class Document(models.Model):
     """
@@ -238,6 +242,7 @@ class Document(models.Model):
         indexes = [
             models.Index(fields=['status', 'user']),
             models.Index(fields=['-uploaded_at']),
+            models.Index(fields=['date_received', 'status']),
         ]
 
 def achievement_directory_path(instance, filename):

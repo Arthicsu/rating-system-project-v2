@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from django.conf import settings
 
 class Faculty(models.Model):
@@ -72,6 +72,10 @@ class Group(models.Model):
     class Meta:
         verbose_name = "Группа"
         verbose_name_plural = "Группы"
+        indexes = [
+            models.Index(fields=['course', 'name']),
+            models.Index(fields=['academic_year']),
+        ]
 
 class Staff(models.Model):
     """
@@ -89,6 +93,9 @@ class Staff(models.Model):
     class Meta:
         verbose_name = "Сотрудник"
         verbose_name_plural = "Сотрудники"
+        indexes = [
+            models.Index(fields=['department', 'faculty']),
+        ]
 
 class RejectionReason(models.Model):
     text = models.CharField("Текст причины", max_length=255, unique=True)
@@ -114,3 +121,7 @@ class AcademicYear(models.Model):
         verbose_name = "Учебный период"
         verbose_name_plural = "Учебные периоды"
         ordering = ['-start_date']
+        indexes = [
+            models.Index(fields=['start_date', 'end_date']),
+            models.Index(fields=['is_current']),
+        ]

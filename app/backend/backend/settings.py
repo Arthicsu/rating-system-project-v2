@@ -176,7 +176,7 @@ CACHES = {
         'LOCATION': f"redis://{os.getenv('REDIS_HOST')}:{os.getenv('REDIS_PORT')}/0",
         'OPTIONS': {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": f"{os.getenv('REDIS_USER_PASSWORD')}"
+            # "PASSWORD": f"{os.getenv('REDIS_USER_PASSWORD')}"
         },
         'TIMEOUT': 300,
     }
