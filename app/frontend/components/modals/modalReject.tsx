@@ -1,4 +1,4 @@
-import type { ModalRejectProps, RejectionReason } from '@/interfaces/ModalInterfaces'
+import type { ModalRejectProps } from '@/interfaces/ModalInterfaces'
 
 export default function ModalReject({
   isOpen,

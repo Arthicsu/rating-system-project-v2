@@ -19,7 +19,7 @@ import { useMySession } from '@/context/AuthContext';
 export default function StaffProfilePage() {
   const { user } = useMySession();
   const isRectorate = user?.roles?.includes('Rectorate');
-  const isDean = user?.roles?.includes('Dean');
+  // const isDean = user?.roles?.includes('Dean');
   const { downloadFile } = useDownloadFile();
   const [activeTab, setActiveTab] = useState('my-group');
   const [groupsList, setGroupsList] = useState<Group[]>([]);

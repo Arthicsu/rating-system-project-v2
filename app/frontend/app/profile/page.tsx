@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 import StudentProfile from '@/components/StudentProfile';
-import type Profile from '@/interfaces/ProfileInterfaces';
+import type { Profile } from '@/interfaces/ProfileInterfaces';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {

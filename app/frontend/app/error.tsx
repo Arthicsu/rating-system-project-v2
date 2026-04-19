@@ -7,7 +7,7 @@ type ErrorPageProps = {
   reset: () => void;
 };
 
-export default function ErrorPage({ error, reset }: ErrorPageProps) {
+export default function ErrorPage({ error }: ErrorPageProps) {
   console.error(error);
 
   return (

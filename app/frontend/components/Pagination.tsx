@@ -1,8 +1,7 @@
-import PaginationProps from '@/interfaces/RatingInterfaces'
+import type { PaginationProps } from '@/interfaces/RatingInterfaces'
  
 export default function Pagination({ page, totalCount, pageSize, loading, onPageChange }: PaginationProps) {
-  const totalPages = Math.ceil(totalCount / pageSize);
-  
+  // const totalPages = Math.ceil(totalCount / pageSize);
   return (
     <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4 px-2">
       <div className="text-xs text-slate-500">

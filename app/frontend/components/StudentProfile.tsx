@@ -3,8 +3,8 @@
 import {Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
 import AchievementItem from '@/components/AchievementItem';
-import type StudentProfileProps from '@/interfaces/ProfileInterfaces';
-import type Achievement from '@/interfaces/AchievementInterfaces';
+import type { StudentProfileProps } from '@/interfaces/ProfileInterfaces';
+import type { Achievement } from '@/interfaces/AchievementInterfaces';
 import { Skeleton } from 'boneyard-js/react';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);

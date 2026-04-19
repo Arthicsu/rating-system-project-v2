@@ -1,31 +1,34 @@
 'use client';
 
-import { useState, FormEvent, ChangeEvent } from 'react';
+import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useMySession } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
-import type RegisterFormData from '@/interfaces/RegisterInterfaces';
 import type ApiError from '@/interfaces/GeneralInterfaces';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { registerUser } = useMySession();
 
-  const [formData, setFormData] = useState<RegisterFormData>({
-    lastName: '',
-    firstName: '',
+  const [formData, setFormData] = useState({
+    last_name: '',
+    first_name: '',
     patronymic: '',
     email: '',
-    phone: '',
     password: '',
-    passwordConfirm: '',
   });
+  const [passwordConfirm, setPasswordConfirm] = useState('');
 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (e.target.name === 'passwordConfirm') {
+      setPasswordConfirm(e.target.value);
+    } else {
+      setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -33,7 +36,7 @@ export default function RegisterPage() {
     setError('');
     setIsLoading(true);
 
-    if (formData.password !== formData.passwordConfirm) {
+    if (formData.password !== passwordConfirm) {
       setError('Пароли не совпадают');
       toast.error('Пароли не совпадают');
       setIsLoading(false);
@@ -41,14 +44,7 @@ export default function RegisterPage() {
     }
 
     try {
-      await registerUser({
-        last_name: formData.lastName,
-        first_name: formData.firstName,
-        patronymic: formData.patronymic,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
-      });
+      await registerUser(formData);
 
       toast.success('Регистрация успешна!');
       router.push('/');
@@ -85,8 +81,8 @@ export default function RegisterPage() {
               <input
                 type="text"
                 id="lastName"
-                name="lastName"
-                value={formData.lastName}
+                name="last_name"
+                value={formData.last_name}
                 onChange={handleChange}
                 required
                 className={inputClasses}
@@ -100,8 +96,8 @@ export default function RegisterPage() {
               <input
                 type="text"
                 id="firstName"
-                name="firstName"
-                value={formData.firstName}
+                name="first_name"
+                value={formData.first_name}
                 onChange={handleChange}
                 required
                 className={inputClasses}
@@ -145,8 +141,6 @@ export default function RegisterPage() {
                 type="tel"
                 id="phone"
                 name="phone"
-                value={formData.phone}
-                onChange={handleChange}
                 placeholder="+7(___)___-__-__"
                 className={inputClasses}
               />
@@ -175,7 +169,7 @@ export default function RegisterPage() {
                 type="password"
                 id="passwordConfirm"
                 name="passwordConfirm"
-                value={formData.passwordConfirm}
+                value={passwordConfirm}
                 onChange={handleChange}
                 required
                 className={inputClasses}
@@ -222,9 +216,11 @@ export default function RegisterPage() {
               TECHNOLOGICAL UNIVERSITY <br />
               OF ENGINEERING
             </p>
-            <img
+            <Image
               src="/media/logo_BGITU.png"
               alt="Логотип"
+              width={80}
+              height={64}
               className="h-16 w-auto object-contain md:h-20"
             />
             <p className="text-xs text-center font-medium text-sky-700 md:text-sm md:text-left">

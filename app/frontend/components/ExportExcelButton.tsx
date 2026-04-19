@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
-import type {ExportExcelButtonProps, ApiError} from '@/interfaces/GeneralInterfaces'
+import type {ExportExcelButtonProps} from '@/interfaces/GeneralInterfaces'
 
 
 export default function ExportExcelButton({ filters, category = 'common', page = 1 }: ExportExcelButtonProps) {

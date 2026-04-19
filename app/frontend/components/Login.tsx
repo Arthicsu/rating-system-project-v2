@@ -1,5 +1,6 @@
 // frontend/app/page.tsx
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
   return (
@@ -12,9 +13,11 @@ export default function Home() {
           </p>
 
           <div className="flex items-center gap-4 pb-4 md:gap-6">
-            <img
+            <Image
               src="/media/logo_BGITU.png"
               alt="БГИТУ"
+              width={80}
+              height={80}
               className="h-20 w-auto object-contain md:h-24"
             />
             <p className="text-xs font-semibold text-[#0050CF] md:text-base sm:text-sm">

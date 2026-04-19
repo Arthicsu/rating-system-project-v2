@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import type { ModalApproveProps } from '@/interfaces/ModalInterfaces'
 
 export default function ModalApprove({ isOpen, targetScore, onClose, onConfirm }: ModalApproveProps) {
@@ -38,9 +39,11 @@ export default function ModalApprove({ isOpen, targetScore, onClose, onConfirm }
           </button>
         </div>
         <div className="mt-6 flex justify-center">
-          <img
+          <Image
             src="/media/logo_BGITU.png"
             alt="БГИТУ"
+            width={32}
+            height={32}
             className="h-8 w-auto opacity-80"
           />
         </div>

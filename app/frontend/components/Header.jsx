@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useMySession } from '@/context/AuthContext';
 
 export default function Header() {
@@ -13,9 +14,11 @@ export default function Header() {
           {/* Логотип + хлебные крошки */}
           <div className="flex min-w-0 items-center gap-3 sm:gap-6.5">
             <Link href="/">
-              <img
+              <Image
                 src="/media/logo_BGITU.png"
                 alt="БГИТУ"
+                width={40}
+                height={40}
                 className="h-10 w-auto sm:h-15 sm:w-17.5 object-contain cursor-pointer"
               />
             </Link>
@@ -36,9 +39,11 @@ export default function Header() {
               href="https://it.bgitu.ru/"
               className="items-center border-x border-[rgba(211,215,225,0.6)] px-3 sm:px-5 mr-1 sm:mr-3"
             >
-              <img
+              <Image
                 src="/media/logo_IT.png"
                 alt="IT"
+                width={40}
+                height={40}
                 className="h-8 w-8 sm:h-10 sm:w-10 object-contain"
               />
             </a>

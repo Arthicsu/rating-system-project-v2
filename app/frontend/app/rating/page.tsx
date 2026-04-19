@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import api from '@/lib/axios';
-import { useMySession } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import Pagination from '@/components/Pagination';
 import type { FilterOptions, Tab } from '@/interfaces/RatingInterfaces'
@@ -9,7 +8,6 @@ import type Student from '@/interfaces/StudentInterfaces';
 import { Skeleton } from 'boneyard-js/react';
 
 export default function RatingPage() {
-  const { user } = useMySession();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({ faculties: [], courses: [], groups: [] });

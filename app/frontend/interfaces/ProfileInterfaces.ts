@@ -1,4 +1,4 @@
-interface Profile {
+export interface Profile {
   id?: number;
   full_name: string;
   record_book: string | null;
@@ -30,8 +30,8 @@ interface Profile {
   }>;
 }
 
-export default interface StudentProfileProps {
-  profile?: Profile;
+export interface StudentProfileProps {
+  profile: Profile;
   isOwner: boolean;
   loading?: boolean;
 }

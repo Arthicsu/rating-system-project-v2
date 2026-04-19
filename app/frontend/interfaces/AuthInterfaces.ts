@@ -1,0 +1,32 @@
+export interface AuthUser {
+  user_id: number;
+  username: string;
+  record_book: string | null;
+  isAuthenticated: boolean;
+  isStaff: boolean;
+  full_name: string;
+  roles: string[];
+  pending_docs_count: number;
+}
+
+export interface AuthContextValue {
+  user: AuthUser | null;
+  setUser: (user: AuthUser | null) => void;
+  registerUser: (formData: RegisterFormData) => Promise<AuthUser>;
+  loginUser: (formData: LoginFormData) => Promise<AuthUser>;
+  logoutUser: () => Promise<void>;
+  loading: boolean;
+}
+
+export interface LoginFormData {
+  username: string;
+  password: string;
+}
+
+export interface RegisterFormData {
+  last_name: string;
+  first_name: string;
+  patronymic?: string;
+  email: string;
+  password: string;
+}

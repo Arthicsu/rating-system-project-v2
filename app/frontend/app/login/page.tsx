@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
+import { useState, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useMySession } from '@/context/AuthContext';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -29,7 +30,7 @@ export default function LoginPage() {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -49,8 +50,6 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
-
-  const inputClasses = "h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700";
 
   return (
     <section className="min-h-screen bg-[#EDEFF3] px-4 pt-35 pb-10">
@@ -130,9 +129,11 @@ export default function LoginPage() {
               TECHNOLOGICAL UNIVERSITY <br />
               OF ENGINEERING
             </p>
-            <img
+            <Image
               src="/media/logo_BGITU.png"
               alt="Логотип БГИТУ"
+              width={80}
+              height={64}
               className="h-16 w-auto object-contain md:h-20"
             />
             <p className="text-xs content-center font-medium text-[#0050CF] md:text-sm md:text-left md:self-stretch">

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 import StudentProfile from '@/components/StudentProfile';
-import type Profile from '@/interfaces/ProfileInterfaces';
+import type { Profile } from '@/interfaces/ProfileInterfaces';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -18,7 +18,7 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       try {
         const res = await api.get(`/student/api/v1/profile/${id}/`);
-        const profileData: Profile = res.data;
+        const profileData = res.data as Profile;
         
         if (profileData.type === 'staff') {
           router.push('/staff-profile');

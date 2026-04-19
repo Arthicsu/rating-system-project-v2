@@ -1,5 +1,5 @@
 import { useDownloadFile } from '@/hooks/useDownloadFile';
-import type AchievementItemProps from '@/interfaces/AchievementInterfaces';
+import type { AchievementItemProps } from '@/interfaces/AchievementInterfaces';
 import { Skeleton } from 'boneyard-js/react';
 
 export default function AchievementItem({ doc, loading = false }: AchievementItemProps) {

@@ -3,7 +3,7 @@ from . import views
 
 app_name = 'university_structure'
 
-urlpatterns = [
+urlpatterns: list = [
     path('api/v1/staff-profile/', views.StaffProfileAPIView.as_view(), name='api_staff_profile'),
     
     path('api/v1/document/<int:doc_id>/review/', views.ReviewDocumentAPIView.as_view(), name='api_doc_review'),
