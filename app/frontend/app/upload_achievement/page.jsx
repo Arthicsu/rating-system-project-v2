@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useMySession } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import { Skeleton } from 'boneyard-js/react';
@@ -15,9 +16,8 @@ export default function UploadAchievement() {
   const [levelsList, setLevelsList] = useState([]);
   const [resultsList, setResultsList] = useState([]);
   const [docTypesList, setDocTypesList] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [, setConfigLoaded] = useState(false);
 
-  const [recordBook, setRecordBook] = useState(user?.record_book || '');
   const [achievementName, setAchievementName] = useState('');
   const [files, setFiles] = useState([]);
   const [category, setCategory] = useState(null);
@@ -32,12 +32,6 @@ export default function UploadAchievement() {
   const [showLevel, setShowLevel] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [showDocType, setShowDocType] = useState(false);
-    
-  useEffect(() => {
-    if (user?.record_book) {
-      setRecordBook(user.record_book);
-    }
-  }, [user]);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -48,7 +42,7 @@ export default function UploadAchievement() {
         setLevelsList(levels);
         setResultsList(results);
         setDocTypesList(doc_types);
-        setLoading(false);
+        setConfigLoaded(true);
       } catch (error) {
         toast.error("Ошибка: " + error);
       }
@@ -116,13 +110,13 @@ export default function UploadAchievement() {
   };
 
 const handleSubmit = async () => {
-    if (!recordBook || !category || !subType || !achievementName || !docType || !dateReceived) {
-      toast.error("Пожалуйста, заполните все обязательные поля (категория, вид, тип документа, название, дата получения).");
+    if (!user?.record_book || !category || !subType || !achievementName || !docType || !dateReceived) {
+      toast.error("Пожалуйста, заполните все обязательные поля (категория, вид, тип документа, название, дата получения) и прикрепите файл(-ы) подтверждения достижения.");
       return;
     }
 
     const formData = new FormData();
-    formData.append('record_book', recordBook);
+    formData.append('record_book', user.record_book);
     formData.append('category', category);
     formData.append('sub_type', subType.code);
     formData.append('achievement', achievementName);
@@ -182,7 +176,7 @@ const handleSubmit = async () => {
                 <input
                   className="w-full rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
                   type="text"
-                  value={recordBook}
+                  value={user?.record_book || ''}
                   readOnly
                 />
               </div>
@@ -461,7 +455,7 @@ const handleSubmit = async () => {
               {/* Файлы */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-medium text-slate-500">
-                  *Файлы (необязательно)
+                  *Файлы
                 </label>
                 <p className="text-[11px] text-slate-400">
                   Максимальный размер файла: 20 МБ, максимум 3 файла
@@ -524,9 +518,11 @@ const handleSubmit = async () => {
 
                 <div className="flex justify-center">
                   <div className="flex h-32 w-32 items-center justify-center rounded-2xl bg-slate-50 border border-slate-200">
-                    <img
+                    <Image
                       src="/media/frame.png"
                       alt="QR"
+                      width={112}
+                      height={112}
                       className="h-28 w-28 object-contain"
                     />
                   </div>

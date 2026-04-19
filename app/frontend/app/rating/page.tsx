@@ -218,7 +218,7 @@ export default function RatingPage() {
 
           <div className="rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
             <div className="w-full overflow-x-auto">
-              <Skeleton name="rating-table" loading={false}>
+              <Skeleton name="rating-table" loading={loading}>
                 <table className="min-w-full border-collapse">
                   <thead>
                     <tr className="bg-slate-500 text-white">
@@ -297,7 +297,7 @@ export default function RatingPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className={loading ? 'opacity-50 transition-opacity' : ''}>
+                <tbody>
                   {students.map((student, index) => (
                     <tr key={student.user_id} className="border-b border-[#f0f0f0] text-xs sm:text-xs md:text-sm last:border-b-0 hover:bg-slate-50">
                       <td className="p-1 sm:p-2 md:px-4  md:py-3 text-center align-middle">

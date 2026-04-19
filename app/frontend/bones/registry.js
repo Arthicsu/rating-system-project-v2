@@ -3,9 +3,7 @@
 import { registerBones } from 'boneyard-js'
 
 import _rating_table from './rating-table.bones.json'
-import _staff_students_table from './staff-students-table.bones.json'
 
 registerBones({
   "rating-table": _rating_table,
-  "staff-students-table": _staff_students_table,
 })
