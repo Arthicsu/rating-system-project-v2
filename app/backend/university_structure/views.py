@@ -70,7 +70,7 @@ class StaffProfileAPIView(ScopePermissionMixin, GenericAPIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
 class RatingExportAPIView(StudentRatingQuerySetMixin, GenericAPIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     pagination_class = None
 
@@ -277,6 +277,7 @@ class FilteredDashboardStatsAPIView(StudentWithAccessMixin, GenericAPIView):
     """
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
+    serializer_class = PendingDocumentSerializer;
 
     def get(self, request, *args, **kwargs):
         user = request.user

@@ -40,6 +40,7 @@ export interface Document {
   record_book: string;
   achievement: string;
   category_display: string;
+  doc_type_display: string;
   sub_type_display: string;
   level_display: string | null;
   result_display: string | null;

@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import api from '@/lib/axios';
-import { useRouter } from 'next/navigation';
+import { redirect } from "next/navigation";
+
 import type { AuthUser, AuthContextValue, LoginFormData, RegisterFormData } from '@/interfaces/AuthInterfaces';
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -10,7 +11,6 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     api.get('/user/api/v1/check-auth/')
@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logoutUser = async () => {
     await api.post('/user/api/v1/logout/');
     setUser(null);
-    router.push('/login');
+    redirect('/login');
   };
 
   return (

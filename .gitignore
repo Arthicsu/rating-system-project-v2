@@ -42,5 +42,9 @@ staticfiles/admin/
 staticfiles/images/
 staticfiles/rest_framework/
 config-files/import_passwords/
-dump_dev.sql
+dump*.sql
+dumps/*
 docs/*
+logs/*
+app/backend/config-files/*
+app/backend/logs/*

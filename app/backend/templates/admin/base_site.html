@@ -12,10 +12,21 @@
 
 {% block usertools %}
 {{ block.super }}
-<div class="user-tools">
-    <a href="{{ EXTERNAL_SITE_URL }}" target="_blank">Клиент</a>
-    <span class="separator">|</span>
-    <a href="{{ API_SCHEMA_URL }}" target="_blank">API Docs</a>
+<div class="user-tools" style="display: flex; list-style: inside;">
+  <ul role="list">
+    <li>
+      <a href="{{ EXTERNAL_SITE_URL }}" target="_blank">Клиент</a>
+    </li>
+    <li>
+      <a href="{{ API_SCHEMA_URL }}/api/schema/swagger-ui/" target="_blank">Swagger-ui API Docs</a>
+    </li>
+    <li>
+      <a href="{{ API_SCHEMA_URL }}/api/schema/redoc/" target="_blank">Landing API Docs</a>
+    </li>
+    <li>
+      <a href="{{ API_SCHEMA_URL }}/api/schema/" target="_blank">Скачать схему API</a>
+    </li>
+  </ul>
 </div>
 {% endblock %}
 
