@@ -5,11 +5,11 @@ import toast from 'react-hot-toast';
 import Pagination from '@/components/Pagination';
 import type { FilterOptions, Tab } from '@/interfaces/RatingInterfaces'
 import type Student from '@/interfaces/StudentInterfaces';
-import { Skeleton } from 'boneyard-js/react';
+// import { Skeleton } from 'boneyard-js/react';
 
 export default function RatingPage() {
   const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({ faculties: [], courses: [], groups: [] });
   
   const [selectedFaculty, setSelectedFaculty] = useState('all');
@@ -218,7 +218,7 @@ export default function RatingPage() {
 
           <div className="rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
             <div className="w-full overflow-x-auto">
-              <Skeleton name="rating-table" loading={loading}>
+              {/* <Skeleton name="rating-table" loading={false}> */}
                 <table className="min-w-full border-collapse">
                   <thead>
                     <tr className="bg-slate-500 text-white">
@@ -334,7 +334,7 @@ export default function RatingPage() {
                   Таблица рейтинга обновляется 1 раз каждые 5 минут
                 </p>
               </div>
-              </Skeleton>
+              {/* </Skeleton> */}
               {/* {user?.isStaff && (
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[11px] sm:text-xs text-slate-600">

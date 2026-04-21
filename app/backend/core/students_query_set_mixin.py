@@ -92,10 +92,8 @@ class StudentRatingQuerySetMixin(StudentFilterMixin):
     def get_base_rating_queryset(self):
         category = self.request.query_params.get('category', 'common')
         
-        # Берем данные
-        queryset = Student.objects.select_related('group', 'faculty').order_by('user__last_name', 'user__first_name')
+        queryset = Student.objects.select_related('group', 'faculty')
         
-        # Сначала фильтруем, потом сортируем по категории
         queryset = self.apply_filters(queryset)
         return queryset.by_category(category)
 

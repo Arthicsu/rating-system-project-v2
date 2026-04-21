@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, ChangeEvent, SubmitEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useMySession } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import type ApiError from '@/interfaces/GeneralInterfaces';
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { registerUser } = useMySession();
-
+  const router = useRouter();
   const [formData, setFormData] = useState({
     last_name: '',
     first_name: '',
@@ -31,7 +31,7 @@ export default function RegisterPage() {
     }
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: SubmitEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -202,12 +202,12 @@ export default function RegisterPage() {
         <div className="flex w-full flex-col items-center justify-between gap-4 text-center">
           <p className="text-sm text-slate-700 md:text-base">
             Если у Вас возникли технические сложности, свяжитесь с нами по email:{' '}
-            <a
+            <Link
               href="mailto:mail@bgitu.ru"
               className="font-semibold text-sky-700 underline underline-offset-2 hover:text-sky-900"
             >
               mail@bgitu.ru
-            </a>
+            </Link>
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-4 rounded-2xl bg-white/80 px-4 py-4 shadow-sm">

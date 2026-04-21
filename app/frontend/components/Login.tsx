@@ -39,12 +39,12 @@ export default function Home() {
           </p>
           <p className="text-xs text-[#333] md:text-base sm:text-sm">
             email:{' '}
-            <a
+            <Link
               className="text-[#0050CF] underline underline-offset-2 hover:text-[#002D6E]"
               href="mailto:mail@bgitu.ru"
             >
               mail@bgitu.ru
-            </a>
+            </Link>
           </p>
         </div>
 

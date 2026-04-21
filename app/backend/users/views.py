@@ -164,7 +164,7 @@ class LoginAPIView(GenericAPIView):
             return Response({"message": "Неверный логин или пароль"}, status=status.HTTP_401_UNAUTHORIZED)
         
 class CheckAuthAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     authentication_classes = [SessionAuthentication]
     def get(self, request):
         if request.user.is_authenticated:

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import api from '@/lib/axios';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { useMySession } from '@/context/AuthContext';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useMySession } from '@/context/AuthContext';
 import { Skeleton } from 'boneyard-js/react';
+import { useRouter } from 'next/navigation';
 
 export default function UploadAchievement() {
   const router = useRouter();
@@ -507,13 +508,13 @@ const handleSubmit = async () => {
                     Актуальную разбалловку Вы можете узнать, перейдя по ссылке
                     или отсканировав QR-код:
                   </p>
-                  <a
+                  <Link
                     href="https://clck.ru/3RRp3V"
                     target="_blank"
                     className="mt-2 inline-flex items-center text-sm font-medium text-sky-700 hover:text-sky-900"
                   >
                     clck.ru/3RRp3V
-                  </a>
+                  </Link>
                 </div>
 
                 <div className="flex justify-center">

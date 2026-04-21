@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, ChangeEvent, SubmitEvent, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useMySession } from '@/context/AuthContext';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+
+import { useMySession } from '@/context/AuthContext';
 import type LoginFormData from '@/interfaces/LoginInterfaces';
 import type ApiError from '@/interfaces/GeneralInterfaces';
 
+
 export default function LoginPage() {
-  const router = useRouter();
   const { loginUser, user } = useMySession();
+  const router = useRouter();
+  
   const [formData, setFormData] = useState<LoginFormData>({
     username: '',
     password: '',
@@ -38,8 +41,10 @@ export default function LoginPage() {
       await loginUser(formData);
       router.push('/');
     } catch (err) {
-      const error = err as ApiError;
-      const errorData = error.response?.data;
+      const error = err as Error | ApiError;
+      if ('message' in error && error.message === 'NEXT_REDIRECT') return;
+      
+      const errorData = (error as ApiError).response?.data;
       
       if (errorData?.message) {
         toast.error(String(errorData.message));
@@ -115,12 +120,12 @@ export default function LoginPage() {
         <div className="flex w-full flex-col items-center justify-between gap-4 text-center">
           <p className="text-sm text-black md:text-base">
             Если у Вас возникли технические сложности, свяжитесь с нами по email:{' '}
-            <a
+            <Link
               href="mailto:mail@bgitu.ru"
               className="font-semibold text-[#0050CF] underline underline-offset-2 hover:text-[#002D6E]"
             >
               mail@bgitu.ru
-            </a>
+            </Link>
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-4 rounded-2xl bg-white/80 px-4 py-4 shadow-sm">

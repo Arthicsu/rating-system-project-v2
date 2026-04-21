@@ -35,7 +35,7 @@ export default function Header() {
 
           {/* Правая часть: IT-логотип + пользователь/кнопки */}
           <div className="flex flex-1 items-center justify-end gap-3 sm:gap-6 min-w-0">
-            <a
+            <Link
               href="https://it.bgitu.ru/"
               className="items-center border-x border-[rgba(211,215,225,0.6)] px-3 sm:px-5 mr-1 sm:mr-3"
             >
@@ -46,7 +46,7 @@ export default function Header() {
                 height={40}
                 className="h-8 w-8 sm:h-10 sm:w-10 object-contain"
               />
-            </a>
+            </Link>
 
             <div className="flex items-center gap-3 text-xs sm:text-[14px] leading-[1.43] text-[#6a7a98]">
               {user ? (

@@ -1,6 +1,7 @@
 'use client';
 
 import {Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, } from 'chart.js';
+import Link from 'next/link';
 import { Radar } from 'react-chartjs-2';
 import AchievementItem from '@/components/AchievementItem';
 import type { StudentProfileProps } from '@/interfaces/ProfileInterfaces';
@@ -219,12 +220,12 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
           {isOwner && (
             <div className="mt-6 flex justify-center ">
               <button className='bg-emerald-600 rounded-full hover:bg-emerald-700 transition shadow-emerald-300 shadow-lg'>
-                <a
+                <Link
                 href="/upload_achievement"
                 className="inline-flex items-center rounded-full justify-center px-5 py-2.5 text-sm font-semibold text-white "
-              >
+                >
                 Загрузить новое достижение
-              </a>
+              </Link>
               </button>
             </div>
           )}

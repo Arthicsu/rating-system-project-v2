@@ -1,17 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import StudentProfile from '@/components/StudentProfile';
-import type { Profile } from '@/interfaces/ProfileInterfaces';
 import { useRouter } from 'next/navigation';
 
+import StudentProfile from '@/components/StudentProfile';
+import type { Profile } from '@/interfaces/ProfileInterfaces';
+
 export default function ProfilePage() {
-  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
+  const router = useRouter();
+  
   useEffect(() => {
     const fetchProfile = async () => {
       try {

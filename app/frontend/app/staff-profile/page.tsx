@@ -1,20 +1,21 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
 import api from '@/lib/axios';
-import { useDownloadFile } from '@/hooks/useDownloadFile';
+import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
 import { Skeleton } from 'boneyard-js/react';
-import '@/bones/registry'
 
+import { useMySession } from '@/context/AuthContext';
+import { useDownloadFile } from '@/hooks/useDownloadFile';
 import Pagination from '@/components/Pagination';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import ModalApprove from '@/components/modals/modalApprove';
 import ModalReject from '@/components/modals/modalReject';
+import ModalPreview from '@/components/modals/modalPreview';
 
 import type { RejectionReason, Semester, Category, Group, Document, Faculty } from '@/interfaces/StaffInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
-import { useMySession } from '@/context/AuthContext';
 
 export default function StaffProfilePage() {
   const { user } = useMySession();
@@ -40,6 +41,8 @@ export default function StaffProfilePage() {
     targetStudentId: null,
   });
 
+  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+
   const [selectedGroupId, setSelectedGroupId] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [loadTrigger, setLoadTrigger] = useState(0);
@@ -64,6 +67,7 @@ export default function StaffProfilePage() {
   const [selectedFacultyId, setSelectedFacultyId] = useState('all');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const pageSize = 20;
+  const requestsPageSize = 6;
 
   const openModal = (type: string, doc: Document) => setModalState({ 
       type, 
@@ -171,7 +175,7 @@ export default function StaffProfilePage() {
         statsParams.append('group_id', selectedGroupId);
         statsParams.append('academic_year', String(selectedSemesterId));
         statsParams.append('page', String(requestsPage));
-        statsParams.append('page_size', String(pageSize));
+        statsParams.append('page_size', String(requestsPageSize));
         const [studentsRes, statsRes] = await Promise.all([
           api.get('/university/api/v1/filtered-students/', { params } ),
           api.get('/university/api/v1/filtered-dashboard-stats/', { params: statsParams })
@@ -375,7 +379,7 @@ export default function StaffProfilePage() {
                   >
                     <option value="all">Все</option>
                     {groupsList.map(g => (
-                      <option key={g.id} value={String(g.id)}>{g.name} ({g.academic_year})</option>
+                      <option key={g.id} value={String(g.id)}>{g.name}</option>
                     ))}
                   </select>
                 </div>
@@ -454,7 +458,7 @@ export default function StaffProfilePage() {
                   )}
                   {groupsList.map((g) => (
                     <option key={g.id} value={String(g.id)}>
-                      {g.name} ({g.academic_year})
+                      {g.name}
                     </option>
                   ))}
                   {groupsList.length === 0 && <option value="all">Нет групп</option>}
@@ -494,7 +498,7 @@ export default function StaffProfilePage() {
                   : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'
               }`}
             >
-              Моя группа
+              Группа
             </button>
             <button
               type="button"
@@ -506,9 +510,9 @@ export default function StaffProfilePage() {
               }`}
             >
               Заявки на подтверждение
-              {filteredDocs.length > 0 && (
+              {totalRequests > 0 && (
                 <span className="ml-1 inline-flex min-w-6 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-semibold leading-tight text-white">
-                  {filteredDocs.length}
+                  {totalRequests}
                 </span>
               )}
             </button>
@@ -593,12 +597,12 @@ export default function StaffProfilePage() {
                                 {student.total_score}
                               </td>
                               <td className="px-4 py-2.5 text-right">
-                                <a
+                                <Link
                                   href={`/profile/${student.id}`}
                                   className="text-xs font-medium text-gray-700 underline-offset-2 hover:text-sky-900 hover:underline sm:text-sm"
                                 >
                                   Профиль
-                                </a>
+                                </Link>
                             </td>
                           </tr>
                         ))
@@ -647,93 +651,68 @@ export default function StaffProfilePage() {
               </div>
 
               {filteredDocs.length > 0 ? (
-                <div className="grid gap-4 items-start xl:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredDocs.map((doc) => (
                     <div
                       key={doc.id}
-                      className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-[0_4px_12px_rgba(15,23,42,0.08)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)] transition-shadow"
+                      className="flex flex-col rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-[0_4px_12px_rgba(15,23,42,0.08)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)] transition-shadow"
                     >
-                      <div className="mb-2 sm:mb-3 flex flex-col gap-2 xs:flex-row xs:items-start xs:justify-between">
-                        <div>
-                          <p className="text-xs font-semibold text-slate-900 sm:text-sm">
-                            {doc.student_name}
-                          </p>
-                          <p className="text-[10px] text-slate-500 sm:text-xs">{doc.record_book}</p>
-                        </div>
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 sm:text-xs sm:px-2.5 sm:py-1">
-                            +{doc.score}
-                          </span>
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 sm:text-xs sm:px-2.5 sm:py-1">
-                            {doc.category_display}
-                          </span>
+                      <div className="flex-1 mb-2 flex flex-col gap-1.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <Link
+                              href={`/profile/${doc.student_id}`}
+                              className="text-xs font-semibold text-sky-700 hover:text-sky-900 hover:underline sm:text-sm line-clamp-1"
+                            >
+                              {doc.student_name}
+                            </Link>
+                            <p className="text-[10px] text-slate-500 sm:text-xs">{doc.record_book}</p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs sm:text-xs font-small text-amber-700">
+                              {doc.category_display}
+                            </span>
+                            <span className="rounded-full bg-emerald-100 px-2 py-0.25 text-[10px] font-semibold text-emerald-700 sm:text-xs">
+                              +{doc.score}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="mb-2 sm:mb-3">
-                        <p className="text-xs text-slate-800 sm:text-sm">{doc.achievement}</p>
-                        <div className="mt-1 sm:mt-1.5 flex flex-wrap items-center gap-1 sm:gap-1.5">
-                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 sm:text-[11px] sm:px-2">
-                            {doc.sub_type_display}
-                          </span>
-                          {doc.level_display && doc.level_display !== 'None' && (
-                            <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700 sm:text-[11px] sm:px-2">
-                              {doc.level_display}
-                            </span>
-                          )}
-                          {doc.result_display && doc.result_display !== 'None' && (
-                            <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-700 sm:text-[11px] sm:px-2">
-                              {doc.result_display}
-                            </span>
-                          )}
-                        </div>
+                      <div className="mb-2">
+                        <p className="text-xs text-slate-800 sm:text-sm line-clamp-2">{doc.achievement}</p>
                       </div>
-                      <div className="mb-2 sm:mb-3 flex flex-col gap-1 text-[10px] text-slate-500 sm:text-xs sm:flex-row sm:items-center sm:gap-2">
-                        <span className="inline-flex items-center gap-1">
-                          <i className="fa-regular fa-calendar-check" />
-                          Получения: {new Date(doc.date_received).toLocaleDateString('ru-RU')}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <i className="fa-regular fa-calendar" />
-                          Загрузки: {new Date(doc.uploaded_at).toLocaleDateString('ru-RU')}
-                        </span>
-                      </div>
-                      <div className="mb-2 sm:mb-3 flex flex-col gap-1 text-[10px] text-slate-500 sm:text-xs sm:flex-row sm:items-center sm:gap-2">
-                        {doc.files && doc.files.length > 0 ? (
-                          doc.files.map((file, index) => (
-                            <div key={file.id} className="flex items-center gap-2">
-                              <button
-                              onClick={() => downloadFile(file.id, file.original_file_name)}
-                              className="inline-flex items-center gap-1 text-sky-600 hover:text-sky-800"
-                            >
-                              <i className="fa-solid fa-file" />
-                              <span className="truncate max-w-[150px] sm:max-w-[200px]">{file.original_file_name || `Файл ${index + 1}`}</span>
-                            </button>
-                            </div>
-                          ))
-                        ) : (
-                          <span className="text-slate-400">
-                            <i className="fa-solid fa-file-circle-xmark mr-1" />
-                            Нет файла
+
+                      <div className="flex items-center justify-between">
+                        {doc.files && doc.files.length > 0 && (
+                          <span className="text-[10px] text-slate-500 sm:text-xs">
+                            <i className="fa-solid fa-file mr-1" />
+                            Прикреплённых файл(ов): {doc.files.length}
                           </span>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDoc(doc)}
+                          className="ml-auto text-[10px] text-sky-600 hover:text-sky-800 sm:text-xs"
+                        >
+                          Подробнее <i className="fa-solid fa-arrow-right ml-1" />
+                        </button>
                       </div>
 
                       {doc.rejection_reason && (
-                        <div className="mb-2 sm:mb-3 rounded-lg bg-rose-50 p-2 text-[10px] text-rose-700 sm:text-xs sm:p-2.5">
+                        <div className="mb-2 rounded bg-rose-50 p-2 text-[10px] text-rose-700 sm:text-xs">
                           <i className="fa-solid fa-circle-exclamation mr-1" />
                           <span className="font-medium">Причина:</span> {doc.rejection_reason}
                         </div>
                       )}
 
-                      <div className="flex gap-2">
+                      <div className="mt-3 flex gap-2">
                         {(user?.roles?.includes('Department') || !user?.roles?.some(r => ['Rectorate', 'Dean'].includes(r))) && (
                           <button
                             type="button"
                             onClick={() => openModal('approve', doc)}
-                            className="flex-1 rounded-lg bg-emerald-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:text-xs sm:px-3 sm:py-2"
+                            className="flex-1 rounded-lg bg-emerald-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:text-xs"
                           >
-                            <i className="fa-solid fa-check mr-1 sm:mr-1.5" />
                             Одобрить
                           </button>
                         )}
@@ -742,7 +721,6 @@ export default function StaffProfilePage() {
                           onClick={() => openModal('reject', doc)}
                           className="flex-1 rounded-lg bg-rose-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-rose-700 sm:text-xs sm:px-3 sm:py-2"
                         >
-                          <i className="fa-solid fa-xmark mr-1 sm:mr-1.5" />
                           Отклонить
                         </button>
                       </div>
@@ -760,7 +738,7 @@ export default function StaffProfilePage() {
               <Pagination
                 page={requestsPage}
                 totalCount={totalRequests}
-                pageSize={pageSize}
+                pageSize={requestsPageSize}
                 loading={loading}
                 onPageChange={setRequestsPage}
               />
@@ -912,6 +890,13 @@ export default function StaffProfilePage() {
         onToggleReason={toggleReason}
         onClose={closeModal}
         onSubmit={handleReject}
+      />
+
+      <ModalPreview
+        isOpen={!!previewDoc}
+        doc={previewDoc}
+        onClose={() => setPreviewDoc(null)}
+        onDownload={(fileId, fileName) => downloadFile(fileId, fileName)}
       />
     </>
   );

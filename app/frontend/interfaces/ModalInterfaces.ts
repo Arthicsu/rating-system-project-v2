@@ -18,3 +18,28 @@ export interface ModalRejectProps {
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
 }
+
+export interface PreviewDocument {
+  id: number;
+  student_id: number;
+  student_name: string;
+  record_book: string;
+  achievement: string;
+  category_display: string;
+  doc_type_display: string;
+  sub_type_display: string;
+  level_display: string | null;
+  result_display: string | null;
+  date_received: string;
+  uploaded_at: string;
+  score: number;
+  files: Array<{ id: number; original_file_name: string }>;
+  rejection_reason: string | null;
+}
+
+export interface ModalPreviewProps {
+  isOpen: boolean;
+  doc: PreviewDocument | null;
+  onClose: () => void;
+  onDownload: (fileId: number, fileName: string) => void;
+}
