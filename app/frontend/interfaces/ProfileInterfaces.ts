@@ -8,7 +8,7 @@ export interface Profile {
   total_score: number;
   type: string;
   is_own_profile: boolean;
-  isStaff?: boolean;
+  is_staff?: boolean;
   radar_stats: {
     labels: string[];
     data: number[];

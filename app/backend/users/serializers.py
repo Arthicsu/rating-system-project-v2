@@ -1,20 +1,54 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from students.models import Student
+from students.models import Student, Document
 
 User = get_user_model()
 
-class AuthUserResponseSerializer(serializers.Serializer):
-    user_id = serializers.IntegerField()
-    username = serializers.CharField()
-    record_book = serializers.CharField(allow_null=True)
-    isAuthenticated = serializers.BooleanField()
-    isStudent = serializers.BooleanField()
-    isStaff = serializers.BooleanField()
-    full_name = serializers.CharField()
-    roles = serializers.ListField(child=serializers.CharField())
-    pending_docs_count = serializers.IntegerField()
-    message = serializers.CharField(required=False)
+
+class UserResponseSerializer(serializers.ModelSerializer):
+    record_book = serializers.CharField(source='student_profile.record_book', read_only=True, default="—")
+    isAuthenticated = serializers.BooleanField(default=True)
+    full_name = serializers.SerializerMethodField()
+    roles = serializers.SerializerMethodField()
+    pending_docs_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'record_book',
+            'isAuthenticated',
+            'is_staff',
+            'full_name',
+            'roles',
+            'pending_docs_count',
+        ]
+
+    def get_roles(self, obj):
+        return list(obj.groups.values_list('name', flat=True))
+
+    def get_pending_docs_count(self, obj):
+        if not hasattr(obj, 'staff_profile'):
+            return 0
+        staff = obj.staff_profile
+
+        if getattr(obj, 'is_rectorate', False):
+            return Document.objects.filter(status__code='approved').count()
+        elif getattr(obj, 'is_dean', False) and staff.faculty:
+            return Document.objects.filter(
+                user__student_profile__faculty=staff.faculty,
+                status__code='approved'
+            ).count()
+        elif getattr(obj, 'is_dept_staff', False) and staff.department:
+            return Document.objects.filter(
+                user__student_profile__group__specialty__department=staff.department,
+                status__code='pending'
+            ).count()
+        return 0
+
+    def get_full_name(self, obj):
+        return obj.get_user_display_name()
 
 class LoginRequestSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -23,8 +57,6 @@ class LoginRequestSerializer(serializers.Serializer):
 class StudentRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(required=True, write_only=True)
     email = serializers.EmailField(required=True, write_only=True)
-    # group_id = serializers.IntegerField(required=False, allow_null=True)
-    # record_book = serializers.CharField(required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -32,6 +64,7 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'patronymic', 
             'email', 'password',
             ]
+        extra_kwargs = {'password': {'write_only': True}}
 
     def validate_record_book(self, value):
         if Student.objects.filter(record_book=value).exists():
@@ -62,7 +95,7 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
             user=user,
             group=None,
             record_book=None,
-            full_name=f"{user.last_name} {user.first_name} {patronymic}".strip()
+            full_name=user.get_full_name()
         )
         
         return user

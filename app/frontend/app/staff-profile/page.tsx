@@ -22,7 +22,6 @@ export default function StaffProfilePage() {
   const { user } = useMySession();
   const router = useRouter();
   const isRectorate = user?.roles?.includes('Rectorate');
-  const isStaff = user?.roles?.some((r: string) => ['Department', 'Dean', 'Rectorate'].includes(r));
   // const isDean = user?.roles?.includes('Dean');
   const { downloadFile } = useDownloadFile();
   const [activeTab, setActiveTab] = useState('my-group');
@@ -73,10 +72,10 @@ export default function StaffProfilePage() {
   const requestsPageSize = 6;
 
   useEffect(() => {
-    if (user && !isStaff) {
+    if (user && !user.is_staff) {
       router.replace('/profile');
     }
-  }, [user, isStaff, router]);
+  }, [user, router]);
 
   const openModal = (type: string, doc: Document) => setModalState({ 
       type, 

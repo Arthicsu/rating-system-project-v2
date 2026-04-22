@@ -64,7 +64,7 @@ class StaffProfileAPIView(ScopePermissionMixin, GenericAPIView):
         response_data.update({
             "roles": list(staff.user.groups.values_list('name', flat=True)) if staff.user else [],
             "is_own_profile": is_own_profile,
-            "isStaff": staff.user.is_staff if staff.user else False,
+            "is_staff": staff.user.is_staff if staff.user else False,
             "type": "staff"
         })
 
@@ -269,7 +269,9 @@ class FilteredStudentListAPIView(StudentWithAccessMixin, ListAPIView):
 class FilteredDashboardStatsAPIView(StudentWithAccessMixin, GenericAPIView):
     """
     API для получения статистики и списка документов на модерацию.
-    Реагирует ��а GET-параметры фильтрации (faculty, course, group_id).
+    
+    Есть GET-параметры фильтрации (faculty, course, group_id).
+    
     Возвращает агрегированную статистику и документы на основе текущих фильтров.
     """
     permission_classes = [IsStaffProfile]

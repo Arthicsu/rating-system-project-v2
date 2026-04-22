@@ -17,8 +17,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 
 from university_structure.models import Faculty, Group
-from students.models import Document, Student, Category
-from .serializers import StudentRegistrationSerializer, AuthUserResponseSerializer, LoginRequestSerializer
+from students.models import Category
+from .serializers import StudentRegistrationSerializer, LoginRequestSerializer, UserResponseSerializer
 from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
 from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RatingFiltersResponseSerializer
 from core.pagination import StandardResultsSetPagination
@@ -27,46 +27,6 @@ from core.students_query_set_mixin import StudentWithAccessMixin, StudentRatingQ
 User = get_user_model()
 pagination_class = StandardResultsSetPagination
 
-def get_response_data_for_user(user):
-    """
-    Вспомогательная функция для формирования ответа с данными пользователя
-    при логине, регистрации и проверке авторизации.
-    """
-    record_book = None
-    if hasattr(user, 'student_profile'):
-        record_book = user.student_profile.record_book
-
-    roles = list(user.groups.values_list('name', flat=True))
-    pending_docs_count = 0
-
-    if hasattr(user, 'staff_profile'):
-        staff = user.staff_profile
-
-        if getattr(user, 'is_rectorate', False):
-            pending_docs_count = Document.objects.filter(status__code='approved').count()
-            
-        elif getattr(user, 'is_dean', False) and staff.faculty:
-            pending_docs_count = Document.objects.filter(
-                user__student_profile__faculty=staff.faculty,
-                status__code='approved'
-            ).count()
-            
-        elif getattr(user, 'is_dept_staff', False) and staff.department:
-            pending_docs_count = Document.objects.filter(
-                user__student_profile__group__specialty__department=staff.department,
-                status__code='pending'
-            ).count()
-
-    return {
-        "user_id": user.id,
-        "username": getattr(user, 'username', ''),
-        "record_book": record_book,
-        "isAuthenticated": True,
-        "isStaff": user.is_staff,
-        "full_name": user.get_user_display_name(),
-        "roles": roles,
-        "pending_docs_count": pending_docs_count,
-    }
 
 class RegistrationAPIView(CreateAPIView):
     """
@@ -101,27 +61,6 @@ class RegistrationAPIView(CreateAPIView):
                     В теле - сообщение и данные пользователя.
                 - 400 Bad Request: Если данные некорректны. В теле - ошибки валидации.
 
-        Пример успешного ответа:
-            {
-                "user_id": 123,
-                "username": "student1@ya.ru",
-                "record_book": 24-01.01,
-                "isAuthenticated": true,
-                "isStaff": true,
-                "full_name": "Мат",
-                "roles": [
-                    "Student"
-                ],
-                "pending_docs_count": 0,
-                "message": "Регистрация успешна"
-            }
-
-        Пример ошибки:
-            {
-                "username": ["Пользователь с таким логином уже существует."],
-                "record_book": ["Студент с таким номером зачётки уже зарегистрирован."]
-            }
-
         Особенности:
             - Доступ разрешён всем (AllowAny), включая неаутентифицированных пользователей.
             - После регистрации пользователь сразу входит в систему (функция login).
@@ -133,11 +72,11 @@ class RegistrationAPIView(CreateAPIView):
         user = serializer.save()
         login(request, user)
         
-        raw_data = get_response_data_for_user(user)
-        raw_data["message"] = "Регистрация успешна"
+        response_serializer = UserResponseSerializer(user)
+        response_data = response_serializer.data
+        response_data["message"] = "Регистрация успешна"
         
-        response_serializer = AuthUserResponseSerializer(raw_data)
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
 class LoginAPIView(GenericAPIView):
     permission_classes = [AllowAny]
@@ -156,7 +95,8 @@ class LoginAPIView(GenericAPIView):
         if user is not None:
             login(request, user)
             
-            response_data = get_response_data_for_user(user)
+            response_serializer = UserResponseSerializer(user)
+            response_data = response_serializer.data
             response_data["message"] = "Успешный вход"
 
             return Response(response_data, status=status.HTTP_200_OK)
@@ -166,9 +106,11 @@ class LoginAPIView(GenericAPIView):
 class CheckAuthAPIView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = [SessionAuthentication]
+    serializer_class = UserResponseSerializer
+
     def get(self, request):
         if request.user.is_authenticated:
-            response_data = get_response_data_for_user(request.user)    
+            response_data = UserResponseSerializer(request.user).data
             return Response(response_data, status=status.HTTP_200_OK)
         
         return Response({"isAuthenticated": False}, status=status.HTTP_401_UNAUTHORIZED)

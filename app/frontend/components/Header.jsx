@@ -52,12 +52,12 @@ export default function Header() {
               {user ? (
                 <>
                   <Link
-                    href={user.isStaff ? "/staff-profile" : "/profile"}
+                    href={user.is_staff ? "/staff-profile" : "/profile"}
                     className="inline-flex max-w-45 sm:max-w-none items-center gap-1.5 truncate hover:underline"
                   >
                     <span className="truncate">{user.full_name}</span>
                   </Link>
-                  {user.isStaff && Number(user.pending_docs_count) > 0 && (
+                  {user.is_staff && Number(user.pending_docs_count) > 0 && (
                     <span className="ml-1 inline-flex min-w-4.5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-semibold leading-tight text-white">
                       {user.pending_docs_count}
                     </span>

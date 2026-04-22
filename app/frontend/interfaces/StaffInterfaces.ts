@@ -67,7 +67,7 @@ export interface StaffProfile {
   phone: string;
   roles: string[];
   is_own_profile: boolean;
-  isStaff: boolean;
+  is_staff: boolean;
   type: string;
 }
 

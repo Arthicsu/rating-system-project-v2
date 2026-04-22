@@ -23,13 +23,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', '')
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable must be set")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", '').split(",")
-
+if not DEBUG and not ALLOWED_HOSTS[0]:
+    raise ValueError("DJANGO_ALLOWED_HOSTS must be set in production")
 
 # Application definition
 
@@ -89,6 +92,9 @@ CSRF_COOKIE_HTTPONLY = os.getenv('CSRF_COOKIE_HTTPONLY', 'True').lower() == 'tru
 SESSION_COOKIE_HTTPONLY = os.getenv('SESSION_COOKIE_HTTPONLY', 'True').lower() == 'true'
 
 REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
     ),
@@ -122,8 +128,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend.wsgi.application'
 # ASGI_APPLICATION = 'backend.asgi.application'
 # GUNICORN_WORKER_CLASS = 'uvicorn.workers.UvicornWorker'
-GUNICORN_WORKERS = int(os.getenv('GUNICORN_WORKERS'))
-GUNICORN_TIMEOUT = int(os.getenv('GUNICORN_TIMEOUT'))
+GUNICORN_WORKERS = int(os.getenv('GUNICORN_WORKERS', 4))
+GUNICORN_TIMEOUT = int(os.getenv('GUNICORN_TIMEOUT', 120))
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -136,6 +142,13 @@ DATABASES = {
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 60,
+        # 'OPTIONS': {
+        #     'sslmode': os.getenv('SSL_MODE', 'require'),
+        #     'sslcert': os.getenv('SSL_CERT', ''),
+        #     'sslkey': os.getenv('SSL_KEY', ''),
+        #     'sslrootcert': os.getenv('SSL_ROOT_CERT', ''),
+        # },
     }
 }
 
@@ -165,7 +178,7 @@ CACHES = {
         'LOCATION': f"redis://{os.getenv('REDIS_USER')}:{os.getenv('REDIS_PORT')}/0",
         'OPTIONS': {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": f"{os.getenv('REDIS_USER_PASSWORD')}"
+            "PASSWORD": f"{os.getenv('REDIS_PASSWORD')}"
         },
         'TIMEOUT': 300,
     }
