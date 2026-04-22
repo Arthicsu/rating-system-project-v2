@@ -23,12 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.getenv('SECRET_KEY', '')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG')
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", '').split(",")
 
 
 # Application definition
@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'storages',
     'drf_spectacular',
-    'main',
     'users',
     'students',
     'university_structure',
@@ -61,21 +60,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:80",
-    "http://localhost:3000",
-    "http://127.0.0.1:80",
-    "http://127.0.0.1:3000",
-]
+CORS_ALLOWED_ORIGINS = os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", '').split(",")
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:80",
-    "http://localhost:3000",
-    "http://127.0.0.1:80",
-    "http://127.0.0.1:3000",
-]
-EXTERNAL_SITE_URL = os.getenv('CLIENT_URL', 'http://localhost:3000')
-API_SCHEMA_URL = os.getenv('API_SCHEMA_URL', '/api/schema/swagger-ui/')
+CSRF_TRUSTED_ORIGINS = os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", '').split(",")
+
+EXTERNAL_SITE_URL = os.getenv('CLIENT_URL', '')
+API_SCHEMA_URL = os.getenv('API_SCHEMA_URL', '')
 CORS_ALLOW_CREDENTIALS = True 
 
 CORS_ALLOW_METHODS = (
@@ -90,14 +80,13 @@ CORS_ALLOW_METHODS = (
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
-# В продакшене True. Для локалки False.
-SESSION_COOKIE_SECURE = False 
-CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'True').lower() == 'true'
+CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'True').lower() == 'true'
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 
-CSRF_COOKIE_HTTPONLY = False 
-SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = os.getenv('CSRF_COOKIE_HTTPONLY', 'True').lower() == 'true'
+SESSION_COOKIE_HTTPONLY = os.getenv('SESSION_COOKIE_HTTPONLY', 'True').lower() == 'true'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -173,10 +162,10 @@ AUTH_PASSWORD_VALIDATORS = [
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f"redis://{os.getenv('REDIS_HOST')}:{os.getenv('REDIS_PORT')}/0",
+        'LOCATION': f"redis://{os.getenv('REDIS_USER')}:{os.getenv('REDIS_PORT')}/0",
         'OPTIONS': {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            # "PASSWORD": f"{os.getenv('REDIS_USER_PASSWORD')}"
+            "PASSWORD": f"{os.getenv('REDIS_USER_PASSWORD')}"
         },
         'TIMEOUT': 300,
     }

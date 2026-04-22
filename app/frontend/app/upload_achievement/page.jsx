@@ -111,7 +111,7 @@ export default function UploadAchievement() {
   };
 
 const handleSubmit = async () => {
-    if (!user?.record_book || !category || !subType || !achievementName || !docType || !dateReceived) {
+    if (!user?.record_book || !category || !subType || !achievementName || !docType || !dateReceived || files.length === 0) {
       toast.error("Пожалуйста, заполните все обязательные поля (категория, вид, тип документа, название, дата получения) и прикрепите файл(-ы) подтверждения достижения.");
       return;
     }

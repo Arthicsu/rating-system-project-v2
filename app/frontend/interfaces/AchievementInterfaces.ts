@@ -18,3 +18,31 @@ export interface AchievementItemProps {
   doc?: Achievement;
   loading?: boolean;
 }
+
+export interface SelectOption {
+  code: string;
+  label: string;
+  needsLevel?: boolean;
+  needsResult?: boolean;
+  allowedResults?: string[];
+}
+
+export interface DataStructureCategory {
+  label: string;
+  sub_types: SelectOption[];
+}
+
+export interface DataStructure {
+  [key: string]: DataStructureCategory;
+}
+
+export interface AchievementConfigResponse {
+  structure: DataStructure;
+  levels: SelectOption[];
+  results: SelectOption[];
+  doc_types: SelectOption[];
+}
+
+export interface AchievementUploadResponse {
+  message: string;
+}

@@ -47,7 +47,7 @@ python manage.py collectstatic --noinput
 # Выбор сервера: USE_GUNICORN=true для prod (с Nginx)
 if [ "${USE_GUNICORN}" = "true" ]; then
     echo "Starting Gunicorn server..."
-    exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers $GUNICORN_WORKERS --threads 2 --keep-alive 5 --access-logfile - --error-logfile -
+    exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers $GUNICORN_WORKERS --threads $GUNICORN_THREADS --keep-alive 5 --access-logfile - --error-logfile -
 else
     echo "Starting server..."
     exec python manage.py runserver 0.0.0.0:8000

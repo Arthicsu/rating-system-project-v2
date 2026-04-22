@@ -4,6 +4,7 @@ import api from '@/lib/axios';
 import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Skeleton } from 'boneyard-js/react';
 
 import { useMySession } from '@/context/AuthContext';
@@ -19,7 +20,9 @@ import type Student from '@/interfaces/StudentInterfaces';
 
 export default function StaffProfilePage() {
   const { user } = useMySession();
+  const router = useRouter();
   const isRectorate = user?.roles?.includes('Rectorate');
+  const isStaff = user?.roles?.some((r: string) => ['Department', 'Dean', 'Rectorate'].includes(r));
   // const isDean = user?.roles?.includes('Dean');
   const { downloadFile } = useDownloadFile();
   const [activeTab, setActiveTab] = useState('my-group');
@@ -68,6 +71,12 @@ export default function StaffProfilePage() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const pageSize = 20;
   const requestsPageSize = 6;
+
+  useEffect(() => {
+    if (user && !isStaff) {
+      router.replace('/profile');
+    }
+  }, [user, isStaff, router]);
 
   const openModal = (type: string, doc: Document) => setModalState({ 
       type, 

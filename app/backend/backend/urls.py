@@ -26,7 +26,6 @@ admin.site.site_title = "Админ-панель"                              #
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', RedirectView.as_view(url='/admin/', permanent=False), name='home_redirect'),
-    # path('', include('main.urls', namespace='main')),
     path('user/', include('users.urls', namespace='user')),
     path('student/', include('students.urls', namespace='students')),
     path('university/', include('university_structure.urls', namespace='university_structure')),

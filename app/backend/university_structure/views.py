@@ -22,6 +22,7 @@ from core.pagination import StandardResultsSetPagination
 from core.export_rating_excel import generate_rating_excel_pandas
 from core.students_query_set_mixin import StudentFilterMixin, StudentWithAccessMixin, StudentRatingQuerySetMixin
 from core.scope_permission_mixin import ScopePermissionMixin
+from core.permissions import IsStaffProfile
 
 
 pagination_class = StandardResultsSetPagination
@@ -37,7 +38,7 @@ class StaffProfileAPIView(ScopePermissionMixin, GenericAPIView):
         - JSON-ответ с полями из сериализатора и мета-данные
     """
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffProfile]
     serializer_class = StaffSerializer
     pagination_class = None
 
@@ -47,7 +48,7 @@ class StaffProfileAPIView(ScopePermissionMixin, GenericAPIView):
         staff = getattr(user, 'staff_profile', None)
 
         if not staff:
-            return Response({"message": "Профиль сотрудника не найден. Для просмотра необходима учетная запись сотрудника вуза."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Доступ запрещён. Для просмотра необходима учетная запись сотрудника вуза."}, status=status.HTTP_403_FORBIDDEN)
         
         is_own_profile = (staff.user_id == user.id)
 
@@ -70,7 +71,7 @@ class StaffProfileAPIView(ScopePermissionMixin, GenericAPIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
 class RatingExportAPIView(StudentRatingQuerySetMixin, GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffProfile]
     authentication_classes = [SessionAuthentication]
     pagination_class = None
 
@@ -96,7 +97,7 @@ class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
     """
     
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffProfile]
     serializer_class = ReviewDocumentRequestSerializer
     pagination_class = None
     lookup_url_kwarg = 'doc_id'
@@ -134,10 +135,6 @@ class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
             * Статус меняется на 'rejected'.
             * Указанные причины сохраняются в rejection_reason.
         """
-        is_staff = hasattr(request.user, 'staff_profile')
-        if not is_staff:
-            return Response({"error": "Нет прав модерации"}, status=status.HTTP_403_FORBIDDEN)
-
         doc = get_object_or_404(Document.objects.select_related('status', 'category', 'user__student_profile', 'user__student_profile__faculty', 'user__student_profile__department'), id=doc_id)
         
         if not self.check_staff_scope(request.user, doc):
@@ -204,7 +201,7 @@ class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
 
 @method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
 class RejectionReasonListView(ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffProfile]
     authentication_classes = [SessionAuthentication]
     serializer_class = RejectionReasonSerializer
     queryset = RejectionReason.objects.filter(is_active=True)
@@ -215,7 +212,7 @@ class RejectionReasonListView(ListAPIView):
 
 @method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
 class AcademicYearListView(ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffProfile]
     authentication_classes = [SessionAuthentication]
     serializer_class = AcademicYearSerializer
     queryset = AcademicYear.objects.all()
@@ -230,7 +227,7 @@ class FilteredGroupListAPIView(StudentFilterMixin, ListAPIView):
     Список доступных учебных групп.
     Возвращает список групп, доступных текущему сотруднику (с учетом факультета/кафедры и наличия студентов).
     """ 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffProfile]
     authentication_classes = [SessionAuthentication]
     serializer_class = GroupSerializer
     pagination_class = None
@@ -262,7 +259,7 @@ class FilteredGroupListAPIView(StudentFilterMixin, ListAPIView):
         )
 
 class FilteredStudentListAPIView(StudentWithAccessMixin, ListAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffProfile]
     authentication_classes = [SessionAuthentication]
     serializer_class = StudentProfileSerializer
 
@@ -272,10 +269,10 @@ class FilteredStudentListAPIView(StudentWithAccessMixin, ListAPIView):
 class FilteredDashboardStatsAPIView(StudentWithAccessMixin, GenericAPIView):
     """
     API для получения статистики и списка документов на модерацию.
-    Реагирует на GET-параметры фильтрации (faculty, course, group_id).
+    Реагирует ��а GET-параметры фильтрации (faculty, course, group_id).
     Возвращает агрегированную статистику и документы на основе текущих фильтров.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffProfile]
     authentication_classes = [SessionAuthentication]
     serializer_class = PendingDocumentSerializer;
 
