@@ -468,7 +468,18 @@ const handleSubmit = async () => {
                     accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, .doc"
                     className="hidden"
                     onChange={(e) => {
+                      const MAX_SIZE = 20 * 1024 * 1024;
                       const selected = Array.from(e.target.files || []);
+                      const oversized = selected.filter(f => f.size > MAX_SIZE);
+                      if (oversized.length > 0) {
+                        toast.error(`Файл(ы) превышают 20 МБ: ${oversized.map(f => f.name).join(', ')}`);
+                        return;
+                      }
+                      const totalSize = selected.reduce((sum, f) => sum + f.size, 0);
+                      if (totalSize > MAX_SIZE) {
+                        toast.error("Общий размер файлов превышает 20 МБ");
+                        return;
+                      }
                       if (selected.length > 3) {
                         toast.error("Максимальное количество файлов - 3");
                         setFiles(selected.slice(0, 3));
