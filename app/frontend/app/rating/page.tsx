@@ -335,7 +335,7 @@ export default function RatingPage() {
                 </p>
               </div>
               {/* </Skeleton> */}
-              {/* {user?.isStaff && (
+              {/* {user?.is_staff && (
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[11px] sm:text-xs text-slate-600">
                     В выгрузке можно выбирать разные факультеты, курсы и группы. Если выбрать вид

@@ -3,7 +3,7 @@ export interface AuthUser {
   username: string;
   record_book: string | null;
   isAuthenticated: boolean;
-  isStaff: boolean;
+  is_staff: boolean;
   full_name: string;
   roles: string[];
   pending_docs_count: number;

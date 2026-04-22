@@ -19,7 +19,7 @@ export default function ProfilePage() {
         const res = await api.get('/student/api/v1/profile/');
         const profileData: Profile = res.data;
         
-        if (profileData.isStaff) {
+        if (profileData.is_staff) {
           router.push('/staff-profile');
           return;
         }
