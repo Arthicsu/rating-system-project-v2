@@ -134,13 +134,17 @@ const handleSubmit = async () => {
       files.forEach((f) => formData.append('files', f));
     }
 
+    const loadingToast = toast.loading('Загрузка достижения...');
+
     try {
       const response = await api.post('/student/api/v1/upload/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+      toast.dismiss(loadingToast);
       toast.success(response.data.message);
       router.push('/profile');
     } catch (error) {
+      toast.dismiss(loadingToast);
       if (error.response?.data?.files) {
         toast.error('Ошибка: ' + error.response.data.files[0]);
       } else if (error.response?.data?.student) {

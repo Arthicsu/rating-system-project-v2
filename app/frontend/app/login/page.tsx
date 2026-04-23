@@ -110,7 +110,7 @@ export default function LoginPage() {
               Зарегистрироваться
             </Link>
             <span className="h-5 w-px bg-slate-300" />
-            <Link className="text-sky-700 hover:text-sky-900 underline underline-offset-2" href="/restore">
+            <Link className="text-sky-700 hover:text-sky-900 underline underline-offset-2" href="/reset-password">
               Восстановить пароль
             </Link>
           </p>

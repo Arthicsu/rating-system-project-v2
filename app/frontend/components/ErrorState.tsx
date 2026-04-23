@@ -32,7 +32,7 @@ export default function ErrorState({
   const displayDescription = description || defaultInfo.description;
   
   return (
-    <div className="mx-auto flex max-w-300 flex-col gap-6 rounded-2xl bg-white/90 p-6 shadow-sm items-center lg:flex-row md:gap-8 md:px-10 md:py-8">
+    <div className="flex min-h-[80vh] items-center justify-center px-4">
       <div className="w-full max-w-2xl rounded-2xl bg-white p-6 text-center shadow-[0_6px_20px_rgba(0,0,0,0.08)] sm:p-8">
         <p className="text-5xl font-bold text-sky-700 sm:text-9xl">{code}</p>
         <h1 className="mt-3 text-xl font-semibold text-slate-800 sm:text-2xl">{displayTitle}</h1>

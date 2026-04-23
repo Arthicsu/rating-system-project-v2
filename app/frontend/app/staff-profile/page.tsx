@@ -19,7 +19,7 @@ import type { RejectionReason, Semester, Category, Group, Document, Faculty } fr
 import type Student from '@/interfaces/StudentInterfaces';
 
 export default function StaffProfilePage() {
-  const { user } = useMySession();
+  const { user, refreshUser } = useMySession();
   const router = useRouter();
   const isRectorate = user?.roles?.includes('Rectorate');
   // const isDean = user?.roles?.includes('Dean');
@@ -278,6 +278,8 @@ export default function StaffProfilePage() {
       }));
 
       closeModal();
+      await refreshUser();
+      router.refresh();
     } catch (error) {
       toast.error("Ошибка: " + error);
     }
@@ -306,6 +308,8 @@ export default function StaffProfilePage() {
       setPendingDocsData(prev => prev.filter(doc => doc.id !== modalState.targetId));
 
       closeModal();
+      await refreshUser();
+      router.refresh();
     } catch (error) {
       toast.error("Ошибка: " + error);
     }

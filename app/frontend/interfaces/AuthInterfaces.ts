@@ -15,6 +15,7 @@ export interface AuthContextValue {
   registerUser: (formData: RegisterFormData) => Promise<AuthUser>;
   loginUser: (formData: LoginFormData) => Promise<AuthUser>;
   logoutUser: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   loading: boolean;
 }
 

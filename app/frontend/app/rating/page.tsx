@@ -50,6 +50,7 @@ export default function RatingPage() {
         if (selectedGroup !== 'all') params.append('group_id', selectedGroup);
         params.append('category', activeTab);
         params.append('page', String(currentPage));
+        params.append('page_size', String(pageSize));
 
         const response = await api.get(`/user/api/v2/rating/`, { params });
         

@@ -14,15 +14,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    api.get('/user/api/v1/check-auth/')
+    fetchUser();
+  }, []);
+
+  const fetchUser = () => {
+    return api.get('/user/api/v1/check-auth/')
       .then(res => {
         if (res.data.isAuthenticated) {
           setUser(res.data);
+        } else {
+          setUser(null);
         }
       })
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
-  }, []);
+  };
 
   const registerUser = async (formData: RegisterFormData) => {
     const res = await api.post('/user/api/v1/register/student/', formData);
@@ -43,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, registerUser, loginUser, logoutUser, loading }}>
+    <AuthContext.Provider value={{ user, setUser, registerUser, loginUser, logoutUser, refreshUser: fetchUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
