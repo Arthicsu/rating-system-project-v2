@@ -18,7 +18,7 @@ export default function RatingPage() {
   const [activeTab, setActiveTab] = useState('common');
   const [tabs, setTabs] = useState<Tab[]>([{ id: 'common', label: 'Общий рейтинг' }]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [page, setPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 20;
 
@@ -49,7 +49,7 @@ export default function RatingPage() {
         if (selectedCourse !== 'all') params.append('course', selectedCourse);
         if (selectedGroup !== 'all') params.append('group_id', selectedGroup);
         params.append('category', activeTab);
-        params.append('page', String(page));
+        params.append('page', String(currentPage));
 
         const response = await api.get(`/user/api/v2/rating/`, { params });
         
@@ -62,7 +62,7 @@ export default function RatingPage() {
       }
     };
     fetchRating();
-  }, [activeTab, selectedFaculty, selectedCourse, selectedGroup, page]);
+  }, [activeTab, selectedFaculty, selectedCourse, selectedGroup, currentPage]);
 
   const availableGroups = useMemo(() => {
     return filterOptions.groups.filter(g => {
@@ -76,12 +76,12 @@ export default function RatingPage() {
   
   const handleTabChange = (id: string) => {
     setActiveTab(id);
-    setPage(1);
+    setCurrentPage(1);
   };
 
   const handleFilterChange = (setter: (value: string) => void, value: string) => {
     setter(value);
-    setPage(1);
+    setCurrentPage(1);
   };
 
   return (
@@ -302,7 +302,7 @@ export default function RatingPage() {
                     <tr key={student.user_id} className="border-b border-[#f0f0f0] text-xs sm:text-xs md:text-sm last:border-b-0 hover:bg-slate-50">
                       <td className="p-1 sm:p-2 md:px-4  md:py-3 text-center align-middle">
                         <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-[11px] md:text-sm font-bold text-white">
-                          {(page - 1) * pageSize + index + 1}
+                          {(currentPage - 1) * pageSize + index + 1}
                         </div>
                       </td>
                       <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-[#333]">
@@ -323,11 +323,11 @@ export default function RatingPage() {
               </table>
               
               <Pagination 
-                page={page}
+                page={currentPage}
                 totalCount={totalCount}
                 pageSize={pageSize}
                 loading={loading}
-                onPageChange={setPage}
+                onPageChange={setCurrentPage}
               />
               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] sm:text-xs text-slate-600">
