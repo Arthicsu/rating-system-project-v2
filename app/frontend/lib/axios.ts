@@ -1,6 +1,8 @@
 import axios from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
+const ERROR_REDIRECT_CODES = [403, 429, 500, 502, 503];
+
 const getCsrfToken = (): string | undefined => {
   if (typeof document === 'undefined') return undefined;
   
@@ -40,8 +42,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 403) {
-      console.warn('CSRF token invalid or expired');
+    const status = error.response?.status;
+    const isOnErrorPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/error/');
+
+    if (status && !isOnErrorPage && ERROR_REDIRECT_CODES.includes(status)) {
+      const message = (error.response?.data as { detail?: string })?.detail || error.message;
+      window.location.href = `/error/${status}?msg=${encodeURIComponent(message)}`;
     }
     return Promise.reject(error);
   }
