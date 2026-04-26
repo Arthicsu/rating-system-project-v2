@@ -14,9 +14,9 @@
 {{ block.super }}
 <div class="user-tools" style="display: flex; list-style: inside;">
   <ul role="list">
-    <li>
+    {% comment %} <li>
       <a href="{{ EXTERNAL_SITE_URL }}" target="_blank">Клиент</a>
-    </li>
+    </li> {% endcomment %}
     <li>
       <a href="{{ API_SCHEMA_URL }}/api/schema/swagger-ui/" target="_blank">Swagger-ui API Docs</a>
     </li>
