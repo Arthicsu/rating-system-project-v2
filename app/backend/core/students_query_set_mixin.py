@@ -1,5 +1,7 @@
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Avg, Count
+
 from students.models import Student, Category, Document
+from university_structure.models import AcademicYear
 from students.serializers import StudentProfileSerializer
 
 
@@ -113,3 +115,83 @@ class StudentWithAccessMixin(StudentFilterMixin):
         queryset = self.scope_filters_queryset(user, queryset)
         # Применяем фильтры из параметров (факультет, курс, группа)
         return self.apply_filters(queryset)
+
+
+class DashboardStatsQuerySetMixin(StudentWithAccessMixin):
+    """
+    Mixin для получения данных дашборда: студенты, топ-5, документы, статистика.
+    """
+    def get_base_students_queryset(self, user):
+        """
+        Базовый queryset студентов с учётом прав доступа.
+        """
+        return self.get_allowed_students(user)
+
+    def get_filtered_students_queryset(self, user):
+        """
+        Отфильтрованный queryset студентов (по faculty, course, group).
+        """
+        base_queryset = self.get_base_students_queryset(user)
+        return self.apply_filters(base_queryset)
+
+    def get_stats_data(self, user):
+        """
+        Получить статистику по отфильтрованным студентам.
+        """
+        filtered_queryset = self.get_filtered_students_queryset(user)
+        
+        # Считаем статистику по отфильтрованным студентам
+        stats_data = filtered_queryset.aggregate(
+            total_students=Count('id'),
+            avg_score=Avg('total_score')
+        )
+        
+        return {
+            'total_students': stats_data['total_students'] or 0,
+            'avg_score': round(stats_data['avg_score'] or 0, 2)
+        }
+
+    def get_top5_students(self, user):
+        """
+        Получить топ-5 студентов.
+        """
+        group_id = self.request.query_params.get('group_id')
+        
+        # Топ-5 студентов
+        if group_id and group_id != 'all':
+            # Если выбрана конкретная группа - топ5 из этой группы
+            top5_queryset = self.get_filtered_students_queryset(user)
+        else:
+            # Если "Все" - топ5 из всех студентов в scope (без фильтра course/faculty)
+            top5_queryset = self.get_base_students_queryset(user)
+        
+        return top5_queryset.order_by('-total_score')[:5]
+
+    def get_pending_documents_queryset(self, user):
+        """
+        Получить queryset документов на модерацию.
+        """
+        filtered_queryset = self.get_filtered_students_queryset(user)
+        
+        # Фильтрация по академическому году
+        academic_year_id = self.request.query_params.get('academic_year')
+        date_filter = {}
+        
+        if academic_year_id:
+            ay = AcademicYear.objects.filter(id=academic_year_id).first()
+            if ay:
+                date_filter = {
+                    'date_received__range': (ay.start_date, ay.end_date)
+                }
+        
+        # Документы - всегда по отфильтрованным
+        doc_status = 'pending' if user.is_dept_staff else 'approved'
+        
+        return Document.objects.filter(
+            user__student_profile__in=filtered_queryset,
+            status__code=doc_status,
+            **date_filter
+        ).select_related(
+            'user__student_profile', 
+            'user__student_profile__group'
+        ).order_by('-uploaded_at')

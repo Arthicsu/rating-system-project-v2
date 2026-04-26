@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
 
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -9,18 +10,23 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.http import HttpResponse
-from django.db.models import Avg, Count, Exists, OuterRef
+from django.db.models import Exists, OuterRef
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
-from .serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RejectionReasonSerializer, AcademicYearSerializer, ReviewDocumentRequestSerializer
+from .serializers import (
+    FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, 
+    StaffSerializer, RejectionReasonSerializer, AcademicYearSerializer, 
+    ReviewDocumentRequestSerializer, StaffProfileResponseSerializer,
+    ReviewDocumentResponseSerializer, ReviewDocumentErrorSerializer
+)
 from .models import Faculty, Group, RejectionReason, AcademicYear
 from students.models import Document, Student, DocumentStatus
 from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
 
 from core.pagination import StandardResultsSetPagination
 from core.export_rating_excel import generate_rating_excel_pandas
-from core.students_query_set_mixin import StudentFilterMixin, StudentWithAccessMixin, StudentRatingQuerySetMixin
+from core.students_query_set_mixin import StudentFilterMixin, StudentWithAccessMixin, StudentRatingQuerySetMixin, DashboardStatsQuerySetMixin
 from core.scope_permission_mixin import ScopePermissionMixin
 from core.permissions import IsStaffProfile
 
@@ -42,6 +48,9 @@ class StaffProfileAPIView(ScopePermissionMixin, GenericAPIView):
     serializer_class = StaffSerializer
     pagination_class = None
 
+    @extend_schema(
+        responses={200: StaffProfileResponseSerializer}
+    )
     def get(self, request):
         user = request.user
 
@@ -75,7 +84,12 @@ class RatingExportAPIView(StudentRatingQuerySetMixin, GenericAPIView):
     authentication_classes = [SessionAuthentication]
     pagination_class = None
 
-    @extend_schema(summary="Экспорт рейтинга в Excel")
+    @extend_schema(
+        summary="Экспорт рейтинга в Excel",
+        responses={
+            200: OpenApiTypes.BINARY
+        }
+    )
     def get(self, request, *args, **kwargs):
         queryset = self.get_base_rating_queryset()
         excel_bytes = generate_rating_excel_pandas(queryset)
@@ -102,6 +116,15 @@ class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
     pagination_class = None
     lookup_url_kwarg = 'doc_id'
         
+    @extend_schema(
+        request=ReviewDocumentRequestSerializer,
+        responses={
+            200: ReviewDocumentResponseSerializer,
+            400: ReviewDocumentErrorSerializer,
+            403: ReviewDocumentErrorSerializer,
+            404: ReviewDocumentErrorSerializer,
+        }
+    )
     @transaction.atomic
     def post(self, request, doc_id):
         """
@@ -207,6 +230,9 @@ class RejectionReasonListView(ListAPIView):
     queryset = RejectionReason.objects.filter(is_active=True)
     pagination_class = None
 
+    @extend_schema(
+        responses={200: RejectionReasonSerializer(many=True)}
+    )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
@@ -218,6 +244,9 @@ class AcademicYearListView(ListAPIView):
     queryset = AcademicYear.objects.all()
     pagination_class = None
 
+    @extend_schema(
+        responses={200: AcademicYearSerializer(many=True)}
+    )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
@@ -232,6 +261,9 @@ class FilteredGroupListAPIView(StudentFilterMixin, ListAPIView):
     serializer_class = GroupSerializer
     pagination_class = None
 
+    @extend_schema(
+        responses={200: GroupSerializer(many=True)}
+    )
     def get_queryset(self):
         user = self.request.user
         params = self.request.query_params
@@ -263,92 +295,62 @@ class FilteredStudentListAPIView(StudentWithAccessMixin, ListAPIView):
     authentication_classes = [SessionAuthentication]
     serializer_class = StudentProfileSerializer
 
+    @extend_schema(
+        responses={200: StudentProfileSerializer(many=True)}
+    )
     def get_queryset(self):
         return self.get_allowed_students(self.request.user)
 
-class FilteredDashboardStatsAPIView(StudentWithAccessMixin, GenericAPIView):
+class FilteredDashboardStatsAPIView(DashboardStatsQuerySetMixin, ListAPIView):
     """
     API для получения статистики и списка документов на модерацию.
     
-    Есть GET-параметры фильтрации (faculty, course, group_id).
-    
-    Возвращает агрегированную статистику и документы на основе текущих фильтров.
+    Возвращает агрегированную статистику, топ-5 студентов и документы на модерацию.
+    Поддерживает фильтрацию по faculty_id, course, group_id.
     """
     permission_classes = [IsStaffProfile]
     authentication_classes = [SessionAuthentication]
-    serializer_class = PendingDocumentSerializer;
+    serializer_class = PendingDocumentSerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        return self.get_pending_documents_queryset(user)
+
+    @extend_schema(
+        responses={200: PendingDocumentSerializer(many=True)}
+    )
     def get(self, request, *args, **kwargs):
-        user = request.user
+        # Получаем queryset документов на модерацию
+        queryset = self.get_queryset()
         
-        # Получаем студентов с учетом прав и фильтров (scope)
-        students_queryset = self.get_allowed_students(user)
-        
-        # Применяем фильтры из запроса (course, faculty)
-        group_id = request.query_params.get('group_id')
-        filtered_queryset = self.apply_filters(students_queryset)
-
-        academic_year_id = request.query_params.get('academic_year')
-        date_filter = {}
-        
-        if academic_year_id:
-            ay = get_object_or_404(AcademicYear, id=academic_year_id)
-            date_filter = {
-                'date_received__range': (ay.start_date, ay.end_date)
-            }
-
-        # Считаем статистику по отфильтрованным студентам
-        stats_data = filtered_queryset.aggregate(
-            total_students=Count('id'),
-            avg_score=Avg('total_score') 
-        )
-        
-        stats = {
-            "total_students": stats_data['total_students'] or 0,
-            "avg_score": round(stats_data['avg_score'] or 0, 2)
-        }
-
-        # Топ-5 студентов
-        if group_id and group_id != 'all':
-            # Если выбрана конкретная группа - топ5 из этой группы
-            top5_queryset = filtered_queryset
-        else:
-            # Если "Все" - топ5 из всех студентов в scope (без фильтра course/faculty)
-            top5_queryset = students_queryset
-        
-        top5_students = top5_queryset.order_by('-total_score')[:5]
-        top5_serializer = StudentProfileSerializer(top5_students, many=True, context={'request': request})
-        
-        # Документы - всегда по отфильтрованным
-        doc_status = 'pending' if user.is_dept_staff else 'approved'
-        pending_docs_queryset = Document.objects.filter(
-            user__student_profile__in=filtered_queryset,
-            status__code=doc_status,
-            **date_filter
-        ).select_related('user__student_profile', 'user__student_profile__group').order_by('-uploaded_at')
-
         # Пропускаем документы через пагинатор
-        page = self.paginate_queryset(pending_docs_queryset)
-
+        page = self.paginate_queryset(queryset)
+        
         if page is not None:
             # Если пагинация сработала, сериализуем только текущую страницу
-            serializer = PendingDocumentSerializer(page, many=True, context={'request': request})
+            serializer = self.get_serializer(page, many=True)
             
             # Получаем стандартный ответ пагинатора (с count, next, previous, results)
             response = self.get_paginated_response(serializer.data)
             
             # Добавляем статистику в ответ пагинатора
-            response.data['stats'] = stats
-            response.data['top5'] = top5_serializer.data
-            
-            response.data['pending_documents'] = response.data.pop('results')
+            response.data['stats'] = self.get_stats_data(request.user)
+            response.data['top5'] = StudentProfileSerializer(
+                self.get_top5_students(request.user), 
+                many=True, 
+                context={'request': request}
+            ).data
             
             return response
 
         # Если пагинатор отключен - Fallback
-        serializer = PendingDocumentSerializer(pending_docs_queryset, many=True, context={'request': request})
+        serializer = self.get_serializer(queryset, many=True)
         return Response({
-            "stats": stats,
-            "top5": top5_serializer.data,
-            "pending_documents": serializer.data
+            'results': serializer.data,
+            'stats': self.get_stats_data(request.user),
+            'top5': StudentProfileSerializer(
+                self.get_top5_students(request.user), 
+                many=True, 
+                context={'request': request}
+            ).data
         })

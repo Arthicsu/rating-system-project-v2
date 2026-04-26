@@ -117,3 +117,33 @@ class ReviewDocumentRequestSerializer(serializers.Serializer):
     """
     action = serializers.ChoiceField(choices=['approve', 'reject'])
     reasons = serializers.ListField(child=serializers.CharField(), required=False, help_text="Список причин при отклонении")
+
+
+class StaffProfileResponseSerializer(serializers.Serializer):
+    """
+    Сериализатор ответа профиля сотрудника.
+    """
+    id = serializers.IntegerField()
+    full_name = serializers.CharField()
+    email = serializers.EmailField()
+    phone = serializers.CharField(allow_null=True)
+    department_name = serializers.CharField()
+    faculty_name = serializers.CharField()
+    roles = serializers.ListField(child=serializers.CharField())
+    is_own_profile = serializers.BooleanField()
+    is_staff = serializers.BooleanField()
+    type = serializers.CharField()
+
+
+class ReviewDocumentResponseSerializer(serializers.Serializer):
+    """
+    Сериализатор ответа при модерации документа.
+    """
+    message = serializers.CharField()
+
+
+class ReviewDocumentErrorSerializer(serializers.Serializer):
+    """
+    Сериализатор ошибки при модерации документа.
+    """
+    error = serializers.CharField()
