@@ -42,6 +42,10 @@ class RegistrationAPIView(CreateAPIView):
     authentication_classes = []
     serializer_class = StudentRegistrationSerializer 
 
+    @extend_schema(
+        request=StudentRegistrationSerializer,
+        responses={201: UserResponseSerializer}
+    )
     def post(self, request):
         """
         Обрабатывает POST-запрос на регистрацию нового студента.
@@ -83,6 +87,10 @@ class LoginAPIView(GenericAPIView):
     authentication_classes = []
     serializer_class = LoginRequestSerializer
 
+    @extend_schema(
+        request=LoginRequestSerializer,
+        responses={200: UserResponseSerializer}
+    )
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -108,6 +116,12 @@ class CheckAuthAPIView(APIView):
     authentication_classes = [SessionAuthentication]
     serializer_class = UserResponseSerializer
 
+    @extend_schema(
+        responses={
+            200: UserResponseSerializer,
+            401: inline_serializer(name='NotAuthenticated', fields={'isAuthenticated': serializers.BooleanField(default=False)})
+        }
+    )
     def get(self, request):
         if request.user.is_authenticated:
             response_data = UserResponseSerializer(request.user).data
@@ -115,9 +129,15 @@ class CheckAuthAPIView(APIView):
         
         return Response({"isAuthenticated": False}, status=status.HTTP_401_UNAUTHORIZED)
 
-class LogoutAPIView(APIView):
+class LogoutAPIView(GenericAPIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
+    serializer_class = UserResponseSerializer
+
+    @extend_schema(
+        methods=["POST"],
+        responses={200: None}
+    )
     def post(self, request):
         logout(request)
         return Response(status=status.HTTP_200_OK)
@@ -154,6 +174,9 @@ class CategoryAchievementAPIView(ListAPIView):
     queryset = Category.objects.all()
     pagination_class = None
 
+    @extend_schema(
+        responses={200: CategorySerializer(many=True)}
+    )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
@@ -163,6 +186,9 @@ class RatingListAPIView(StudentRatingQuerySetMixin, ListAPIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     serializer_class = StudentRatingSerializer
-        
+
+    @extend_schema(
+        responses={200: StudentRatingSerializer(many=True)}
+    )
     def get_queryset(self):
         return self.get_base_rating_queryset()

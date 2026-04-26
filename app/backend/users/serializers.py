@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from students.models import Student, Document
@@ -26,9 +27,11 @@ class UserResponseSerializer(serializers.ModelSerializer):
             'pending_docs_count',
         ]
 
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_roles(self, obj):
         return list(obj.groups.values_list('name', flat=True))
 
+    @extend_schema_field(serializers.IntegerField())
     def get_pending_docs_count(self, obj):
         if not hasattr(obj, 'staff_profile'):
             return 0
@@ -48,6 +51,7 @@ class UserResponseSerializer(serializers.ModelSerializer):
             ).count()
         return 0
 
+    @extend_schema_field(serializers.CharField())
     def get_full_name(self, obj):
         return obj.get_user_display_name()
 

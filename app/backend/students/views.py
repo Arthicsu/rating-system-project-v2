@@ -70,15 +70,11 @@ class AchievementConfigAPIView(GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class StudentProfileAPIView(StudentFilterMixin, GenericAPIView):
+class StudentProfileSelfAPIView(StudentFilterMixin, GenericAPIView):
     """
-    API-представление для просмотра профиля студента.
-    Поддерживает параметры: student_id (ID студента).
-
-    Предоставляет доступ к полной информации о студенте. 
-    Просмотр чужого профиля разрешён только пользователям с правами персонала (например, из кафедры, деканата или ректората).
+    API-представление для просмотра своего профиля студента.
     
-    Обычные студенты могут просматривать только свой собственный профиль (без параметров возвращает профиль текущего авторизованного студента).
+    Возвращает профиль текущего авторизованного студента.
     """
 
     authentication_classes = [SessionAuthentication]
@@ -87,34 +83,59 @@ class StudentProfileAPIView(StudentFilterMixin, GenericAPIView):
     pagination_class = None
 
     @extend_schema(
+        operation_id="student_api_v1_profile_self",
+        summary="Получить свой профиль студента",
         responses={200: StudentProfileSerializer}
     )
-    def get(self, request, student_id=None):
+    def get(self, request):
         user = request.user
         
-        if student_id:
-            # Запрос профиля по явно указанному student_id
-            student = Student.objects.select_related('user__student_profile').filter(id=student_id).first()
+        student = getattr(user, 'student_profile', None)
+        
+        if not student:
+            return Response({"message": "Профиль студента не найден. Для просмотра необходима учетная запись студента."}, status=status.HTTP_404_NOT_FOUND)
             
-            if not student:
-                return Response({"message": "Студент не найден"}, status=status.HTTP_404_NOT_FOUND)
-            
-            # Проверяем, является ли запрашивающий пользователем этого профиля
-            is_own_profile = (student.user and user.id == student.user.id)
-            
-            # Если это чужой профиль, проверяем наличие прав staff
-            if not is_own_profile and not hasattr(user, 'staff_profile'):
-                return Response({"message": "Доступ запрещён"}, status=status.HTTP_403_FORBIDDEN)
-                
-        else:
-            # запрос своего профиля (если параметр id не передан)
-            student = getattr(user, 'student_profile', None)
-            
-            if not student:
-                return Response({"message": "Профиль студента не найден. Для просмотра необходима учетная запись студента."}, status=status.HTTP_404_NOT_FOUND)
-                
-            is_own_profile = True
+        is_own_profile = True
 
+        response_data = self.get_student_full_profile(student, is_own_profile)
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class StudentProfileAPIView(StudentFilterMixin, GenericAPIView):
+    """
+    API-представление для просмотра профиля студента по ID.
+
+    Предоставляет доступ к полной информации о студенте. 
+    Просмотр чужого профиля разрешён только пользователям с правами персонала.
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = StudentProfileSerializer
+    pagination_class = None
+
+    @extend_schema(
+        operation_id="student_api_v1_profile_by_id",
+        summary="Получить профиль студента по ID",
+        responses={200: StudentProfileSerializer}
+    )
+    def get(self, request, student_id):
+        user = request.user
+        
+        # Запрос профиля по явно указанному student_id
+        student = Student.objects.select_related('user__student_profile').filter(id=student_id).first()
+        
+        if not student:
+            return Response({"message": "Студент не найден"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Проверяем, является ли запрашивающий пользователем этого профиля
+        is_own_profile = (student.user and user.id == student.user.id)
+        
+        # Если это чужой профиль, проверяем наличие прав staff
+        if not is_own_profile and not hasattr(user, 'staff_profile'):
+            return Response({"message": "Доступ запрещён"}, status=status.HTTP_403_FORBIDDEN)
+            
         response_data = self.get_student_full_profile(student, is_own_profile)
 
         return Response(response_data, status=status.HTTP_200_OK)
