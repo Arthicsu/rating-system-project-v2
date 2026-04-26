@@ -42,8 +42,7 @@ export default function LoginPage() {
       router.push('/');
     } catch (err) {
       const error = err as Error | ApiError;
-      if ('message' in error && error.message === 'NEXT_REDIRECT') return;
-      
+            
       const errorData = (error as ApiError).response?.data;
       
       if (errorData?.message) {

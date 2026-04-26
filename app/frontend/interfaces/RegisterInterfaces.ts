@@ -1,9 +1,9 @@
 export default interface RegisterFormData {
-  lastName: string;
-  firstName: string;
+  last_name: string;
+  first_name: string;
   patronymic: string;
   email: string;
-  phone: string;
+  record_book: string;
   password: string;
   passwordConfirm: string;
 }

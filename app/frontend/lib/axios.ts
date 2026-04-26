@@ -1,27 +1,50 @@
 import axios from 'axios';
+import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
-const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    withCredentials: true,
-});
-
-api.interceptors.request.use((config) => {
-  if (typeof document != 'undefined') {
-    const getCookie = (name: string) => {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length == 2) return parts.pop()?.split(';').shift();
-    };
-
-    const csrfToken = getCookie('csrftoken');
-    if (csrfToken) {
-      config.headers['X-CSRFToken'] = csrfToken;
+const getCsrfToken = (): string | undefined => {
+  if (typeof document === 'undefined') return undefined;
+  
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrftoken') {
+      return value;
     }
   }
-  return config;
+  return undefined;
+};
+
+const api: AxiosInstance = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  timeout: 10000,
+  withCredentials: true,
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  },
 });
+
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      config.headers.set('X-CSRFToken', csrfToken);
+    }
+    return config;
+  },
+  (error: AxiosError) => {
+    return Promise.reject(error);
+  }
+);
+
+api.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error: AxiosError) => {
+    if (error.response?.status === 403) {
+      console.warn('CSRF token invalid or expired');
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

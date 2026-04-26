@@ -1,11 +1,10 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 import Pagination from '@/components/Pagination';
-import type { FilterOptions, Tab } from '@/interfaces/RatingInterfaces'
+import { userApi } from '@/lib/apiRequests';
+import type { FilterOptions, Tab, RatingParams } from '@/interfaces/RatingInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
-// import { Skeleton } from 'boneyard-js/react';
 
 export default function RatingPage() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -23,36 +22,48 @@ export default function RatingPage() {
   const pageSize = 20;
 
   useEffect(() => {
-    api.get('/user/api/v1/category-achievements/')
-      .then(res => {
+    const fetchCategories = async () => {
+      try {
+        const res = await userApi.getCategoryAchievements();
         const dynamicTabs = res.data.map((cat: { code: string; label: string }) => ({
           id: cat.code,
           label: cat.label.endsWith('рейтинг') ? cat.label : `${cat.label} деятельность`
         }));
         setTabs([{ id: 'common', label: 'Общий рейтинг' }, ...dynamicTabs]);
-      })
-      .catch(error => toast.error('Ошибка: ' + error));
+      } catch (error) {
+        toast.error('Ошибка: ' + error);
+      }
+    };
+    fetchCategories();
   }, []);
 
   useEffect(() => {
-    api.get('/user/api/v1/rating-filters/')
-      .then(res => setFilterOptions(res.data))
-      .catch(error => console.error('Ошибка: ', error));
+    const fetchFilters = async () => {
+      try {
+        const res = await userApi.getRatingFilters();
+        setFilterOptions(res.data);
+      } catch (error) {
+        console.error('Ошибка: ', error);
+      }
+    };
+    fetchFilters();
   }, []);
 
   useEffect(() => {
     const fetchRating = async () => {
       setLoading(true);
       try {
-        const params = new URLSearchParams();
-        if (selectedFaculty !== 'all') params.append('faculty_id', selectedFaculty);
-        if (selectedCourse !== 'all') params.append('course', selectedCourse);
-        if (selectedGroup !== 'all') params.append('group_id', selectedGroup);
-        params.append('category', activeTab);
-        params.append('page', String(currentPage));
-        params.append('page_size', String(pageSize));
+        const params: RatingParams = {
+          category: activeTab,
+          page: currentPage,
+          page_size: pageSize,
+        };
+        
+        if (selectedFaculty !== 'all') params.faculty_id = selectedFaculty;
+        if (selectedCourse !== 'all') params.course = selectedCourse;
+        if (selectedGroup !== 'all') params.group_id = selectedGroup;
 
-        const response = await api.get(`/user/api/v2/rating/`, { params });
+        const response = await userApi.getRating(params);
         
         setStudents(response.data.results);
         setTotalCount(response.data.count);
@@ -219,10 +230,9 @@ export default function RatingPage() {
 
           <div className="rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
             <div className="w-full overflow-x-auto">
-              {/* <Skeleton name="rating-table" loading={false}> */}
-                <table className="min-w-full border-collapse">
-                  <thead>
-                    <tr className="bg-slate-500 text-white">
+              <table className="min-w-full border-collapse">
+                <thead>
+                  <tr className="bg-slate-500 text-white">
                     <th className="w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
                     </th>
                     <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
@@ -330,13 +340,13 @@ export default function RatingPage() {
                 loading={loading}
                 onPageChange={setCurrentPage}
               />
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              {/* <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] sm:text-xs text-slate-600">
-                  Таблица рейтинга обновляется 1 раз каждые 5 минут
+                  Таблица рейтинга обновляется каждые 5 минут
                 </p>
               </div>
-              {/* </Skeleton> */}
-              {/* {user?.is_staff && (
+              </Skeleton>
+              {user?.is_staff && (
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[11px] sm:text-xs text-slate-600">
                     В выгрузке можно выбирать разные факультеты, курсы и группы. Если выбрать вид

@@ -1,6 +1,5 @@
 'use client';
 
-import api from '@/lib/axios';
 import { useState, useMemo, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -15,28 +14,24 @@ import ModalApprove from '@/components/modals/modalApprove';
 import ModalReject from '@/components/modals/modalReject';
 import ModalPreview from '@/components/modals/modalPreview';
 
-import type { RejectionReason, Semester, Category, Group, Document, Faculty } from '@/interfaces/StaffInterfaces';
+import { universityApi, userApi } from '@/lib/apiRequests';
+import type { FilterStudentsParams, DashboardStatsParams, ModalState } from '@/interfaces/StaffInterfaces';
+import type { RejectionReason, Semester, Group, Document, FacultySimple, StudentSimple, Category as CategoryRating } from '@/interfaces/StaffInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
 
 export default function StaffProfilePage() {
   const { user, refreshUser } = useMySession();
   const router = useRouter();
   const isRectorate = user?.roles?.includes('Rectorate');
-  // const isDean = user?.roles?.includes('Dean');
   const { downloadFile } = useDownloadFile();
   const [activeTab, setActiveTab] = useState('my-group');
   const [groupsList, setGroupsList] = useState<Group[]>([]);
   const [studentsData, setStudentsData] = useState<Student[]>([]);
   const [pendingDocsData, setPendingDocsData] = useState<Document[]>([]);
   const [stats, setStats] = useState({ total_students: 0, avg_score: 0 });
-  const [top5Students, setTop5Students] = useState<Student[]>([]);
+  const [top5Students, setTop5Students] = useState<StudentSimple[]>([]);
 
-  const [modalState, setModalState] = useState<{
-    type: string | null;
-    targetId: number | null;
-    targetScore: number;
-    targetStudentId: number | null;
-  }>({
+  const [modalState, setModalState] = useState<ModalState>({
     type: null,
     targetId: null,
     targetScore: 0,
@@ -63,9 +58,9 @@ export default function StaffProfilePage() {
   
   const [rejectionReasonsList, setRejectionReasonsList] = useState<RejectionReason[]>([]);
   const [semesterOptions, setSemesterOptions] = useState<Semester[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryRating[]>([]);
   const [rejectReasons, setRejectReasons] = useState<number[]>([]);
-  const [facultiesList, setFacultiesList] = useState<Faculty[]>([]);
+  const [facultiesList, setFacultiesList] = useState<FacultySimple[]>([]);
   const [selectedFacultyId, setSelectedFacultyId] = useState('all');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const pageSize = 20;
@@ -117,15 +112,12 @@ export default function StaffProfilePage() {
   useEffect(() => {
     const fetchLookups = async () => {
       try {
-        const [profileRes, reasonsRes, semestersRes, catsRes, filtersRes] = await Promise.all([
-          api.get('/university/api/v1/staff-profile/'),
-          api.get('/university/api/v1/rejection-reasons/'),
-          api.get('/university/api/v1/academic-years/'),
-          api.get('/user/api/v1/category-achievements/'),
-          api.get('/user/api/v1/rating-filters/')
+        const [reasonsRes, semestersRes, catsRes, filtersRes] = await Promise.all([
+          universityApi.getRejectionReasons(),
+          universityApi.getAcademicYears(),
+          userApi.getCategoryAchievements(),
+          userApi.getRatingFilters()
         ]);
-        
-        console.log('Staff profile:', profileRes.data);
         
         setRejectionReasonsList(reasonsRes.data);
         setSemesterOptions(semestersRes.data);
@@ -147,17 +139,18 @@ export default function StaffProfilePage() {
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const params = new URLSearchParams();
-        if (selectedCourse !== 'all') params.append('course', selectedCourse);
-        if (selectedFacultyId !== 'all') params.append('faculty_id', selectedFacultyId);
+        const params = {
+          course: selectedCourse !== 'all' ? selectedCourse : undefined,
+          faculty_id: selectedFacultyId !== 'all' ? selectedFacultyId : undefined,
+        };
         
-        const groupsRes = await api.get('/university/api/v1/filtered-groups/', { params });
+        const groupsRes = await universityApi.getFilteredGroups(params);
         setGroupsList(groupsRes.data || []);
         
         if (selectedCourse === 'all' || selectedFacultyId === 'all') {
           setSelectedGroupId('all');
         } else if (groupsRes.data && groupsRes.data.length > 0) {
-          setSelectedGroupId(String(groupsRes.data[0].id));
+          setSelectedGroupId(groupsRes.data[0].id);
         } else {
           setSelectedGroupId('all');
         }
@@ -174,19 +167,22 @@ export default function StaffProfilePage() {
       setLoading(true);
       
       try {
-        const params = new URLSearchParams();
-        params.append('group_id', selectedGroupId);
-        params.append('page', String(currentPage));
-        params.append('page_size', String(pageSize));
+        const studentsParams: FilterStudentsParams = {
+          group_id: selectedGroupId,
+          page: currentPage,
+          page_size: pageSize,
+        };
 
-        const statsParams = new URLSearchParams();
-        statsParams.append('group_id', selectedGroupId);
-        statsParams.append('academic_year', String(selectedSemesterId));
-        statsParams.append('page', String(requestsPage));
-        statsParams.append('page_size', String(requestsPageSize));
+        const statsParams: DashboardStatsParams = {
+          group_id: selectedGroupId,
+          academic_year: String(selectedSemesterId),
+          page: requestsPage,
+          page_size: requestsPageSize,
+        };
+
         const [studentsRes, statsRes] = await Promise.all([
-          api.get('/university/api/v1/filtered-students/', { params } ),
-          api.get('/university/api/v1/filtered-dashboard-stats/', { params: statsParams })
+          universityApi.getFilteredStudents(studentsParams),
+          universityApi.getFilteredDashboardStats(statsParams)
         ]);
 
         setStudentsData(studentsRes.data.results);
@@ -265,9 +261,7 @@ export default function StaffProfilePage() {
     if (!modalState.targetId) return;
 
     try {
-      await api.post(`/university/api/v1/document/${modalState.targetId}/review/`, {
-        action: 'approve'
-      });
+      await universityApi.reviewDocument(modalState.targetId, { action: 'approve' });
 
       setPendingDocsData(prev => prev.filter(doc => doc.id !== modalState.targetId));
       setStudentsData(prev => prev.map(student => {
@@ -300,9 +294,9 @@ export default function StaffProfilePage() {
     }).filter(Boolean);
 
     try {
-      await api.post(`/university/api/v1/document/${modalState.targetId}/review/`, {
-        action: 'reject',
-        reasons: reasonsText
+      await universityApi.reviewDocument(modalState.targetId, { 
+        action: 'reject', 
+        reasons: reasonsText 
       });
 
       setPendingDocsData(prev => prev.filter(doc => doc.id !== modalState.targetId));
@@ -323,7 +317,7 @@ export default function StaffProfilePage() {
 
   const currentGroupName = selectedGroupId === 'all'
     ? 'Все группы'
-    : (groupsList.find(g => String(g.id) === selectedGroupId)?.name || 'Все группы');
+    : (groupsList.find(g => g.id === selectedGroupId)?.name || 'Все группы');
     
   return (
     <>
@@ -391,7 +385,7 @@ export default function StaffProfilePage() {
                   >
                     <option value="all">Все</option>
                     {groupsList.map(g => (
-                      <option key={g.id} value={String(g.id)}>{g.name}</option>
+                      <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
                   </select>
                 </div>
@@ -469,7 +463,7 @@ export default function StaffProfilePage() {
                     <option value="all">Все группы</option>
                   )}
                   {groupsList.map((g) => (
-                    <option key={g.id} value={String(g.id)}>
+                    <option key={g.id} value={g.id}>
                       {g.name}
                     </option>
                   ))}

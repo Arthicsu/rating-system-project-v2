@@ -1,10 +1,10 @@
 'use client';
 
-import api from '@/lib/axios';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
+import { studentApi } from '@/lib/apiRequests';
 import StudentProfile from '@/components/StudentProfile';
 import type { Profile } from '@/interfaces/ProfileInterfaces';
 
@@ -16,8 +16,8 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await api.get('/student/api/v1/profile/');
-        const profileData: Profile = res.data;
+        const res = await studentApi.getProfile();
+        const profileData = res.data;
         
         if (profileData.is_staff) {
           router.push('/staff-profile');

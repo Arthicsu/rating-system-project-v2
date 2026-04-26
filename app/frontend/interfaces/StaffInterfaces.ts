@@ -20,6 +20,11 @@ export interface Faculty {
   name: string;
 }
 
+export interface FacultySimple {
+  id: string;
+  short_name: string;
+}
+
 export interface Department {
   id: number;
   short_name: string;
@@ -28,7 +33,7 @@ export interface Department {
 }
 
 export interface Group {
-  id: number;
+  id: string;
   name: string;
   academic_year: string;
 }
@@ -69,6 +74,46 @@ export interface StaffProfile {
   is_own_profile: boolean;
   is_staff: boolean;
   type: string;
+}
+
+export interface FilterStudentsParams {
+  group_id: string;
+  page: number;
+  page_size: number;
+}
+
+export interface DashboardStatsParams {
+  group_id: string;
+  academic_year: string;
+  page: number;
+  page_size: number;
+}
+
+export interface DashboardStatsResponse {
+  count: number;
+  stats: {
+    total_students: number;
+    avg_score: number;
+  };
+  pending_documents: Document[];
+  top5: StudentSimple[];
+}
+
+export interface StudentSimple {
+  id: number;
+  full_name: string;
+  total_score: number;
+}
+
+export type ReviewDocumentData = 
+  | { action: 'approve' }
+  | { action: 'reject'; reasons: string[] };
+
+export interface ModalState {
+  type: string | null;
+  targetId: number | null;
+  targetScore: number;
+  targetStudentId: number | null;
 }
 
 export {}

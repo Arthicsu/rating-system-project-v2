@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import api from '@/lib/axios';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { authApi } from '@/lib/apiRequests';
 import { useRouter } from 'next/navigation';
 
 import type { AuthUser, AuthContextValue, LoginFormData, RegisterFormData } from '@/interfaces/AuthInterfaces';
@@ -13,12 +13,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
-
-  const fetchUser = () => {
-    return api.get('/user/api/v1/check-auth/')
+  const fetchUser = useCallback(() => {
+    return authApi.checkAuth()
       .then(res => {
         if (res.data.isAuthenticated) {
           setUser(res.data);
@@ -28,22 +24,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
 
   const registerUser = async (formData: RegisterFormData) => {
-    const res = await api.post('/user/api/v1/register/student/', formData);
+    const res = await authApi.register(formData);
     setUser(res.data); 
     return res.data;
   };
 
   const loginUser = async (formData: LoginFormData) => {
-    const res = await api.post('/user/api/v1/login/', formData);
+    const res = await authApi.login(formData);
     setUser(res.data); 
     return res.data;
   };
 
   const logoutUser = async () => {
-    await api.post('/user/api/v1/logout/');
+    await authApi.logout();
     setUser(null);
     router.push('/login');
   };

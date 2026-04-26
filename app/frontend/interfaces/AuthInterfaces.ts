@@ -31,3 +31,10 @@ export interface RegisterFormData {
   email: string;
   password: string;
 }
+
+export interface AuthCheckResponse {
+  isAuthenticated: boolean;
+  username?: string;
+  is_staff?: boolean;
+  roles?: string[];
+}
