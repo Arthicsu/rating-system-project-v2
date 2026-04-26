@@ -37,12 +37,12 @@ export default function ResetPasswordPage() {
               Временно недоступно
             </div>
             <p>
-              Функция восстановления пароля на данный момент недоступна. Для решения проблем со входом обратитесь в отдел информатизации:{' '}
+              Функция восстановления пароля на данный момент недоступна.<br></br> Для решения проблем со входом обратитесь в отдел информатизации:{' '}
               <Link
-                href="mailto:mail@bgitu.ru"
+                href="mailto:oi@bgitu.ru"
                 className="font-semibold text-[#0050CF] underline underline-offset-2 hover:text-[#002D6E]"
               >
-                mail@bgitu.ru
+                oi@bgitu.ru
               </Link>
             </p>
           </div>
@@ -61,10 +61,10 @@ export default function ResetPasswordPage() {
           <p className="text-sm text-black md:text-base">
             Если у Вас возникли технические сложности, свяжитесь с нами по email:{' '}
             <Link
-              href="mailto:mail@bgitu.ru"
+              href="mailto:oi@bgitu.ru"
               className="font-semibold text-[#0050CF] underline underline-offset-2 hover:text-[#002D6E]"
             >
-              mail@bgitu.ru
+              oi@bgitu.ru
             </Link>
           </p>
 

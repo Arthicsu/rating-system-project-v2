@@ -16,6 +16,7 @@ export default function RegisterPage() {
     first_name: '',
     patronymic: '',
     email: '',
+    record_book: '',
     password: '',
   });
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -134,14 +135,16 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="phone" className="text-sm font-medium text-slate-600">
-                Телефон
+              <label htmlFor="recordBook" className="text-sm font-medium text-slate-600">
+                Номер зачётной книжки<span className="text-rose-600">*</span>
               </label>
               <input
-                type="tel"
-                id="phone"
-                name="phone"
-                placeholder="+7(___)___-__-__"
+                type="text"
+                id="recordBook"
+                name="record_book"
+                value={formData.record_book}
+                onChange={handleChange}
+                required
                 className={inputClasses}
               />
             </div>
@@ -203,10 +206,10 @@ export default function RegisterPage() {
           <p className="text-sm text-slate-700 md:text-base">
             Если у Вас возникли технические сложности, свяжитесь с нами по email:{' '}
             <Link
-              href="mailto:mail@bgitu.ru"
+              href="mailto:oi@bgitu.ru"
               className="font-semibold text-sky-700 underline underline-offset-2 hover:text-sky-900"
             >
-              mail@bgitu.ru
+              oi@bgitu.ru
             </Link>
           </p>
 

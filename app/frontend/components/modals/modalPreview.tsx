@@ -88,7 +88,7 @@ export default function ModalPreview({ isOpen, doc, onClose, onDownload }: Modal
                       <button
                         key={file.id}
                         onClick={() => onDownload(file.id, file.original_file_name)}
-                        className="flex items-center gap-2 text-left text-sm text-sky-600 hover:text-sky-800"
+                        className="flex cursor-pointer items-center gap-2 text-left text-sm text-sky-600 hover:text-sky-800"
                       >
                         <i className="fa-solid fa-file" />
                         <span>{file.original_file_name || `Файл ${index + 1}`}</span>

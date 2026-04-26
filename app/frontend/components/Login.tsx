@@ -41,9 +41,9 @@ export default function Home() {
             email:{' '}
             <Link
               className="text-[#0050CF] underline underline-offset-2 hover:text-[#002D6E]"
-              href="mailto:mail@bgitu.ru"
+              href="mailto:oi@bgitu.ru"
             >
-              mail@bgitu.ru
+              oi@bgitu.ru
             </Link>
           </p>
         </div>

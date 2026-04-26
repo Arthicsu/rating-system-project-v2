@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from students.models import Student, Document
 
 User = get_user_model()
@@ -57,12 +58,13 @@ class LoginRequestSerializer(serializers.Serializer):
 class StudentRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(required=True, write_only=True)
     email = serializers.EmailField(required=True, write_only=True)
+    record_book = serializers.CharField(required=True, write_only=True)
 
     class Meta:
         model = User
         fields = [
             'first_name', 'last_name', 'patronymic', 
-            'email', 'password',
+            'email', 'password', 'record_book',
             ]
         extra_kwargs = {'password': {'write_only': True}}
 
@@ -79,6 +81,7 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         email = validated_data.pop('email')
+        record_book = validated_data.pop('record_book')
         patronymic = validated_data.pop('patronymic', '')
         
         user = User.objects.create_user(
@@ -88,13 +91,15 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
             patronymic=patronymic,
             email=email,
             password=validated_data['password'],
-            is_student=True,
-            is_teacher=False
         )
+        
+        student_group = Group.objects.get(name='Student')
+        user.groups.add(student_group)
+        
         Student.objects.create(
             user=user,
             group=None,
-            record_book=None,
+            record_book=record_book,
             full_name=user.get_full_name()
         )
         

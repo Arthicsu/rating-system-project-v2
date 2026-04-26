@@ -121,10 +121,10 @@ export default function LoginPage() {
           <p className="text-sm text-black md:text-base">
             Если у Вас возникли технические сложности, свяжитесь с нами по email:{' '}
             <Link
-              href="mailto:mail@bgitu.ru"
+              href="mailto:oi@bgitu.ru"
               className="font-semibold text-[#0050CF] underline underline-offset-2 hover:text-[#002D6E]"
             >
-              mail@bgitu.ru
+              oi@bgitu.ru
             </Link>
           </p>
 

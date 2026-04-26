@@ -180,7 +180,8 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
               </div>
             )}
 
-            {isOwner && pendingDocs.length > 0 && (
+            {/* {isOwner && pendingDocs.length > 0 && ( */}
+            {pendingDocs.length > 0 && (
               <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white">
@@ -198,7 +199,8 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
               </div>
             )}
 
-            {isOwner && rejectedDocs.length > 0 && (
+            {/* {isOwner && rejectedDocs.length > 0 && ( */}
+            {rejectedDocs.length > 0 && (
               <div className="rounded-2xl border border-rose-100 bg-rose-200 p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-500 text-white">
