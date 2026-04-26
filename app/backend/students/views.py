@@ -1,5 +1,5 @@
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, serializers
 from rest_framework.decorators import api_view
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -7,6 +7,9 @@ from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.views import APIView, PermissionDenied
 from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
 from rest_framework.parsers import MultiPartParser, FormParser
+
+from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
 
 from django.db import transaction
 from django.utils.decorators import method_decorator
@@ -38,6 +41,9 @@ class AchievementConfigAPIView(GenericAPIView):
     serializer_class = AchievementConfigSerializer
     pagination_class = None
 
+    @extend_schema(
+        responses={200: AchievementConfigSerializer}
+    )
     def get(self, request):
         structure = {
             cat.code: {
@@ -80,6 +86,9 @@ class StudentProfileAPIView(StudentFilterMixin, GenericAPIView):
     serializer_class = StudentProfileSerializer
     pagination_class = None
 
+    @extend_schema(
+        responses={200: StudentProfileSerializer}
+    )
     def get(self, request, student_id=None):
         user = request.user
         
@@ -124,6 +133,10 @@ class DocumentDownloadApiView(APIView):
     permission_classes = [IsAuthenticated]
     pagination_class = None
 
+    @extend_schema(
+        summary="Скачать файл документа",
+        responses={200: OpenApiTypes.BINARY},
+    )
     def get(self, request, file_id):
         """
         Обрабатывает GET-запрос на скачивание файла по его ID.
@@ -202,7 +215,11 @@ class AchievementUploadCreateAPIView(CreateAPIView):
     parser_classes = [MultiPartParser, FormParser]
     serializer_class = AchievementUploadSerializer
     pagination_class = None
-    
+
+    @extend_schema(
+        request=AchievementUploadSerializer,
+        responses={201: serializers.CharField()}
+    )
     def create(self, request, *args, **kwargs):
         """
         Обрабатывает POST-запрос на создание нового достижения.

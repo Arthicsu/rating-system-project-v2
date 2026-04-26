@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from university_structure.models import Faculty
 from django.db import transaction
 from django.core.cache import cache
@@ -35,6 +36,7 @@ class AchievementTypeSerializer(serializers.ModelSerializer):
         model = AchievementType
         fields = ['code', 'label', 'needs_level', 'needs_result', 'allowed_results']
 
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_allowed_results(self, obj):
         return list(
             set(
@@ -59,19 +61,23 @@ class AchievementConfigSerializer(serializers.Serializer):
     results = serializers.SerializerMethodField()
     doc_types = serializers.SerializerMethodField()
 
+    @extend_schema_field(serializers.DictField())
     def get_structure(self, obj):
         return obj
 
+    @extend_schema_field(LevelSerializer(many=True))
     def get_levels(self, obj):
         return LevelSerializer(
             Level.objects.exclude(code='none'), many=True
         ).data
 
+    @extend_schema_field(AchievementResultSerializer(many=True))
     def get_results(self, obj):
         return AchievementResultSerializer(
             AchievementResult.objects.exclude(code='none'), many=True
         ).data
 
+    @extend_schema_field(DocTypeSerializer(many=True))
     def get_doc_types(self, obj):
         return DocTypeSerializer(DocType.objects.all(), many=True).data
 
@@ -111,6 +117,7 @@ class StudentRatingSerializer(serializers.ModelSerializer):
             'cultural_score',
         ]
 
+    @extend_schema_field(serializers.CharField())
     def get_short_name(self, obj):
         if obj.user:
             return obj.user.get_user_short_name()
