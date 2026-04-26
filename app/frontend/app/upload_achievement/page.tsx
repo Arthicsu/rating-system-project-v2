@@ -1,6 +1,5 @@
 'use client';
 
-import api from '@/lib/axios';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
@@ -9,23 +8,25 @@ import { useMySession } from '@/context/AuthContext';
 import { Skeleton } from 'boneyard-js/react';
 import { useRouter } from 'next/navigation';
 
+import { studentApi } from '@/lib/apiRequests';
+import type { SelectOption, DataStructure } from '@/interfaces/AchievementInterfaces';
+
 export default function UploadAchievement() {
   const router = useRouter();
   const { user, loading: authLoading } = useMySession();
 
-  const [dataStructure, setDataStructure] = useState({});
-  const [levelsList, setLevelsList] = useState([]);
-  const [resultsList, setResultsList] = useState([]);
-  const [docTypesList, setDocTypesList] = useState([]);
-  const [, setConfigLoaded] = useState(false);
+  const [dataStructure, setDataStructure] = useState<DataStructure>({});
+  const [levelsList, setLevelsList] = useState<SelectOption[]>([]);
+  const [resultsList, setResultsList] = useState<SelectOption[]>([]);
+  const [docTypesList, setDocTypesList] = useState<SelectOption[]>([]);
 
   const [achievementName, setAchievementName] = useState('');
-  const [files, setFiles] = useState([]);
-  const [category, setCategory] = useState(null);
-  const [subType, setSubType] = useState(null);
-  const [level, setLevel] = useState(null);
-  const [result, setResult] = useState(null);
-  const [docType, setDocType] = useState(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [category, setCategory] = useState<string | null>(null);
+  const [subType, setSubType] = useState<SelectOption | null>(null);
+  const [level, setLevel] = useState<SelectOption | null>(null);
+  const [result, setResult] = useState<SelectOption | null>(null);
+  const [docType, setDocType] = useState<SelectOption | null>(null);
   const [dateReceived, setDateReceived] = useState('');
 
   const [showCategory, setShowCategory] = useState(false);
@@ -37,13 +38,12 @@ export default function UploadAchievement() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const response = await api.get('/student/api/v1/achievement-config/');
-        const {structure, levels, results, doc_types} = response.data;
+        const response = await studentApi.getAchievementConfig();
+        const { structure, levels, results, doc_types } = response.data;
         setDataStructure(structure);
         setLevelsList(levels);
         setResultsList(results);
         setDocTypesList(doc_types);
-        setConfigLoaded(true);
       } catch (error) {
         toast.error("Ошибка: " + error);
       }
@@ -110,7 +110,7 @@ export default function UploadAchievement() {
     setShowDocType(false);
   };
 
-const handleSubmit = async () => {
+  const handleSubmit = async () => {
     if (!user?.record_book || !category || !subType || !achievementName || !docType || !dateReceived || files.length === 0) {
       toast.error("Пожалуйста, заполните все обязательные поля (категория, вид, тип документа, название, дата получения) и прикрепите файл(-ы) подтверждения достижения.");
       return;
@@ -137,18 +137,17 @@ const handleSubmit = async () => {
     const loadingToast = toast.loading('Загрузка достижения...');
 
     try {
-      const response = await api.post('/student/api/v1/upload/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await studentApi.uploadAchievement(formData);
       toast.dismiss(loadingToast);
       toast.success(response.data.message);
       router.push('/profile');
     } catch (error) {
       toast.dismiss(loadingToast);
-      if (error.response?.data?.files) {
-        toast.error('Ошибка: ' + error.response.data.files[0]);
-      } else if (error.response?.data?.student) {
-        toast.error('Ошибка: ' + error.response.data.student);
+      const err = error as { response?: { data?: { files?: string[]; student?: string[] } } };
+      if (err.response?.data?.files) {
+        toast.error('Ошибка: ' + err.response.data.files[0]);
+      } else if (err.response?.data?.student) {
+        toast.error('Ошибка: ' + err.response.data.student);
       } else {
         toast.error('Ошибка при отправке достижения');
       }
@@ -175,10 +174,11 @@ const handleSubmit = async () => {
               <div className="space-y-4" onClick={closeAllDropdowns}>
               {/* Номер зачетной */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-slate-500">
+                <label htmlFor="record-book" className="text-[11px] font-medium text-slate-500">
                   Номер зачетной книги
                 </label>
                 <input
+                  id="record-book"
                   className="w-full rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
                   type="text"
                   value={user?.record_book || ''}
@@ -308,7 +308,7 @@ const handleSubmit = async () => {
                       setShowResult(false);
                       setShowDocType(false);
                     }}
-                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-slate-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
+                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-sky-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
                   >
                     <span>{level ? level.label : 'Выберите уровень'}</span>
                     <span className="text-xs text-slate-400">▼</span>
@@ -355,7 +355,7 @@ const handleSubmit = async () => {
                       setShowLevel(false);
                       setShowDocType(false);
                     }}
-                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-slate-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
+                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-sky-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
                   >
                     <span>{result ? result.label : 'Выберите результат'}</span>
                     <span className="text-xs text-slate-400">▼</span>
@@ -401,7 +401,7 @@ const handleSubmit = async () => {
                     setShowLevel(false);
                     setShowResult(false);
                   }}
-                  className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-slate-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
+                  className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-sky-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
                 >
                   <span>
                     {docType ? docType.label : 'Выберите тип документа'}
@@ -446,10 +446,11 @@ const handleSubmit = async () => {
 
               {/* Дата получения достижения */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-slate-500">
+                <label htmlFor="date-received" className="text-[11px] font-medium text-slate-500">
                   *Дата получения достижения
                 </label>
                 <input
+                  id="date-received"
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-500/70"
                   type="date"
                   value={dateReceived}
