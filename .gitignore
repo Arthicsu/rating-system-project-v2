@@ -46,5 +46,6 @@ dump*.sql
 dumps/*
 docs/*
 logs/*
+app/backend/config-files
 app/backend/config-files/*
 app/backend/logs/*
