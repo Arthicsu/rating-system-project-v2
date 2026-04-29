@@ -15,7 +15,7 @@ venv.bak/
 
 static/uploads
 TODO.md
-README-prod.md
+README-dev.md
 
 __pycache__/
 *.py[cod]

@@ -1,92 +1,87 @@
 # BGITU Tracking Student Performance for Scholarships
 [![Python Version](https://img.shields.io/badge/python-3.12%2B-red?style=flat-square)]()
-[![Django](https://img.shields.io/badge/Django-6.0-green?style=flat-square)]()
+[![Django](https://img.shields.io/badge/Django-6.0.2-green?style=flat-square)]()
 [![Next.js](https://img.shields.io/badge/Next.js-16.1-black?style=flat-square)]()
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue?style=flat-square)]()
 [![Docker](https://img.shields.io/badge/Docker-ready-blue?style=flat-square)]()
 
 
+<div align="center">
+  <img width="100" alt="BGITU" src="app/frontend/public/media/logo_BGITU.png" />
+</div>
+
+## Краткое описание
+
+**BGITU Tracking Student Performance for Scholarships** - система для автоматизации учёта достижений студентов. Студенты формируют цифровое портфолио, преподаватели верифицируют заявки и отслеживают аналитику по баллам.
+
 ## Технологический стек
 
-- **Backend**: Django 6.0 (REST Framework)
-- **Frontend**: React 19 + Next.js 16 (App Router)
+- **Backend**: Django 6.0.2 (REST Framework)
+- **Frontend**: React 19 + Next.js 16.1.6 (App Router)
 - **Database**: PostgreSQL 17
-- **Storage**: Supabase (S3 Bucket) для хранения подтверждающих достижение документов (позже заменим)
+- **Cache/Sessions**: Redis 8.6.2
+- **Storage**: SeaweedFS 4.21 (S3-совместимое хранилище для документов)
 - **DevOps**: Docker + Docker Compose
-- **Design**: [Макет в Figma](https://www.figma.com/design/9l33Vfc0J1KDnmRAVFf83a/Student-rating?node-id=0-1&p=f&t=3ykJrEDJjMVUqEgg-0)
+- **Design**: [Макет в Figma](https://www.figma.com/board/9l33Vfc0J1KDnmRAVFf83a/Student-rating)
 
----
+## Ключевые особенности
 
-## Структура проекта
-```text
-├── app/
-│   ├── backend/                    # Django проект: API, модели данных и логика
-│   │   ├── students/               # Необходимые модели данных, логика отправки документов
-│   │   ├── university_structure/   # Необходимые модели данных, логика одобрения/отклонения документов
-│   │   └── users/                  # Кастомная авторизация и профили
-│   └── frontend/                   # Next.js приложение: компоненты и контексты
-│       ├── app/                    # Маршрутизация (Next.js App Router)
-│       ├── components/             # UI-кит проекта (Header, Login, StudentRating)
-│       └── context/                # Управление состоянием (AuthContext)
-├── docker-compose.yml              # Конфигурация сервисов
-└── .env.example                    # Шаблон переменных окружения
-```
-## Установка и развертывание
-- Убедитесь, что у вас установлены Docker.
+- **Ролевая модель**: личные кабинеты для студентов, панель для преподавателей.
+- **Аналитика**: распределение баллов по видам деятельности (учеба, наука, спорт, культура), отслеживание среднего балла группы, формирование выборок студентов.
+- **Автоматизированный скоринг**: система начисления баллов на основе настраиваемой конфигурации.
+- **Документы**: загрузка и хранение подтверждающих документов (дипломы, грамоты и т.д.).
 
-Клонируйте репозиторий:<br>
-```
-git clone https://github.com/Arthicsu/rating-system-project-v2.git
-```
-- Настройте переменные окружения из .env.example
+## Требования
 
-- Запустите проект:
+- Python 3.12+
+- Node.js 25+
+- Docker Engine 29.1+
 
-```
-docker-compose up --build
-```
-После сборки frontend будет доступен на http://localhost:3000, а API backend на http://localhost:8000.
+## Установка и развёртывание для разработки (не prod)
 
-Для настройки ролей пользователей
-```
-docker compose exec backend python manage.py setup_roles
-```
+1. Клонируйте репозиторий:
+   ```bash
+   git clone https://github.com/Arthicsu/rating-system-project-v2.git
+   ```
 
-Для создания суперпользователя
-```
-docker compose exec backend python manage.py createsuperuser
-```
+2. Настройте переменные окружения:
+   ```bash
+   cp .env.example .env
+   # Заполните .env (SECRET_KEY, ключи SeaweedFS, PostgreSQL, Redis)
+   ```
 
-Для локальной разработки фронтенда нужно установить зависимости через [pnpm](https://pnpm.io/installation):
+3. Запустите проект:
+   ```bash
+   docker compose up -d --build
+   ```
 
-Устанавливаем pnpm. В PowerShell:
-```
-Invoke-WebRequest https://get.pnpm.io/install.ps1 -UseBasicParsing | Invoke-Expression
-```
-Переходим в директорию фронта
-```
+4. Первоначальная настройка (после первого запуска):
+   ```bash
+   docker compose exec backend python manage.py setup_roles
+   docker compose exec backend python manage.py createsuperuser
+   ```
+
+## Локальная разработка frontend
+
+Для разработки frontend используйте **pnpm**:
+
+```bash
 cd app/frontend
-```
-И устанавливаем зависимости
-```
-pnpm i
+pnpm install
+pnpm dev
 ```
 
-## Требования:
->Python 3.12+
+## Документация
 
->Node.js 22+
+К проекту есть документация
 
->Docker Engine 29.1+
+## Docker-образы
 
->PostgreSQL 17
+- `arthicsu/bgitu-rating-backend:1.0.0`
+- `arthicsu/bgitu-rating-frontend:1.0.0`
+- `arthicsu/bgitu-rating-nginx:local-dev`
 
-## Документация API
+## Лицензия
 
-Проект использует **drf-spectacular** для автоматической генерации OpenAPI 3.0 схемы. После запуска бэкенда (порт 8000), документация доступна по следующим адресам:
-
-- **Swagger UI**: [http://localhost:8000/api/schema/swagger-ui/](http://localhost:8000/api/schema/swagger-ui/) — интерактивная консоль для тестирования запросов.
-- **Redoc**: [http://localhost:8000/api/schema/redoc/](http://localhost:8000/api/schema/redoc/) — чистая и удобная документация в формате лендинга.
-- **OpenAPI Schema (JSON)**: [http://localhost:8000/api/schema/](http://localhost:8000/api/schema/) — сырая схема для импорта в Postman или генерации клиентов.
-
-Для доступа к защищенным методам в Swagger UI используйте кнопку **Authorize** (поддерживается Session Authentication).
+Проект распространяется под лицензией MIT.  
+Организация: БГИТУ (Брянский государственный инженерно-технологический университет)
