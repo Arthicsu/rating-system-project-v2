@@ -1,6 +1,6 @@
 services:
   backend:
-    build: ./app/backend
+    image: arthicsu/bgitu-rating-backend:1.0.0
     container_name: app_backend
     volumes:
       - ./app/backend:/app
@@ -28,7 +28,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
   frontend:
-    build: ./app/frontend
+    image: arthicsu/bgitu-rating-frontend:1.0.0
     container_name: app_frontend
     volumes:
       - ./app/frontend:/app
@@ -37,7 +37,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: '1.25'
           memory: 512M
         reservations:
           cpus: '0.25'
@@ -53,7 +53,7 @@ services:
       - backend
     restart: unless-stopped
   db:
-    image: postgres:17
+    image: postgres:17-alpine
     container_name: postgres_db
     volumes:
       - postgres_data:/var/lib/postgresql/data/
@@ -108,7 +108,7 @@ services:
     ports:
       - "8333:8333"
       - "9333:9333"
-      - "8888:8888"
+      # - "8888:8888"
     environment:
       AWS_ACCESS_KEY_ID: ${SEAWEEDFS_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${SEAWEEDFS_SECRET_KEY}
@@ -134,6 +134,7 @@ services:
       timeout: 10s
   nginx:
     build: ./app/nginx
+    # image: arthicsu/bgitu-rating-nginx:local-dev
     container_name: app_nginx
     ports:
       - "80:80"

@@ -11,7 +11,7 @@ echo '{
       "accessKey": "'"${AWS_ACCESS_KEY_ID}"'",
       "secretKey": "'"${AWS_SECRET_ACCESS_KEY}"'"
     }],
-    "actions": ["Read:PublicAccess", "Write:Delete"]
+    "actions": ["Read", "Write", "Delete"]
   }]
 }' > /etc/seaweedfs/s3.json
 
