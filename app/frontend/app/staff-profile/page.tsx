@@ -136,6 +136,7 @@ export default function StaffProfilePage() {
     fetchLookups();
   }, []);
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     const fetchGroups = async () => {
       try {
@@ -145,14 +146,16 @@ export default function StaffProfilePage() {
         };
         
         const groupsRes = await universityApi.getFilteredGroups(params);
-        setGroupsList(groupsRes.data || []);
+        const groups = groupsRes.data || [];
+        setGroupsList(groups);
         
         if (selectedCourse === 'all' || selectedFacultyId === 'all') {
           setSelectedGroupId('all');
-        } else if (groupsRes.data && groupsRes.data.length > 0) {
-          setSelectedGroupId(groupsRes.data[0].id);
-        } else {
-          setSelectedGroupId('all');
+        } else if (groups.length > 0) {
+          const currentStillExists = groups.some(g => g.id === selectedGroupId);
+          if (!currentStillExists) {
+            setSelectedGroupId(groups[0].id);
+          }
         }
       } catch (error) {
         console.error("Ошибка загрузки групп: ", error);
@@ -160,6 +163,7 @@ export default function StaffProfilePage() {
     };
     fetchGroups();
   }, [loadTrigger, selectedCourse, selectedFacultyId]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -185,11 +189,11 @@ export default function StaffProfilePage() {
           universityApi.getFilteredDashboardStats(statsParams)
         ]);
 
-        setStudentsData(studentsRes.data.results);
-        setTotalStudents(studentsRes.data.count);
-        setPendingDocsData(statsRes.data.pending_documents);
+        setStudentsData(studentsRes.data.results || []);
+        setTotalStudents(studentsRes.data.count || 0);
+        setPendingDocsData(statsRes.data.results || []);
         setTotalRequests(statsRes.data.count || 0);
-        setStats(statsRes.data.stats);
+        setStats(statsRes.data.stats || { total_students: 0, avg_score: 0 });
         setTop5Students(statsRes.data.top5 || []);
         
       } catch (error) {
@@ -202,7 +206,7 @@ export default function StaffProfilePage() {
   }, [selectedGroupId, selectedSemesterId, currentPage, selectedCourse, requestsPage]);
 
   const filteredStudents = useMemo(() => {
-    let students = studentsData;
+    let students = studentsData || [];
     if (searchTerm.trim() !== '') {
       const lowerTerm = searchTerm.toLowerCase();
       students = students.filter(s => 
@@ -214,7 +218,7 @@ export default function StaffProfilePage() {
   }, [studentsData, searchTerm]);
 
   const filteredDocs = useMemo(() => {
-    let docs = pendingDocsData;
+    let docs = pendingDocsData || [];
     if (requestsSearchTerm.trim() !== '') {
       const lowerTerm = requestsSearchTerm.toLowerCase();
       docs = docs.filter(d =>
@@ -225,7 +229,7 @@ export default function StaffProfilePage() {
   }, [pendingDocsData, requestsSearchTerm]);
 
   const dynamicStats = useMemo(() => {
-    const students = filteredStudents;
+    const students = filteredStudents || [];
     const defaults = {
       total_students: stats.total_students,
       avg_score: stats.avg_score,
@@ -317,7 +321,7 @@ export default function StaffProfilePage() {
 
   const currentGroupName = selectedGroupId === 'all'
     ? 'Все группы'
-    : (groupsList.find(g => g.id === selectedGroupId)?.name || 'Все группы');
+    : (groupsList.find(g => String(g.id) === selectedGroupId)?.name || 'Все группы');
     
   return (
     <>

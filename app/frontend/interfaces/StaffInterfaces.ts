@@ -95,7 +95,7 @@ export interface DashboardStatsResponse {
     total_students: number;
     avg_score: number;
   };
-  pending_documents: Document[];
+  results: Document[];
   top5: StudentSimple[];
 }
 
