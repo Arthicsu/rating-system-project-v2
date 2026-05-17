@@ -106,8 +106,8 @@ archive/
 
 ## Docker-образы
 
-- `arthicsu/bgitu-rating-backend:1.0.0`
-- `arthicsu/bgitu-rating-frontend:1.0.0`
+- `arthicsu/bgitu-rating-backend:1.0.2`
+- `arthicsu/bgitu-rating-frontend:1.0.2`
 - `arthicsu/bgitu-rating-nginx:local-dev`
 
 ## Лицензия
