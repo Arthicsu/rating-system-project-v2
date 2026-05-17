@@ -33,6 +33,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY requirements.txt .
 COPY . .
 
+RUN mkdir -p /app/logs && chown 777 /app/logs
 RUN chmod +x entrypoint.sh
 
 EXPOSE 8000
