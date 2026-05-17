@@ -1,6 +1,6 @@
 services:
   backend:
-    image: arthicsu/bgitu-rating-backend:1.0.0
+    image: arthicsu/bgitu-rating-backend:1.0.2
     container_name: app_backend
     volumes:
       - ./app/backend:/app
@@ -29,7 +29,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
   frontend:
-    image: arthicsu/bgitu-rating-frontend:1.0.0
+    image: arthicsu/bgitu-rating-frontend:1.0.2
     container_name: app_frontend
     volumes:
       - ./app/frontend:/app
