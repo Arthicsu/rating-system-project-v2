@@ -3,7 +3,7 @@
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
 
 {% block branding %}
-<img src="{% static 'images/gerb.png' %}" alt="Логотип" height="100" style="vertical-align: middle; margin-right: 20px;">
+<img src="{% static 'images/gerb.svg' %}" alt="Логотип" height="70" style="width: 100px; height: 100px; vertical-align: middle; margin-right: 20px;">
 <div style="align-content: center;" id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></div>
 {% if user.is_anonymous %}
   {% include "admin/color_theme_toggle.html" %}

@@ -75,7 +75,7 @@ export default function ResetPasswordPage() {
               OF ENGINEERING
             </p>
             <Image
-              src="/media/logo_BGITU.png"
+              src="/media/logo_BGITU.svg"
               alt="Логотип БГИТУ"
               width={80}
               height={64}

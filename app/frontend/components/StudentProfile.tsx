@@ -26,11 +26,19 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
   };
 
   const options = {
+    responsive: true,
+    maintainAspectRatio: false,
     scales: {
       r: {
         angleLines: { display: true },
         suggestedMin: 0,
         suggestedMax: 15,
+        pointLabels: {
+          font: { size: 13, weight: 'bold' as const },
+        },
+        ticks: {
+          display: false,
+        },
       },
     },
     plugins: {
@@ -126,7 +134,16 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
             </div>
 
             <div className="mt-6 flex flex-col gap-5 lg:grid lg:grid-cols-3">
-              <div className="space-y-3 col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
+              <div className="col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Диаграмма распределения баллов
+                </p>
+                <div className="relative h-64 sm:h-80">
+                  <Radar data={data} options={options} />
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Распределение баллов по видам деятельности
                 </p>
@@ -147,15 +164,6 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
                       </div>
                     )
                   )}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Диаграмма распределения баллов
-                </p>
-                <div className="relative h-72">
-                  <Radar data={data} options={options} />
                 </div>
               </div>
             </div>

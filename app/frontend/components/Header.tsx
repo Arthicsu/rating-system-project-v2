@@ -15,7 +15,7 @@ export default function Header() {
           <div className="flex min-w-0 items-center gap-3 sm:gap-6.5">
             <Link href="/">
               <Image
-                src="/media/logo_BGITU.png"
+                src="/media/logo_BGITU.svg"
                 alt="БГИТУ"
                 width={40}
                 height={40}

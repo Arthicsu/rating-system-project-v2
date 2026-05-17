@@ -13,7 +13,7 @@ export default function ModalPreview({ isOpen, doc, onClose, onDownload }: Modal
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.35)] sm:p-6">
         <button
           type="button"
-          className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full text-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+          className="cursor-pointer absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full text-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
           onClick={onClose}
         >
           &times;
@@ -88,7 +88,7 @@ export default function ModalPreview({ isOpen, doc, onClose, onDownload }: Modal
                       <button
                         key={file.id}
                         onClick={() => onDownload(file.id, file.original_file_name)}
-                        className="flex cursor-pointer items-center gap-2 text-left text-sm text-sky-600 hover:text-sky-800"
+                        className="cursor-pointer flex cursor-pointer items-center gap-2 text-left text-sm text-sky-600 hover:text-sky-800"
                       >
                         <i className="fa-solid fa-file" />
                         <span>{file.original_file_name || `Файл ${index + 1}`}</span>

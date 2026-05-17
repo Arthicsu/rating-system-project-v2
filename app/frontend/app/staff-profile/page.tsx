@@ -268,6 +268,7 @@ export default function StaffProfilePage() {
       await universityApi.reviewDocument(modalState.targetId, { action: 'approve' });
 
       setPendingDocsData(prev => prev.filter(doc => doc.id !== modalState.targetId));
+      setTotalRequests(prev => prev - 1);
       setStudentsData(prev => prev.map(student => {
           if (student.id === modalState.targetStudentId) {
               return { ...student, total_score: student.total_score + modalState.targetScore };
@@ -304,6 +305,7 @@ export default function StaffProfilePage() {
       });
 
       setPendingDocsData(prev => prev.filter(doc => doc.id !== modalState.targetId));
+      setTotalRequests(prev => prev - 1);
 
       closeModal();
       await refreshUser();
@@ -502,7 +504,7 @@ export default function StaffProfilePage() {
             <button
               type="button"
               onClick={() => setActiveTab('my-group')}
-              className={`inline-flex items-center whitespace-nowrap rounded-l-md px-4 py-2 font-medium transition ${
+              className={`cursor-pointer inline-flex items-center whitespace-nowrap rounded-l-md px-4 py-2 font-medium transition ${
                 activeTab === 'my-group'
                   ? 'bg-slate-500 text-white shadow-sm'
                   : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'
@@ -513,7 +515,7 @@ export default function StaffProfilePage() {
             <button
               type="button"
               onClick={() => setActiveTab('pending-requests')}
-              className={`inline-flex items-center whitespace-nowrap px-4 py-2 font-medium transition ${
+              className={`cursor-pointer inline-flex items-center whitespace-nowrap px-4 py-2 font-medium transition ${
                 activeTab === 'pending-requests'
                   ? 'bg-slate-500 text-white shadow-sm'
                   : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'
@@ -529,7 +531,7 @@ export default function StaffProfilePage() {
             <button
               type="button"
               onClick={() => setActiveTab('statistics')}
-              className={`inline-flex items-center whitespace-nowrap rounded-r-md px-4 py-2 font-medium transition ${
+              className={`cursor-pointer inline-flex items-center whitespace-nowrap rounded-r-md px-4 py-2 font-medium transition ${
                 activeTab === 'statistics'
                   ? 'bg-slate-500 text-white shadow-sm'
                   : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'
@@ -703,7 +705,7 @@ export default function StaffProfilePage() {
                         <button
                           type="button"
                           onClick={() => setPreviewDoc(doc)}
-                          className="ml-auto text-[10px] text-sky-600 hover:text-sky-800 sm:text-xs"
+                          className="cursor-pointer ml-auto text-[10px] text-sky-600 hover:text-sky-800 sm:text-xs"
                         >
                           Подробнее <i className="fa-solid fa-arrow-right ml-1" />
                         </button>
@@ -721,7 +723,7 @@ export default function StaffProfilePage() {
                           <button
                             type="button"
                             onClick={() => openModal('approve', doc)}
-                            className="flex-1 rounded-lg bg-emerald-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:text-xs"
+                            className="cursor-pointer flex-1 rounded-lg bg-emerald-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:text-xs"
                           >
                             Одобрить
                           </button>
@@ -729,7 +731,7 @@ export default function StaffProfilePage() {
                         <button
                           type="button"
                           onClick={() => openModal('reject', doc)}
-                          className="flex-1 rounded-lg bg-rose-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-rose-700 sm:text-xs sm:px-3 sm:py-2"
+                          className="cursor-pointer flex-1 rounded-lg bg-rose-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-rose-700 sm:text-xs sm:px-3 sm:py-2"
                         >
                           Отклонить
                         </button>

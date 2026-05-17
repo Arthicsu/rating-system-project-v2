@@ -122,7 +122,7 @@ export default function RatingPage() {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                className={`border-r border-[#f0f0f0] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1.5 md:py-2 lg:py-3 transition-colors last:border-r-0 ${
+                className={`cursor-pointer border-r border-[#f0f0f0] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1.5 md:py-2 lg:py-3 transition-colors last:border-r-0 ${
                   activeTab === tab.id
                     ? 'bg-sky-700 text-white'
                     : 'bg-transparent text-[#333] hover:bg-[#e9ecef]'

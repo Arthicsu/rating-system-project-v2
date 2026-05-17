@@ -27,7 +27,7 @@ export default function Main() {
 
           <div className="flex items-center gap-4 pb-4 md:gap-6">
             <Image
-              src="/media/logo_BGITU.png"
+              src="/media/logo_BGITU.svg"
               alt="БГИТУ"
               width={80}
               height={80}
@@ -42,15 +42,11 @@ export default function Main() {
           </div>
 
           <p className="text-xs text-[#333] md:text-base sm:text-sm">
-            «Единый личный кабинет» является единым информационным пространством БГИТУ.
+            «Портфолио БГИТУ» - система для автоматизации учёта достижений студентов. <br />
+            Данный сайт представляет собой Web-расширение информационной системы БГИТУ, <br />
+            созданное для студентов и сотрудников университета.
           </p>
-          <p className="text-xs text-[#333] md:text-base sm:text-sm">
-            При невозможности восстановить пароль или авторизоваться вы можете обратиться на
-            Горячую линию поддержки. <br />
-            Горячая линия БГИТУ работает с 8:30 до 18:00 (пн–пт): <br />
-            <span className="font-semibold">+7 (4832) 64-99-12</span>
-          </p>
-          <p className="text-xs text-[#333] md:text-base sm:text-sm">
+          {/* <p className="text-xs text-[#333] md:text-base sm:text-sm">
             email:{' '}
             <Link
               className="text-[#0050CF] underline underline-offset-2 hover:text-[#002D6E]"
@@ -58,28 +54,28 @@ export default function Main() {
             >
               oi@bgitu.ru
             </Link>
-          </p>
+          </p> */}
         </div>
 
         {/* Правая колонка с действиями */}
         <div className="flex w-full max-w-xs flex-col items-stretch justify-center gap-3 rounded-2xl bg-[#F5F7FB] px-5 py-6 shadow-sm md:max-w-sm">
-          <button className="w-full rounded-md bg-[#0050CF] text-sm font-semibold text-white transition hover:bg-[#002D6E]">
+          <button className="cursor-pointer w-full rounded-md bg-sky-700 text-sm font-semibold text-white transition hover:bg-sky-900">
             <Link href="/register" className="block w-full text-center px-4 py-3">
               Зарегистрироваться
             </Link>
           </button>
 
-          <button className="w-full rounded-md bg-white text-sm font-semibold text-[#0050CF] ring-1 ring-[#0050CF] transition hover:bg-[#0050CF] hover:text-white">
+          <button className="cursor-pointer w-full rounded-md bg-white text-sm font-semibold text-[#0069a8] ring-1 ring-[#0069a8] transition hover:bg-sky-700 hover:text-white">
             <Link href="/login" className="block w-full text-center px-4 py-3">
               Войти
             </Link>
           </button>
 
-          <button className="mt-1 text-center text-xs text-[#6a7a98] underline underline-offset-2 hover:text-[#0050CF]">
+          {/* <button className="cursor-pointer mt-1 text-center text-xs text-[#6a7a98] underline underline-offset-2 hover:text-[#0069a8]">
             <Link href="/reset-password">
               Восстановить пароль
             </Link>
-          </button>
+          </button> */}
         </div>
       </div>
     </section>

@@ -102,6 +102,27 @@ export default function UploadAchievement() {
     return resultsList.filter((item) => allowed.includes(item.code));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const MAX_SIZE = 20 * 1024 * 1024;
+    const selected = Array.from(e.target.files || []);
+    const oversized = selected.filter(f => f.size > MAX_SIZE);
+    if (oversized.length > 0) {
+      toast.error(`Файл(ы) превышают 20 МБ: ${oversized.map(f => f.name).join(', ')}`);
+      return;
+    }
+    const totalSize = selected.reduce((sum, f) => sum + f.size, 0);
+    if (totalSize > MAX_SIZE) {
+      toast.error("Общий размер файлов превышает 20 МБ");
+      return;
+    }
+    if (selected.length > 3) {
+      toast.error("Максимальное количество файлов - 3");
+      setFiles(selected.slice(0, 3));
+    } else {
+      setFiles(selected);
+    }
+  };
+
   const closeAllDropdowns = () => {
     setShowCategory(false);
     setShowSubType(false);
@@ -204,7 +225,7 @@ export default function UploadAchievement() {
                     setShowResult(false);
                     setShowDocType(false);
                   }}
-                  className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-sky-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
+                  className="cursor-pointer flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-sky-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
                 >
                   <span>
                     {category
@@ -222,7 +243,7 @@ export default function UploadAchievement() {
                       <button
                         key={key}
                         type="button"
-                        className="block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
+                        className="cursor-pointer block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
                         onClick={() => {
                           setCategory(key);
                           setSubType(null);
@@ -257,7 +278,7 @@ export default function UploadAchievement() {
                       setShowResult(false);
                       setShowDocType(false);
                     }}
-                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-slate-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
+                    className="cursor-pointer flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-slate-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
                   >
                     <span>
                       {subType ? subType.label : 'Выберите вид деятельности'}
@@ -273,7 +294,7 @@ export default function UploadAchievement() {
                         <button
                           key={item.code}
                           type="button"
-                          className="block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
+                          className="cursor-pointer block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
                           onClick={() => {
                             setSubType(item);
                             setLevel(null);
@@ -308,7 +329,7 @@ export default function UploadAchievement() {
                       setShowResult(false);
                       setShowDocType(false);
                     }}
-                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-sky-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
+                    className="cursor-pointer flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-sky-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
                   >
                     <span>{level ? level.label : 'Выберите уровень'}</span>
                     <span className="text-xs text-slate-400">▼</span>
@@ -322,7 +343,7 @@ export default function UploadAchievement() {
                         <button
                           key={item.code}
                           type="button"
-                          className="block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
+                          className="cursor-pointer block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
                           onClick={() => {
                             setLevel(item);
                             setShowLevel(false);
@@ -355,7 +376,7 @@ export default function UploadAchievement() {
                       setShowLevel(false);
                       setShowDocType(false);
                     }}
-                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-sky-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
+                    className="cursor-pointer flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-sky-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
                   >
                     <span>{result ? result.label : 'Выберите результат'}</span>
                     <span className="text-xs text-slate-400">▼</span>
@@ -369,7 +390,7 @@ export default function UploadAchievement() {
                         <button
                           key={item.code}
                           type="button"
-                          className="block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
+                          className="cursor-pointer block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
                           onClick={() => {
                             setResult(item);
                             setShowResult(false);
@@ -401,7 +422,7 @@ export default function UploadAchievement() {
                     setShowLevel(false);
                     setShowResult(false);
                   }}
-                  className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-sky-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
+                  className="cursor-pointer flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-500/0 transition hover:border-sky-400 hover:bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70"
                 >
                   <span>
                     {docType ? docType.label : 'Выберите тип документа'}
@@ -414,7 +435,7 @@ export default function UploadAchievement() {
                       <button
                         key={item.code}
                         type="button"
-                        className="block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
+                        className="cursor-pointer block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
                         onClick={() => {
                           setDocType(item);
                           setShowDocType(false);
@@ -461,7 +482,7 @@ export default function UploadAchievement() {
               {/* Файлы */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-medium text-slate-500">
-                  *Файлы
+                  *Файлы (формат: .doc, .docx, .pdf)
                 </label>
                 <p className="text-[11px] text-slate-400">
                   Максимальный размер файла: 20 МБ, максимум 3 файла
@@ -472,26 +493,7 @@ export default function UploadAchievement() {
                     multiple
                     accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, .doc"
                     className="hidden"
-                    onChange={(e) => {
-                      const MAX_SIZE = 20 * 1024 * 1024;
-                      const selected = Array.from(e.target.files || []);
-                      const oversized = selected.filter(f => f.size > MAX_SIZE);
-                      if (oversized.length > 0) {
-                        toast.error(`Файл(ы) превышают 20 МБ: ${oversized.map(f => f.name).join(', ')}`);
-                        return;
-                      }
-                      const totalSize = selected.reduce((sum, f) => sum + f.size, 0);
-                      if (totalSize > MAX_SIZE) {
-                        toast.error("Общий размер файлов превышает 20 МБ");
-                        return;
-                      }
-                      if (selected.length > 3) {
-                        toast.error("Максимальное количество файлов - 3");
-                        setFiles(selected.slice(0, 3));
-                      } else {
-                        setFiles(selected);
-                      }
-                    }}
+                    onChange={handleFileChange}
                   />
                   <span className="text-[11px] font-medium text-slate-700">
                     {files.length
@@ -509,7 +511,7 @@ export default function UploadAchievement() {
                 <button
                     type="button"
                     onClick={handleSubmit}
-                    className=" cursor-pointer mt-5 inline-flex items-center justify-center rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-emerald-900 shadow-[0_10px_30px_rgba(52,211,153,0.45)] transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
+                    className="cursor-pointer mt-5 inline-flex items-center justify-center rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-emerald-900 shadow-[0_10px_30px_rgba(52,211,153,0.45)] transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
                   >
                     Загрузить
                   </button>
