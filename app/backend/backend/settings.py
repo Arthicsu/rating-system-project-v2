@@ -70,7 +70,7 @@ CSRF_TRUSTED_ORIGINS = os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", '').split("
 EXTERNAL_SITE_URL = os.getenv('CLIENT_URL', '')
 API_SCHEMA_URL = os.getenv('API_SCHEMA_URL', '')
 CORS_ALLOW_CREDENTIALS = True 
-
+# CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 CORS_ALLOW_METHODS = (
     "DELETE",
     "GET",

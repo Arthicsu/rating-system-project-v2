@@ -8,6 +8,8 @@ from django.db.models import Avg, F, Count, Q, ExpressionWrapper, IntegerField
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.middleware.csrf import get_token
 
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
@@ -110,7 +112,8 @@ class LoginAPIView(GenericAPIView):
             return Response(response_data, status=status.HTTP_200_OK)
         else:
             return Response({"message": "Неверный логин или пароль"}, status=status.HTTP_401_UNAUTHORIZED)
-        
+
+# @method_decorator(ensure_csrf_cookie, name='dispatch')
 class CheckAuthAPIView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = [SessionAuthentication]
@@ -128,6 +131,20 @@ class CheckAuthAPIView(APIView):
             return Response(response_data, status=status.HTTP_200_OK)
         
         return Response({"isAuthenticated": False}, status=status.HTTP_401_UNAUTHORIZED)
+
+# @method_decorator(ensure_csrf_cookie, name='dispatch')
+# class CsrfTokenAPIView(APIView):
+#     permission_classes = [AllowAny]
+#     authentication_classes = []
+
+#     @extend_schema(
+#         responses={200: inline_serializer(name='CsrfTokenResponse', fields={'csrfToken': serializers.CharField()})}
+#     )
+#     def get(self, request):
+#         csrf_token = get_token(request)
+#         response = Response({"csrfToken": csrf_token}, status=status.HTTP_200_OK)
+#         response['X-CSRFToken'] = csrf_token
+#         return response
 
 class LogoutAPIView(GenericAPIView):
     permission_classes = [IsAuthenticated]

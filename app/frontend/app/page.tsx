@@ -17,7 +17,7 @@ export default function Main() {
     
   if (user?.isAuthenticated === true) {redirect("/rating")}
   return (
-    <section className="min-h-screen bg-[#EDEFF3] px-4 pt-30 pb-10">
+    <section className="min-h-screen bg-slate-100 px-4 pt-30 pb-10">
       <div className="mx-auto flex max-w-300 flex-col gap-6 rounded-2xl bg-white/90 p-6 shadow-sm items-center lg:flex-row md:gap-8 md:px-10 md:py-8">
         {/* Левая колонка с описанием */}
         <div className="flex-1 space-y-4">

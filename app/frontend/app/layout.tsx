@@ -5,12 +5,14 @@ import '@/app/globals.css';
 import '@/styles/fontawesome-free-7.2.0-web/css/all.min.css';
 import Header from '@/components/Header';
 import { AuthProvider } from '@/context/AuthContext';
+import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'react-hot-toast';
 import '@/bones/registry'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru">
+    {/* <ThemeProvider attribute="class" defaultTheme="system" enableSystem> */}
       <head>
       </head>
       <body>
@@ -20,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </AuthProvider>
       </body>
+    {/* </ThemeProvider> */}
     </html>
   );
 }

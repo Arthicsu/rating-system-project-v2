@@ -12,6 +12,7 @@ urlpatterns: list = [
     path('api/v1/category-achievements/', views.CategoryAchievementAPIView.as_view(), name='api_category_achievements'),
 
     path('api/v1/check-auth/', views.CheckAuthAPIView.as_view(), name='api_check_auth'),
+    # path('api/v1/csrf/', views.CsrfTokenAPIView.as_view(), name='api_csrf_token'),
 
     path('api/v2/rating/', views.RatingListAPIView.as_view(), name='api_v2_student_rating'),
 ]

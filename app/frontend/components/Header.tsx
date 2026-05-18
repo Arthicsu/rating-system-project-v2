@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useMySession } from '@/context/AuthContext';
 
 export default function Header() {
-  const { logoutUser, user } = useMySession();
+  const { logoutUser, user, loading } = useMySession();
 
   return (
     <header className="fixed inset-x-0 top-0 z-20 w-full bg-white shadow-[0_4px_4px_rgba(0,0,0,0.589)]">
@@ -49,7 +49,9 @@ export default function Header() {
             </Link>
 
             <div className="flex items-center gap-3 text-xs sm:text-[14px] leading-[1.43] text-[#6a7a98]">
-              {user ? (
+              {loading ? (
+                <span className="w-16 h-4 bg-gray-200 animate-pulse rounded"></span>
+              ) : user ? (
                 <>
                   <Link
                     href={user.is_staff ? "/staff-profile" : "/profile"}
