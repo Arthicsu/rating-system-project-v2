@@ -104,12 +104,6 @@ archive/
 
 К проекту есть документация
 
-## Docker-образы
-
-- `arthicsu/bgitu-rating-backend:1.0.2`
-- `arthicsu/bgitu-rating-frontend:1.0.2`
-- `arthicsu/bgitu-rating-nginx:local-dev`
-
 ## Лицензия
 
 Проект распространяется под лицензией MIT.  
