@@ -27,7 +27,7 @@ from urllib.parse import quote
 import json, uuid, requests
 
 
-@method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
+@method_decorator(cache_page(60 * 60), name='dispatch')  
 class AchievementConfigAPIView(GenericAPIView):
     """
     API-представление для получения конфигурации достижений.
@@ -54,16 +54,31 @@ class AchievementConfigAPIView(GenericAPIView):
                         "label": st.label,
                         "needsLevel": st.needs_level,
                         "needsResult": st.needs_result,
+                        "allowedLevels": list(set(
+                            r.level.code for r in st.rules.all() 
+                            if r.level and r.level.code != 'none'
+                        )),
                         "allowedResults": list(set(
-                            r.result.code
-                            for r in st.rules.all()
+                            r.result.code for r in st.rules.all() 
                             if r.result and r.result.code != 'none'
-                        ))
+                        )),
+                        "scoring_rules": [
+                            {
+                                "level": r.level.code if r.level else None,
+                                "result": r.result.code if r.result else None,
+                                "score": r.score
+                            }
+                            for r in st.rules.all()
+                        ]
                     }
                     for st in cat.sub_types.all()
                 ]
             }
-            for cat in Category.objects.prefetch_related('sub_types', 'sub_types__rules').all()
+            for cat in Category.objects.prefetch_related(
+                'sub_types', 
+                'sub_types__rules__level', 
+                'sub_types__rules__result'
+            ).all()
         }
 
         serializer = self.get_serializer(structure)

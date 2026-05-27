@@ -205,7 +205,74 @@ class CategoryAdmin(admin.ModelAdmin, JsonImport):
             for code, label in known_statuses.items():
                 DocumentStatus.objects.update_or_create(code=code, defaults={'label': label})
 
-            # Категории и достижения
+            def save_achievement_type(category_obj, type_code, type_label, target_data):
+                # Ключи, которые не являются правилами начисления баллов
+                service_keys = {'label', 'needs_level', 'needs_result'}
+
+                # Сначала пытаемся взять флаги напрямую из JSON
+                needs_level = target_data.get('needs_level')
+                needs_result = target_data.get('needs_result')
+
+                # Если флагов в JSON нет
+                # if needs_level is None or needs_result is None:
+                #     det_level, det_result = False, False
+                #     for logic_key, logic_val in target_data.items():
+                #         if logic_key in service_keys:
+                #             continue
+                #         if isinstance(logic_val, dict):
+                #             det_level, det_result = True, True
+                #         elif logic_key in known_results_data:
+                #             det_result = True
+                #         elif logic_key in known_levels_data:
+                #             det_level = True
+                    
+                #     if needs_level is None: needs_level = det_level
+                #     if needs_result is None: needs_result = det_result
+
+                achieve_type, _ = AchievementType.objects.update_or_create(
+                    category=category_obj,
+                    code=type_code,
+                    defaults={
+                        'label': type_label,
+                        'needs_level': needs_level,
+                        'needs_result': needs_result
+                    }
+                )
+
+                # Очищаем старые правила
+                achieve_type.rules.all().delete()
+
+                # Создаем правила начисления баллов
+                for logic_key, logic_val in target_data.items():
+                    if logic_key in service_keys:
+                        continue  # Пропускаем служебные флаги
+
+                    if logic_key == 'default':
+                        ScoringRule.objects.create(
+                            achievement_type=achieve_type, level=None, result=None, score=logic_val
+                        )
+                    elif isinstance(logic_val, dict):
+                        # Структура: Уровень -> {Результат: Балл}
+                        for res_key, score_val in logic_val.items():
+                            ScoringRule.objects.create(
+                                achievement_type=achieve_type,
+                                level=db_levels.get(logic_key),
+                                result=db_results.get(res_key),
+                                score=score_val
+                            )
+                    else:
+                        # Одиночные флаги (только результат или только уровень)
+                        target_level = db_levels.get(logic_key) if logic_key in known_levels_data else None
+                        target_result = db_results.get(logic_key) if logic_key in known_results_data else None
+
+                        ScoringRule.objects.create(
+                            achievement_type=achieve_type,
+                            level=target_level,
+                            result=target_result,
+                            score=logic_val
+                        )
+
+            # Перебор категорий
             for cat_code, cat_data in data.items():
                 if cat_code == 'metadata':
                     continue
@@ -219,67 +286,24 @@ class CategoryAdmin(admin.ModelAdmin, JsonImport):
                     if type_code == 'label':
                         continue
 
-                    type_label = type_data.get('label', type_code)
-                    needs_level = False
-                    needs_result = False
+                    # Проверяем на сгруппированность (в твоем текущем JSON групп нет, все типы плоские)
+                    is_grouped = False
+                    if isinstance(type_data, dict):
+                        for k, v in type_data.items():
+                            if k != 'label' and isinstance(v, dict) and k not in known_levels_data:
+                                is_grouped = True
+                                break
 
-                    # Анализируем, нужны ли уровни/результаты
-                    for logic_key, logic_val in type_data.items():
-                        if logic_key == 'label':
-                            continue
-                        if isinstance(logic_val, dict):
-                            needs_level = True
-                            needs_result = True
-                        elif logic_key in known_results_data:
-                            needs_result = True
-                        elif logic_key in known_levels_data:
-                            needs_level = True
-
-                    achieve_type, _ = AchievementType.objects.update_or_create(
-                        category=category,
-                        code=type_code,
-                        defaults={
-                            'label': type_label,
-                            'needs_level': needs_level,
-                            'needs_result': needs_result
-                        }
-                    )
-
-                    # Очищаем старые правила
-                    achieve_type.rules.all().delete()
-
-                    # Создаем правила начисления баллов, связывая их с объектами метаданных
-                    for logic_key, logic_val in type_data.items():
-                        if logic_key == 'label':
-                            continue
-
-                        if logic_key == 'default':
-                            ScoringRule.objects.create(
-                                achievement_type=achieve_type,
-                                level=None,
-                                result=None,
-                                score=logic_val
-                            )
-
-                        elif isinstance(logic_val, dict):
-                            for res_key, score_val in logic_val.items():
-                                ScoringRule.objects.create(
-                                    achievement_type=achieve_type,
-                                    level=db_levels.get(logic_key),
-                                    result=db_results.get(res_key),
-                                    score=score_val
-                                )
-
-                        else:
-                            target_level = db_levels.get(logic_key) if logic_key in known_levels_data else None
-                            target_result = db_results.get(logic_key) if logic_key in known_results_data else None
-
-                            ScoringRule.objects.create(
-                                achievement_type=achieve_type,
-                                level=target_level,
-                                result=target_result,
-                                score=logic_val
-                            )
+                    if is_grouped:
+                        for sub_code, sub_data in type_data.items():
+                            if sub_code == 'label' or not isinstance(sub_data, dict):
+                                continue
+                            sub_label = sub_data.get('label', sub_code)
+                            save_achievement_type(category, sub_code, sub_label, sub_data)
+                    else:
+                        type_label = type_data.get('label', type_code) if isinstance(type_data, dict) else type_code
+                        target_dict = type_data if isinstance(type_data, dict) else {}
+                        save_achievement_type(category, type_code, type_label, target_dict)
 
 class ScoringRuleInline(admin.TabularInline):
     model = ScoringRule
@@ -295,7 +319,7 @@ class AchievementTypeAdmin(admin.ModelAdmin):
 
 @admin.register(ScoringRule)
 class ScoringRuleAdmin(admin.ModelAdmin):
-    list_display = ('get_category', 'achievement_type', 'level', 'result', 'score')
+    list_display = ('get_category', 'achievement_type__label', 'level', 'result', 'score')
     list_filter = ('achievement_type__category', 'level', 'result')
     search_fields = ('achievement_type__label', 'achievement_type__code')
     raw_id_fields = ('achievement_type', 'level', 'result')

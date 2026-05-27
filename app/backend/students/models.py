@@ -189,7 +189,7 @@ class Document(models.Model):
     sub_type = models.ForeignKey(AchievementType, on_delete=models.PROTECT, verbose_name="Подтип")
     level = models.ForeignKey(Level, on_delete=models.PROTECT, null=True, blank=True, verbose_name="Уровень")
     result = models.ForeignKey(AchievementResult, on_delete=models.PROTECT, null=True, blank=True, verbose_name="Результат")
-    achievement = models.CharField("Название достижения", max_length=255)
+    achievement = models.CharField("Название достижения", max_length=1000)
     doc_type = models.ForeignKey(DocType, on_delete=models.PROTECT, verbose_name="Тип документа")
     
     score = models.PositiveIntegerField("Баллы", default=0)

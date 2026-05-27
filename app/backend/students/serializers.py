@@ -188,13 +188,6 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'documents',
         ]
 
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = [
-            'code', 'label',
-        ]
-
 class AchievementUploadSerializer(serializers.Serializer):
     record_book = serializers.CharField(required=True)
     category = serializers.SlugRelatedField(queryset=Category.objects.all(), slug_field='code')

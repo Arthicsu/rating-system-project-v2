@@ -181,7 +181,7 @@ class DashboardStatsQuerySetMixin(StudentWithAccessMixin):
             ay = AcademicYear.objects.filter(id=academic_year_id).first()
             if ay:
                 date_filter = {
-                    'date_received__range': (ay.start_date, ay.end_date)
+                    'uploaded_at__range': (ay.start_date, ay.end_date)
                 }
         
         # Документы - всегда по отфильтрованным
