@@ -6,6 +6,7 @@ services:
       - ./app/backend:/app
       - static_files:/app/staticfiles
       - backend_logs:/app/logs
+      - ./dumps:/dumps
     deploy:
       resources:
         limits:
@@ -138,6 +139,7 @@ services:
     container_name: app_nginx
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - static_files:/app/staticfiles:ro
       - nginx_cache:/var/cache/nginx
