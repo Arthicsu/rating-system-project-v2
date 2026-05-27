@@ -167,7 +167,8 @@ class RatingFiltersAPIView(GenericAPIView):
     """
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
-
+    serializer_class = RatingFiltersResponseSerializer
+    
     @extend_schema(
         responses={200: RatingFiltersResponseSerializer()}
     )

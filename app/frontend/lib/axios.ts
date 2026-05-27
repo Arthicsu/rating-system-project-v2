@@ -46,8 +46,9 @@ api.interceptors.response.use(
     const isOnErrorPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/error/');
 
     if (status && !isOnErrorPage && ERROR_REDIRECT_CODES.includes(status)) {
-      const message = (error.response?.data as { detail?: string })?.detail || error.message;
-      window.location.href = `/error/${status}?msg=${encodeURIComponent(message)}`;
+      // const message = (error.response?.data as { detail?: string })?.detail || error.message;
+      // window.location.href = `/error/${status}?msg=${encodeURIComponent(message)}`;
+      window.location.href = `/error/${status}`;
     }
     return Promise.reject(error);
   }

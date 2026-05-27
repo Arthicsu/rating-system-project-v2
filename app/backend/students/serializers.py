@@ -120,7 +120,7 @@ class StudentRatingSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.CharField())
     def get_short_name(self, obj):
         if obj.user:
-            return obj.user.get_user_short_name()
+            return obj.user.get_user_display_short_name()
         return obj.full_name
 
 class DocumentFileSerializer(serializers.ModelSerializer):

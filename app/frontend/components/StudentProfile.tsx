@@ -17,10 +17,10 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
       {
         label: 'Баллы',
         data: profile.radar_stats.data,
-        backgroundColor: 'rgba(0, 80, 207, 0.2)',
-        borderColor: '#0050CF',
+        backgroundColor: 'rgba(0, 80, 207, 0.35)',
+        borderColor: '#0069a8',
         borderWidth: 2,
-        pointBackgroundColor: '#0050CF',
+        pointBackgroundColor: '#0069a8',
       },
     ],
   };
@@ -30,7 +30,9 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
     maintainAspectRatio: false,
     scales: {
       r: {
-        angleLines: { display: true },
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        angleLines: { display: true, color: 'rgba(0,0,0,0.12)' },
+        grid: { color: 'rgba(0,0,0,0.08)' },
         suggestedMin: 0,
         suggestedMax: 15,
         pointLabels: {
@@ -122,7 +124,7 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
                 </p>
               </div>
               <div className="mt-2 flex items-center justify-start sm:mt-0 sm:justify-end">
-                <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-right shadow-sm">
+                <div className="rounded-2xl border items-center border-sky-100 bg-sky-50 px-4 py-3 text-center shadow-sm">
                   <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
                     Общий балл
                   </div>
@@ -134,7 +136,7 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
             </div>
 
             <div className="mt-6 flex flex-col gap-5 lg:grid lg:grid-cols-3">
-              <div className="col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
+              <div className="col-span-2 rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Диаграмма распределения баллов
                 </p>
@@ -155,7 +157,7 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
                         className="flex items-center justify-between rounded-xl bg-sky-50 px-3 py-2 text-xs text-slate-800 sm:text-sm"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="h-2.5 w-2.5 rounded-full bg-sky-600" />
+                          <span className="h-2.5 w-2.5 rounded-full bg-sky-700" />
                           <span>{label}</span>
                         </div>
                         <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-sky-700 shadow-sm">
@@ -171,7 +173,7 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
 
           <div className="mt-6 space-y-5">
             {approvedDocs.length > 0 && (
-              <div className="rounded-2xl border border-emerald-100 bg-slate-500/80 p-4 shadow-sm sm:p-5">
+              <div className="rounded-2xl border border-slate-500/80 bg-slate-500/80 p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white">
                     <i className="fa-solid fa-check" />

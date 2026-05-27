@@ -80,6 +80,7 @@ export interface FilterStudentsParams {
   group_id: string;
   page: number;
   page_size: number;
+  search?: string;
 }
 
 export interface DashboardStatsParams {
@@ -87,6 +88,7 @@ export interface DashboardStatsParams {
   academic_year: string;
   page: number;
   page_size: number;
+  search?: string;
 }
 
 export interface DashboardStatsResponse {

@@ -26,13 +26,6 @@ class User(AbstractUser):
     def is_rectorate(self):
         return 'Rectorate' in self.group_names
 
-    class Meta:
-        verbose_name = "Пользователь"
-        verbose_name_plural = "Пользователи"
-
-    def __str__(self):
-        return f"{self.last_name} {self.first_name} {self.patronymic}".strip()
-
     def get_full_username(self):
         """
         Возвращает полное имя пользователя (применяем для студента) для отображения на клиенте:
@@ -42,9 +35,9 @@ class User(AbstractUser):
             full_name += f" {self.patronymic}"
         return full_name.strip()
 
-    def get_user_short_name(self):
+    def get_short_username(self):
         """
-        Возвращает сокращённое имя пользователя (Фамилия И.О.) для отображения на клиенте.
+        Возвращает сокращённое имя пользователя (применяем для студента) для отображения на клиенте:
         """
         initials = ""
         if self.first_name:
@@ -57,6 +50,25 @@ class User(AbstractUser):
         """
         Возвращает имя для отображения на клиенте:
         - Студенту: его фио
+        - Сотруднику кафедры: 'Кафедра ' + сокращённое название кафедры
+        - Декану: 'Факультет ' + сокращённое название факультета
+        - Ректорату: 'Ректорат'
+        """
+        if hasattr(self, 'staff_profile'):
+            staff = self.staff_profile
+            if getattr(self, 'is_dept_staff', False) and staff.department:
+                return f"Кафедра {staff.department.short_name}"
+            elif getattr(self, 'is_dean', False) and staff.faculty:
+                return f"Факультет {staff.faculty.short_name}"
+            elif getattr(self, 'is_rectorate', False):
+                return "Ректорат"
+            return "Сотрудник университета"
+        return self.get_full_username()
+       
+    def get_user_display_short_name(self):
+        """
+        Возвращает сокращённое имя для отображения на клиенте:
+        - Студенту: 'Фамилия И.О.'
         - Сотруднику кафедры: сокращённое название кафедры
         - Декану: сокращённое название факультета
         - Ректорату: 'Ректорат'
@@ -70,4 +82,11 @@ class User(AbstractUser):
             elif getattr(self, 'is_rectorate', False):
                 return "Ректорат"
             return "Сотрудник университета"
+        return self.get_short_username()
+
+    class Meta:
+        verbose_name = "Пользователь"
+        verbose_name_plural = "Пользователи"
+
+    def __str__(self):
         return self.get_full_username()

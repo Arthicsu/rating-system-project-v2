@@ -39,9 +39,9 @@ export default function ErrorState({
         <p className="text-5xl font-bold text-sky-700 sm:text-9xl">{code}</p>
         <h1 className="mt-3 text-xl font-semibold text-slate-800 sm:text-2xl">{displayTitle}</h1>
         <p className="mt-2 text-sm text-slate-600 sm:text-base">{displayDescription}</p>
-        {message && (
+        {/* {message && (
           <p className="mt-2 text-xs text-red-500 sm:text-sm">{message}</p>
-        )}
+        )} */}
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3 ">
           {onReset && (

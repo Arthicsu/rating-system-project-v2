@@ -8,6 +8,7 @@ import { Skeleton } from 'boneyard-js/react';
 
 import { useMySession } from '@/context/AuthContext';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
+import SearchInput from '@/components/SearchInput';
 import Pagination from '@/components/Pagination';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import ModalApprove from '@/components/modals/modalApprove';
@@ -53,13 +54,14 @@ export default function StaffProfilePage() {
   const [requestsPage, setRequestsPage] = useState(1);
   const [totalRequests, setTotalRequests] = useState(0);
   
-  const [searchTerm, setSearchTerm] = useState('');
-  const [requestsSearchTerm, setRequestsSearchTerm] = useState('');
+  const [groupSearchValue, setGroupSearchValue] = useState('');
+  const [pendingSearchValue, setPendingSearchValue] = useState('');
   
   const [rejectionReasonsList, setRejectionReasonsList] = useState<RejectionReason[]>([]);
   const [semesterOptions, setSemesterOptions] = useState<Semester[]>([]);
   const [categories, setCategories] = useState<CategoryRating[]>([]);
   const [rejectReasons, setRejectReasons] = useState<number[]>([]);
+  const [customReason, setCustomReason] = useState('');
   const [facultiesList, setFacultiesList] = useState<FacultySimple[]>([]);
   const [selectedFacultyId, setSelectedFacultyId] = useState('all');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -71,7 +73,7 @@ export default function StaffProfilePage() {
       router.replace('/profile');
     }
   }, [user, router]);
-
+  
   const openModal = (type: string, doc: Document) => setModalState({ 
       type, 
       targetId: doc.id, 
@@ -81,12 +83,21 @@ export default function StaffProfilePage() {
 
   const closeModal = () => {
       setModalState({ type: null, targetId: null, targetScore: 0, targetStudentId: null });
-      setRejectReasons([]); 
+      setRejectReasons([]);
+      setCustomReason('');
   };
   
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [groupSearchValue]);
+
+  useEffect(() => {
+    setRequestsPage(1);
+  }, [pendingSearchValue]);
   
   const handleGroupChange = (groupId: string) => {
     setSelectedGroupId(groupId);
@@ -136,7 +147,6 @@ export default function StaffProfilePage() {
     fetchLookups();
   }, []);
 
-  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     const fetchGroups = async () => {
       try {
@@ -163,7 +173,6 @@ export default function StaffProfilePage() {
     };
     fetchGroups();
   }, [loadTrigger, selectedCourse, selectedFacultyId]);
-  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -175,6 +184,7 @@ export default function StaffProfilePage() {
           group_id: selectedGroupId,
           page: currentPage,
           page_size: pageSize,
+          search: groupSearchValue || undefined,
         };
 
         const statsParams: DashboardStatsParams = {
@@ -182,6 +192,7 @@ export default function StaffProfilePage() {
           academic_year: String(selectedSemesterId),
           page: requestsPage,
           page_size: requestsPageSize,
+          search: pendingSearchValue || undefined,
         };
 
         const [studentsRes, statsRes] = await Promise.all([
@@ -203,39 +214,16 @@ export default function StaffProfilePage() {
       }
     };
     fetchDashboard();
-  }, [selectedGroupId, selectedSemesterId, currentPage, selectedCourse, requestsPage]);
-
-  const filteredStudents = useMemo(() => {
-    let students = studentsData || [];
-    if (searchTerm.trim() !== '') {
-      const lowerTerm = searchTerm.toLowerCase();
-      students = students.filter(s => 
-        s.full_name.toLowerCase().includes(lowerTerm) || 
-        (s.record_book && s.record_book.toLowerCase().includes(lowerTerm))
-      );
-    }
-    return students;
-  }, [studentsData, searchTerm]);
-
-  const filteredDocs = useMemo(() => {
-    let docs = pendingDocsData || [];
-    if (requestsSearchTerm.trim() !== '') {
-      const lowerTerm = requestsSearchTerm.toLowerCase();
-      docs = docs.filter(d =>
-        d.student_name.toLowerCase().includes(lowerTerm)
-      );
-    }
-    return docs;
-  }, [pendingDocsData, requestsSearchTerm]);
+  }, [selectedGroupId, selectedSemesterId, currentPage, selectedCourse, requestsPage, pendingSearchValue, groupSearchValue]);
 
   const dynamicStats = useMemo(() => {
-    const students = filteredStudents || [];
+    const students = studentsData || [];
     const defaults = {
       total_students: stats.total_students,
       avg_score: stats.avg_score,
       max_score: 0,
       min_score: 0,
-      active_requests: filteredDocs.length,
+      active_requests: (pendingDocsData || []).length,
       top5: top5Students,
       categories: {} as Record<string, number>,
     };
@@ -255,17 +243,18 @@ export default function StaffProfilePage() {
       avg_score: stats.avg_score,
       max_score: Math.max(...scores),
       min_score: Math.min(...scores),
-      active_requests: filteredDocs.length,
+      active_requests: (pendingDocsData || []).length,
       top5: top5Students,
       categories: catStats
     };
-  }, [filteredStudents, filteredDocs, categories, stats, top5Students]);
+  }, [studentsData, pendingDocsData, categories, stats, top5Students]);
 
   const handleApprove = async () => {
     if (!modalState.targetId) return;
 
     try {
       await universityApi.reviewDocument(modalState.targetId, { action: 'approve' });
+      toast.success("Заявка одобрена");
 
       setPendingDocsData(prev => prev.filter(doc => doc.id !== modalState.targetId));
       setTotalRequests(prev => prev - 1);
@@ -288,21 +277,30 @@ export default function StaffProfilePage() {
     e.preventDefault();
     if (!modalState.targetId) return;
 
-    if (rejectReasons.length === 0) {
-      toast.error("Выберите хотя бы одну причину");
-      return;
-    }
-
     const reasonsText = rejectReasons.map(id => {
       const reason = rejectionReasonsList.find(r => r.id === id);
       return reason ? reason.text : '';
     }).filter(Boolean);
 
+    if (reasonsText.length > 0 && customReason.trim() !== '') {
+      setCustomReason('');
+    }
+
+    const allReasons = customReason.trim()
+      ? [customReason.trim()]
+      : reasonsText;
+
+    if (allReasons.length === 0) {
+      toast.error("Укажите хотя бы одну причину");
+      return;
+    }
+
     try {
       await universityApi.reviewDocument(modalState.targetId, { 
         action: 'reject', 
-        reasons: reasonsText 
+        reasons: allReasons 
       });
+      toast.success("Заявка отклонена");
 
       setPendingDocsData(prev => prev.filter(doc => doc.id !== modalState.targetId));
       setTotalRequests(prev => prev - 1);
@@ -552,16 +550,7 @@ export default function StaffProfilePage() {
                     </span>
                   </h2>
                   <div className="flex items-center gap-2">
-                    <div className="relative flex items-center">
-                      <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 text-[11px] text-slate-400" />
-                      <input
-                        type="text"
-                        className="w-55 rounded-full border border-slate-200 bg-white py-1.5 pl-7 pr-3 text-xs text-slate-900 placeholder:text-sm placeholder:text-slate-400 outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
-                        placeholder="Поиск по ФИО или зачетке"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
+                    <SearchInput onSearch={setGroupSearchValue} placeholder="Поиск по ФИО или зачетке" />
                     <ExportExcelButton
                       filters={{
                         group_id: selectedGroupId,
@@ -572,74 +561,87 @@ export default function StaffProfilePage() {
                   </div>
                 </div>
 
-                <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
-                  <Skeleton name="staff-students-table" loading={false}>
-                    <table className="min-w-full text-left text-xs text-slate-500 sm:text-sm">
-                      <thead className="bg-slate-500 text-[11px] font-semibold uppercase tracking-wide text-slate-100">
-                        <tr>
-                          <th className="w-12 px-3 py-2.5 text-center font-normal sm:w-16">
-                          </th>
-                          <th className="px-4 py-2.5">ФИО студента</th>
-                          <th className="px-4 py-2.5">Зачетная книжка</th>
-                          <th className="px-4 py-2.5">Общий балл</th>
-                          <th className="px-4 py-2.5 text-right">Действия</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredStudents.length > 0 ? (
-                          filteredStudents.map((student, idx) => (
-                            <tr
-                              key={student.id}
-                              className="border-t border-slate-100 hover:bg-slate-50/70"
+                <div className="mt-4 rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
+                  <div className="w-full overflow-x-auto">
+                    <Skeleton name="staff-students-table" loading={false}>
+                      <table className="min-w-full border-collapse text-xs sm:text-sm">
+                        <thead>
+                          <tr className="bg-slate-500 text-white">
+                            <th className="w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
+                            </th>
+                            <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                              ФИО студента
+                            </th>
+                            <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                              Зачетная книжка
+                            </th>
+                            <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                              Общий балл
+                            </th>
+                            <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-right text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-r-lg">
+                              Действия
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {studentsData.length > 0 ? (
+                            studentsData.map((student, idx) => (
+                              <tr
+                                key={student.id}
+                                className="border-b border-[#f0f0f0] last:border-b-0 hover:bg-slate-50"
+                              >
+                                <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center align-middle">
+                                  <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-[11px] md:text-sm font-bold text-white">
+                                    {(currentPage - 1) * pageSize + idx + 1}
+                                  </div>
+                                </td>
+                                <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-[#333]">
+                                  <span className="inline md:hidden">
+                                    {student.short_name}
+                                  </span>
+                                  <span className="hidden md:inline">{student.full_name}</span>
+                                </td>
+                                <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm">
+                                  {student.record_book}
+                                </td>
+                                <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm font-bold text-sky-700">
+                                  {student.total_score}
+                                </td>
+                                <td className="p-1 sm:p-2 md:px-4 md:py-3 text-right text-xs md:text-sm">
+                                  <Link
+                                    href={`/profile/${student.id}`}
+                                    className="font-medium text-gray-700 underline-offset-2 hover:text-sky-900 hover:underline"
+                                  >
+                                    Профиль
+                                  </Link>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm"
                             >
-                              <td className="px-3 py-2.5 text-center">
-                                <div className="mx-auto flex h-4 w-4 items-center justify-center rounded-full bg-sky-700 text-[11px] font-bold text-white sm:h-6 sm:w-6 md:h-7.5 md:w-7.5 md:text-sm">
-                                  {idx + 1}
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <span className="text-xs sm:text-sm">
-                                  {student.full_name}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2.5 text-xs text-slate-500 sm:text-sm">
-                                {student.record_book}
-                              </td>
-                              <td className="px-4 py-2.5 text-xs font-semibold text-sky-700 sm:text-sm">
-                                {student.total_score}
-                              </td>
-                              <td className="px-4 py-2.5 text-right">
-                                <Link
-                                  href={`/profile/${student.id}`}
-                                  className="text-xs font-medium text-gray-700 underline-offset-2 hover:text-sky-900 hover:underline sm:text-sm"
-                                >
-                                  Профиль
-                                </Link>
+                              Студенты не найдены
                             </td>
                           </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={5}
-                            className="px-4 py-6 text-center text-xs text-slate-500 sm:text-sm"
-                          >
-                            Студенты не найдены
-                          </td>
-                        </tr>
-                      )}
-                      </tbody>
-                    </table>
-                  </Skeleton>
+                        )}
+                        </tbody>
+                      </table>
+                    </Skeleton>
+                    
+                    <div className="border-t border-slate-200 pt-4">
+                      <Pagination
+                        page={currentPage}
+                        totalCount={totalStudents}
+                        pageSize={pageSize}
+                        loading={loading}
+                        onPageChange={handlePageChange}
+                      />
+                    </div>
+                  </div>
                 </div>
-                
-                <Pagination
-                  page={currentPage}
-                  totalCount={totalStudents}
-                  pageSize={pageSize}
-                  loading={loading}
-                  onPageChange={handlePageChange}
-                />
               </div>
             </div>
           )}
@@ -650,31 +652,24 @@ export default function StaffProfilePage() {
                 <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
                   Заявки: {currentGroupName}, {selectedSemesterLabel}
                 </h2>
-                <div className="relative w-full sm:w-64">
-                  <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400" />
-                  <input
-                    type="text"
-                    className="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-7 pr-3 text-xs text-slate-900 placeholder:text-sm placeholder:text-slate-400 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
-                    placeholder="Поиск по ФИО..."
-                    value={requestsSearchTerm}
-                    onChange={(e) => setRequestsSearchTerm(e.target.value)}
-                  />
+                <div className="w-full sm:w-64">
+                  <SearchInput onSearch={setPendingSearchValue} placeholder="Поиск по ФИО..." />
                 </div>
               </div>
 
-              {filteredDocs.length > 0 ? (
+              {pendingDocsData && pendingDocsData.length > 0 ? (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {filteredDocs.map((doc) => (
+                  {pendingDocsData.map((doc) => (
                     <div
                       key={doc.id}
                       className="flex flex-col rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-[0_4px_12px_rgba(15,23,42,0.08)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)] transition-shadow"
                     >
                       <div className="flex-1 mb-2 flex flex-col gap-1.5">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
+                        <div className="flex max-[941px]:flex-col items-start justify-between gap-1 sm:gap-2">
+                          <div className="flex-1 min-w-0">
                             <Link
                               href={`/profile/${doc.student_id}`}
-                              className="text-xs font-semibold text-sky-700 hover:text-sky-900 hover:underline sm:text-sm line-clamp-1"
+                              className="text-xs font-semibold text-sky-700 hover:text-sky-900 hover:underline sm:text-sm sm:line-clamp-1"
                             >
                               {doc.student_name}
                             </Link>
@@ -702,21 +697,21 @@ export default function StaffProfilePage() {
                             Прикреплённых файл(ов): {doc.files.length}
                           </span>
                         )}
+                        {doc.rejection_reason && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium text-rose-700 sm:text-xs">
+                            <i className="fa-solid fa-circle-exclamation" />
+                            Была отклонена
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={() => setPreviewDoc(doc)}
                           className="cursor-pointer ml-auto text-[10px] text-sky-600 hover:text-sky-800 sm:text-xs"
                         >
-                          Подробнее <i className="fa-solid fa-arrow-right ml-1" />
+                          Подробнее
+                          {/* <i className="fa-solid fa-arrow-right ml-1" /> */}
                         </button>
                       </div>
-
-                      {doc.rejection_reason && (
-                        <div className="mb-2 rounded bg-rose-50 p-2 text-[10px] text-rose-700 sm:text-xs">
-                          <i className="fa-solid fa-circle-exclamation mr-1" />
-                          <span className="font-medium">Причина:</span> {doc.rejection_reason}
-                        </div>
-                      )}
 
                       <div className="mt-3 flex gap-2">
                         {(user?.roles?.includes('Department') || !user?.roles?.some(r => ['Rectorate', 'Dean'].includes(r))) && (
@@ -767,7 +762,7 @@ export default function StaffProfilePage() {
                   </span>
                 </h2>
 
-                <div className="mb-6 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+                <div className="mb-6 grid gap-3 grid-cols-2 md:grid-cols-4">
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 sm:p-4">
                     <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
                       Студентов
@@ -804,7 +799,7 @@ export default function StaffProfilePage() {
                   </div>
                 </div>
 
-                <div className="grid gap-5 grid-cols-2 md:grid-cols-2">
+                <div className="grid gap-5 grid-cols-1 md:grid-cols-2">
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:p-5">
                     <h3 className="mb-4 border-b border-slate-200 pb-2 text-sm font-semibold text-slate-900">
                       Распределение баллов по группе
@@ -849,7 +844,7 @@ export default function StaffProfilePage() {
                     <h3 className="mb-4 border-b border-slate-200 pb-2 text-sm font-semibold text-slate-900">
                       Топ-5 студентов по баллам
                     </h3>
-                    <div className="overflow-hidden rounded-xl border border-slate-100 bg-white">
+                    <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
                       <table className="min-w-full text-left text-[13px] text-slate-500">
                         <thead className="bg-slate-500 text-[11px] font-semibold uppercase tracking-wide text-slate-100">
                           <tr>
@@ -899,7 +894,9 @@ export default function StaffProfilePage() {
         isOpen={modalState.type === 'reject'}
         rejectionReasons={rejectionReasonsList}
         selectedReasons={rejectReasons}
+        customReason={customReason}
         onToggleReason={toggleReason}
+        onCustomReasonChange={setCustomReason}
         onClose={closeModal}
         onSubmit={handleReject}
       />

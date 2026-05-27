@@ -7,7 +7,7 @@ type ErrorPageProps = {
 
 export default async function ErrorCodePage({ params, searchParams }: ErrorPageProps) {
   const { code } = await params;
-  const { msg } = await searchParams;
+  // const { msg } = await searchParams;
   
   const statusCode = parseInt(code, 10);
   
@@ -24,7 +24,7 @@ export default async function ErrorCodePage({ params, searchParams }: ErrorPageP
   return (
     <ErrorState
       code={statusCode}
-      message={msg}
+      // message={msg}
     />
   );
 }

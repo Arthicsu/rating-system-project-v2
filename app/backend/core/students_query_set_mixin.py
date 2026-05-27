@@ -1,4 +1,4 @@
-from django.db.models import Prefetch, Avg, Count
+from django.db.models import Prefetch, Avg, Count, Q
 
 from students.models import Student, Category, Document
 from university_structure.models import AcademicYear
@@ -55,7 +55,7 @@ class StudentFilterMixin:
 
     def apply_filters(self, queryset):
         """
-        Парсинг параметров и фильтрация по факультету, курсу или группе.
+        Парсинг параметров и фильтрация по факультету, курсу, группе или поиску.
         """
         params = self.request.query_params
         filters = {}
@@ -67,7 +67,15 @@ class StudentFilterMixin:
         if params.get('group_id') and params.get('group_id') != 'all':
             filters['group__id'] = params.get('group_id')
             
-        return queryset.filter(**filters)
+        queryset = queryset.filter(**filters)
+
+        search = params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(full_name__icontains=search) | Q(record_book__icontains=search)
+            )
+
+        return queryset
 
     def scope_filters_queryset(self, user, queryset, faculty_field='faculty', dept_field='group__specialty__department'):
         """
@@ -187,11 +195,21 @@ class DashboardStatsQuerySetMixin(StudentWithAccessMixin):
         # Документы - всегда по отфильтрованным
         doc_status = 'pending' if user.is_dept_staff else 'approved'
         
-        return Document.objects.filter(
+        qs = Document.objects.filter(
             user__student_profile__in=filtered_queryset,
             status__code=doc_status,
             **date_filter
         ).select_related(
             'user__student_profile', 
             'user__student_profile__group'
-        ).order_by('-uploaded_at')
+        )
+
+        search = self.request.query_params.get('search')
+        if search:
+            qs = qs.filter(
+                Q(user__student_profile__full_name__icontains=search) |
+                Q(user__student_profile__record_book__icontains=search) |
+                Q(achievement__icontains=search)
+            )
+
+        return qs.order_by('-uploaded_at')

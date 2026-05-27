@@ -19,12 +19,20 @@ export interface AchievementItemProps {
   loading?: boolean;
 }
 
+export interface ScoringRule {
+  level: string | null;
+  result: string | null;
+  score: number;
+}
+
 export interface SelectOption {
   code: string;
   label: string;
   needsLevel?: boolean;
   needsResult?: boolean;
+  allowedLevels?: string[];
   allowedResults?: string[];
+  scoring_rules?: ScoringRule[];
 }
 
 export interface DataStructureCategory {

@@ -14,7 +14,9 @@ export interface ModalRejectProps {
   isOpen: boolean;
   rejectionReasons: RejectionReason[];
   selectedReasons: number[];
+  customReason: string;
   onToggleReason: (reasonId: number) => void;
+  onCustomReasonChange: (value: string) => void;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
 }

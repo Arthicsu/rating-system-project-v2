@@ -8,7 +8,7 @@ export default function Header() {
   const { logoutUser, user, loading } = useMySession();
 
   return (
-    <header className="fixed inset-x-0 top-0 z-20 w-full bg-white shadow-[0_4px_4px_rgba(0,0,0,0.589)]">
+    <header className="fixed inset-x-0 top-0 z-20 w-full bg-white shadow-[0px_20px_40px_-10px_rgba(34,60,80,0.15)]">
       <div className="mx-auto max-w-350 px-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3 py-2 sm:py-2.5">
           {/* Логотип + хлебные крошки */}
@@ -47,7 +47,6 @@ export default function Header() {
                 className="h-8 w-8 sm:h-10 sm:w-10 object-contain"
               />
             </Link>
-
             <div className="flex items-center gap-3 text-xs sm:text-[14px] leading-[1.43] text-[#6a7a98]">
               {loading ? (
                 <span className="w-16 h-4 bg-gray-200 animate-pulse rounded"></span>
@@ -57,7 +56,8 @@ export default function Header() {
                     href={user.is_staff ? "/staff-profile" : "/profile"}
                     className="inline-flex max-w-45 sm:max-w-none items-center gap-1.5 truncate hover:underline"
                   >
-                    <span className="truncate">{user.full_name}</span>
+                    <span className="inline truncate sm:hidden">{user.short_name}</span>
+                    <span className="hidden truncate sm:inline">{user.full_name}</span>
                   </Link>
                   {user.is_staff && Number(user.pending_docs_count) > 0 && (
                     <span className="ml-1 inline-flex min-w-4.5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-semibold leading-tight text-white">

@@ -161,7 +161,7 @@ class ScoringRule(models.Model):
         """
         Метакласс для настройки поведения модели.
 
-        Задаёт человекочитаемые названия �� по��ядок сортировки записей.
+        Задаёт человекочитаемые названия и порядок сортировки записей.
         """
         verbose_name = "Правило счёта"
         verbose_name_plural = "Правила счёта"
@@ -194,7 +194,7 @@ class Document(models.Model):
     
     score = models.PositiveIntegerField("Баллы", default=0)
     status = models.ForeignKey(DocumentStatus, on_delete=models.PROTECT, verbose_name="Статус")
-    rejection_reason = models.TextField("Причина отказа", blank=True, null=True)
+    rejection_reason = models.CharField("Причина отказа", blank=True, null=True, max_length=500)
     
     def __str__(self) -> str:
         """

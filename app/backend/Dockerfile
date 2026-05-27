@@ -34,6 +34,7 @@ COPY requirements.txt .
 COPY . .
 
 RUN mkdir -p /app/logs && chown 777 /app/logs
+RUN mkdir -p /dumps && chmod 777 /dumps
 RUN chmod +x entrypoint.sh
 
 EXPOSE 8000

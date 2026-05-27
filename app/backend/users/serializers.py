@@ -11,6 +11,7 @@ class UserResponseSerializer(serializers.ModelSerializer):
     record_book = serializers.CharField(source='student_profile.record_book', read_only=True, default="—")
     isAuthenticated = serializers.BooleanField(default=True)
     full_name = serializers.SerializerMethodField()
+    short_name = serializers.SerializerMethodField()
     roles = serializers.SerializerMethodField()
     pending_docs_count = serializers.SerializerMethodField()
 
@@ -23,6 +24,7 @@ class UserResponseSerializer(serializers.ModelSerializer):
             'isAuthenticated',
             'is_staff',
             'full_name',
+            'short_name',
             'roles',
             'pending_docs_count',
         ]
@@ -54,6 +56,10 @@ class UserResponseSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.CharField())
     def get_full_name(self, obj):
         return obj.get_user_display_name()
+
+    @extend_schema_field(serializers.CharField())
+    def get_short_name(self, obj):
+        return obj.get_user_display_short_name()
 
 class LoginRequestSerializer(serializers.Serializer):
     username = serializers.CharField()

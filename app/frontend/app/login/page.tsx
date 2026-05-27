@@ -124,8 +124,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm text-[#6a7a98]">
-            <Link className="text-[#0050CF] hover:text-[#002D6E] underline underline-offset-2" href="/register">
+          <p className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm text-[#0069a8]">
+            <Link className="text-[#0069a8] hover:text-sky-900 underline underline-offset-2" href="/register">
               Зарегистрироваться
             </Link>
             {/* <span className="h-5 w-px bg-slate-300" /> */}
@@ -142,14 +142,14 @@ export default function LoginPage() {
             Если у Вас возникли технические сложности, свяжитесь с нами по email:{' '}
             <Link
               href="mailto:oi@bgitu.ru"
-              className="font-semibold text-[#0050CF] underline underline-offset-2 hover:text-[#002D6E]"
+              className="font-semibold text-[#0069a8] underline underline-offset-2 hover:text-[#002D6E]"
             >
               oi@bgitu.ru
             </Link>
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-4 rounded-2xl bg-white/80 px-4 py-4 shadow-sm">
-            <p className="text-xs content-center font-medium text-[#0050CF] md:text-sm md:text-right md:self-stretch">
+            <p className="text-xs content-center font-medium text-[#0069a8] md:text-sm md:text-right md:self-stretch">
               BRYANSK STATE <br />
               TECHNOLOGICAL UNIVERSITY <br />
               OF ENGINEERING
@@ -161,7 +161,7 @@ export default function LoginPage() {
               height={64}
               className="h-16 w-auto object-contain md:h-20"
             />
-            <p className="text-xs content-center font-medium text-[#0050CF] md:text-sm md:text-left md:self-stretch">
+            <p className="text-xs content-center font-medium text-[#0069a8] md:text-sm md:text-left md:self-stretch">
               БРЯНСКИЙ ГОСУДАРСТВЕННЫЙ <br />
               ИНЖЕНЕРНО-ТЕХНОЛОГИЧЕСКИЙ <br />
               УНИВЕРСИТЕТ

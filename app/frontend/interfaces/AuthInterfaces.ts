@@ -5,6 +5,7 @@ export interface AuthUser {
   isAuthenticated: boolean;
   is_staff: boolean;
   full_name: string;
+  short_name: string;
   roles: string[];
   pending_docs_count: number;
 }
