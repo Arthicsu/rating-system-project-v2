@@ -6,6 +6,7 @@ services:
       - ./app/backend:/app
       - static_files:/app/staticfiles
       - backend_logs:/app/logs
+      - ./dumps:/dumps
     deploy:
       resources:
         limits:
