@@ -561,7 +561,7 @@ export default function UploadAchievement() {
                 <button
                     type="button"
                     onClick={handleSubmit}
-                    className="cursor-pointer inline-flex items-center justify-center rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-emerald-900 shadow-[0_10px_30px_rgba(52,211,153,0.45)] transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 w-full sm:w-auto"
+                    className="cursor-pointer inline-flex items-center justify-center rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(52,211,153,0.45)] transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 w-full sm:w-auto"
                   >
                     Загрузить
                   </button>

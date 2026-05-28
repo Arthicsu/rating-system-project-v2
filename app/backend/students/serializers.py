@@ -100,21 +100,12 @@ class StudentRatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = [
-            'id',
-            'user_id', 
-            'full_name', 
-            'short_name',
-            'group', 
-            'group_id', 
-            'course', 
-            'faculty',
-            'faculty_id',
-            'total_score',
-            'academic_score', 
-            'research_score', 
-            'sport_score', 
-            'social_score', 
-            'cultural_score',
+            'id', 'user_id', 
+            'full_name', 'short_name',
+            'group', 'group_id', 
+            'course',
+            'faculty', 'faculty_id',
+            'total_score', 'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score',
         ]
 
     @extend_schema_field(serializers.CharField())
@@ -177,16 +168,24 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     faculty = serializers.CharField(source='faculty.short_name', read_only=True, default="—")
     documents = DocumentSerializer(many=True, read_only=True, source='user.documents')
     total_score = serializers.ReadOnlyField()
+    short_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
         fields = [
             'id', 'user_id', 
-            'full_name', 'email', 'record_book', 
+            'full_name', 'short_name',
+            'email', 'record_book', 
             'group', 'group_id', 'course', 'faculty',
             'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score', 'total_score',
             'documents',
         ]
+    
+    @extend_schema_field(serializers.CharField())
+    def get_short_name(self, obj):
+        if obj.user:
+            return obj.user.get_user_display_short_name()
+        return obj.full_name
 
 class AchievementUploadSerializer(serializers.Serializer):
     record_book = serializers.CharField(required=True)

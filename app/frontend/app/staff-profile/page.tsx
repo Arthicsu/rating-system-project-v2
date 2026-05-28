@@ -544,7 +544,7 @@ export default function StaffProfilePage() {
               <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.10)] sm:p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
-                    Список студентов группы {currentGroupName}{' '}
+                    {selectedGroupId === 'all' ? 'Все студенты' : `Список студентов группы ${currentGroupName}`}{' '}
                     <span className="text-xs font-normal text-slate-500">
                       (всего: {totalStudents})
                     </span>
@@ -564,7 +564,7 @@ export default function StaffProfilePage() {
                 <div className="mt-4 rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
                   <div className="w-full overflow-x-auto">
                     <Skeleton name="staff-students-table" loading={false}>
-                      <table className="min-w-full border-collapse text-xs sm:text-sm">
+                      <table className="min-w-full border-collapse text-xs sm:text-sm" style={{ tableLayout: 'fixed' }}>
                         <thead>
                           <tr className="bg-slate-500 text-white">
                             <th className="w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
@@ -574,6 +574,12 @@ export default function StaffProfilePage() {
                             </th>
                             <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
                               Зачетная книжка
+                            </th>
+                            <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                              Курс
+                            </th>
+                            <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                              Группа
                             </th>
                             <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
                               Общий балл
@@ -604,6 +610,12 @@ export default function StaffProfilePage() {
                                 <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm">
                                   {student.record_book}
                                 </td>
+                                <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">
+                                  {student.course}
+                                </td>
+                                <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm">
+                                  {student.group}
+                                </td>
                                 <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm font-bold text-sky-700">
                                   {student.total_score}
                                 </td>
@@ -620,7 +632,7 @@ export default function StaffProfilePage() {
                         ) : (
                           <tr>
                             <td
-                              colSpan={5}
+                              colSpan={6}
                               className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm"
                             >
                               Студенты не найдены
