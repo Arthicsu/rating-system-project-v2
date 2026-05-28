@@ -1,6 +1,6 @@
 services:
   backend:
-    image: arthicsu/bgitu-rating-backend:1.0.3
+    image: arthicsu/bgitu-rating-backend:1.0.5
     container_name: app_backend
     volumes:
       - ./app/backend:/app
@@ -30,7 +30,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
   frontend:
-    image: arthicsu/bgitu-rating-frontend:1.0.3
+    image: arthicsu/bgitu-rating-frontend:1.0.5
     container_name: app_frontend
     volumes:
       - ./app/frontend:/app
@@ -136,7 +136,6 @@ services:
       timeout: 10s
   nginx:
     build: ./app/nginx
-    # image: arthicsu/bgitu-rating-nginx:local-dev
     container_name: app_nginx
     ports:
       - "80:80"
