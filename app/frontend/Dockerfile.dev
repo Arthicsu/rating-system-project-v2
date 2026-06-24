@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+
+# Dev
+
+ARG NODE_VERSION=24.17.0
+ARG PNPM_VERSION=11.9.0
+
+FROM node:${NODE_VERSION}-alpine as base
+
+WORKDIR /app
+
+RUN --mount=type=cache,target=/root/.npm \
+    npm install -g pnpm@${PNPM_VERSION}
+
+FROM base as deps
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN pnpm install --frozen-lockfile
+
+FROM deps as dev
+
+COPY . .
+
+EXPOSE 3000
+
+# Webpack dev server
+CMD ["pnpm", "exec", "next", "dev", "--webpack", "-H", "0.0.0.0", "-p", "3000"]

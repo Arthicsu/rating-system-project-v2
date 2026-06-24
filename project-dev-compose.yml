@@ -30,25 +30,34 @@ services:
         condition: service_healthy
     restart: unless-stopped
   frontend:
-    build: ./app/frontend
+    build:
+      context: ./app/frontend
+      dockerfile: Dockerfile.dev
     container_name: app_frontend
     volumes:
       - ./app/frontend:/app
       - /app/node_modules
       - next_cache:/app/.next
-    deploy:
-      resources:
-        limits:
-          cpus: '1.25'
-          memory: 1536M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.25'
+    #       memory: 1536M
+    #     reservations:
+    #       cpus: '0.25'
+    #       memory: 256M
     ports:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NEXT_TELEMETRY_DISABLED=1
+      # Webpack/Next dev file-watching over a Windows bind mount: inotify events
+      # don't propagate, so the watcher must poll for hot-reload to work.
+      # Poll every 1000ms instead of the aggressive default to cut CPU that
+      # otherwise competes with compilation (HMR latency rises by ~1s).
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_ENV=development
     env_file:
       - .env
     depends_on:
@@ -80,7 +89,7 @@ services:
       timeout: 10s
     restart: unless-stopped
   redis:
-    image: redis:8.6.3-alpine
+    image: redis:8.8.0-alpine
     container_name: app_redis
     environment:
       REDIS_USER: ${REDIS_USER}
@@ -105,12 +114,12 @@ services:
       retries: 3
       timeout: 5s
   seaweedfs:
-    image: chrislusf/seaweedfs:4.25
+    image: chrislusf/seaweedfs:4.35
     container_name: app_seaweedfs
     ports:
       - "8333:8333"
       - "9333:9333"
-      # - "8888:8888"
+      - "8888:8888"
     environment:
       AWS_ACCESS_KEY_ID: ${SEAWEEDFS_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${SEAWEEDFS_SECRET_KEY}
