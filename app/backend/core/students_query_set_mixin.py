@@ -1,4 +1,7 @@
+from datetime import datetime, time
+
 from django.db.models import Prefetch, Avg, Count, Q
+from django.utils import timezone
 
 from students.models import Student, Category, Document
 from university_structure.models import AcademicYear
@@ -188,8 +191,11 @@ class DashboardStatsQuerySetMixin(StudentWithAccessMixin):
         if academic_year_id:
             ay = AcademicYear.objects.filter(id=academic_year_id).first()
             if ay:
+                # uploaded_at - DateTimeField при USE_TZ=True, поэтому границы переводим в aware-datetime (конец интервала включает весь день)
+                start = timezone.make_aware(datetime.combine(ay.start_date, time.min))
+                end = timezone.make_aware(datetime.combine(ay.end_date, time.max))
                 date_filter = {
-                    'uploaded_at__range': (ay.start_date, ay.end_date)
+                    'uploaded_at__range': (start, end)
                 }
         
         # Документы - всегда по отфильтрованным

@@ -2,7 +2,7 @@ import { useDownloadFile } from '@/hooks/useDownloadFile';
 import type { AchievementItemProps } from '@/interfaces/AchievementInterfaces';
 import { Skeleton } from 'boneyard-js/react';
 
-export default function AchievementItem({ doc, loading = false }: AchievementItemProps) {
+export default function AchievementItem({ doc, loading = false, onEdit, onDelete }: AchievementItemProps) {
   const { downloadFile } = useDownloadFile();
   const statusIcon = doc?.status_display === 'rejected' ? 'fa-circle-xmark' : 'fa-file-lines';
   const receivedDateText = doc?.date_received ? new Date(doc.date_received).toLocaleDateString('ru-RU') : 'Не указана';
@@ -87,8 +87,36 @@ export default function AchievementItem({ doc, loading = false }: AchievementIte
         </div>
       </div>
 
-      <div className="ml-2 flex items-center whitespace-nowrap rounded-full border tracking-wide border-emerald-100 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
-        +{doc?.score}
+      <div className="ml-2 flex flex-col items-end gap-2">
+        <div className="flex items-center whitespace-nowrap rounded-full border tracking-wide border-emerald-100 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+          +{doc?.score}
+        </div>
+        {(onEdit || onDelete) && (
+          <div className="flex items-center gap-1.5">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(doc)}
+                aria-label="Редактировать достижение"
+                title="Редактировать"
+                className="cursor-pointer inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700"
+              >
+                <i className="fa-solid fa-pen text-xs" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(doc)}
+                aria-label="Удалить достижение"
+                title="Удалить"
+                className="cursor-pointer inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+              >
+                <i className="fa-solid fa-trash text-xs" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
     {doc?.status_display == 'rejected' && doc?.rejection_reason && (

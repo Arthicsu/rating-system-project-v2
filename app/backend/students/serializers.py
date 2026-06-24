@@ -7,8 +7,36 @@ from .models import Student, Document, Category, DocumentFile, Level, Achievemen
 from .scoring import calculate_achievement_score
 
 import os
+import logging
+
+logger = logging.getLogger(__name__)
+
 ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc'}
 ALLOWED_CONTENT_TYPES = {'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/octet-stream'}
+MAX_FILE_SIZE = 20 * 1024 * 1024  # Ограничение на размер файла (20 МБ)
+MAX_FILES = 3  # Максимальное количество файлов
+
+
+def validate_achievement_files(files):
+    """
+    Общая валидация прикреплённых файлов достижения: количество, размер,
+    расширение и MIME-тип. Используется и при загрузке, и при редактировании.
+    """
+    if len(files) > MAX_FILES:
+        raise serializers.ValidationError(f"Нельзя загрузить более {MAX_FILES} файлов.")
+
+    for file in files:
+        if file.size > MAX_FILE_SIZE:
+            raise serializers.ValidationError(f"Файл {file.name} слишком большой. Максимальный размер 20 МБ.")
+
+        ext = os.path.splitext(file.name)[1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            raise serializers.ValidationError(f"Формат {ext} не поддерживается для файла {file.name}.")
+
+        # Проверка mime-типа
+        if file.content_type not in ALLOWED_CONTENT_TYPES:
+            raise serializers.ValidationError(f"Недопустимый тип содержимого для {file.name}.")
+    return files
 
 
 class LevelSerializer(serializers.ModelSerializer):
@@ -199,24 +227,7 @@ class AchievementUploadSerializer(serializers.Serializer):
     files = serializers.ListField(child=serializers.FileField(), write_only=True, required=True)
 
     def validate_files(self, files):
-        max_size = 20 * 1024 * 1024  # Ограничение на размер файла (20 МБ)
-        max_files = 3  # Максимальное количество файлов
-        
-        if len(files) > max_files:
-            raise serializers.ValidationError(f"Нельзя загрузить более {max_files} файлов.")
-        
-        for file in files:
-            if file.size > max_size:
-                raise serializers.ValidationError(f"Файл {file.name} слишком большой. Максимальный размер 20 МБ.")
-            
-            ext = os.path.splitext(file.name)[1].lower()
-            if ext not in ALLOWED_EXTENSIONS:
-                raise serializers.ValidationError(f"Формат {ext} не поддерживается для файла {file.name}.")
-            
-            # Проверка mime-типа
-            if file.content_type not in ALLOWED_CONTENT_TYPES:
-                raise serializers.ValidationError(f"Недопустимый тип содержимого для {file.name}.")
-        return files
+        return validate_achievement_files(files)
 
     def validate(self, data):
         # Проверяем подтип в рамках категории
@@ -225,15 +236,18 @@ class AchievementUploadSerializer(serializers.Serializer):
         except AchievementType.DoesNotExist:
             raise serializers.ValidationError({"sub_type": "Неверный подтип для данной категории."})
 
-        # Ищем студента и его пользователя
-        try:
-            student = Student.objects.select_related('user').get(record_book__iexact=data['record_book'].strip())
-            if not student.user:
-                raise serializers.ValidationError({"student": "К профилю студента не привязан пользователь."})
-            data['user'] = student.user
-        except Student.DoesNotExist:
-            raise serializers.ValidationError({"student": "Студент не найден."})
+        # БЕЗОПАСНОСТЬ: владелец достижения определяется по аутентифицированному
+        # пользователю, а НЕ по record_book из тела запроса. Иначе любой студент мог
+        # бы загружать достижения на чужую зачётку.
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        student = getattr(user, 'student_profile', None)
+        if student is None:
+            raise serializers.ValidationError(
+                {"student": "Загружать достижения можно только со своего профиля студента."}
+            )
 
+        data['user'] = user
         return data
 
     def create(self, validated_data):
@@ -268,3 +282,80 @@ class AchievementUploadSerializer(serializers.Serializer):
                 )
 
         return document
+
+
+class AchievementUpdateSerializer(serializers.Serializer):
+    """
+    Частичное редактирование достижения студентом (PATCH).
+
+    Все поля опциональны. Подтип проверяется в рамках категории (переданной или
+    текущей). Если переданы файлы — старые удаляются и заменяются новыми.
+    Балл пересчитывается в `Document.save()`. Если документ был отклонён, при
+    сохранении он возвращается на повторное рассмотрение (статус 'pending').
+
+    Редактирование уже подтверждённых достижений запрещается на уровне view.
+    """
+    category = serializers.SlugRelatedField(queryset=Category.objects.all(), slug_field='code', required=False)
+    sub_type = serializers.CharField(required=False)
+    level = serializers.SlugRelatedField(queryset=Level.objects.all(), slug_field='code', required=False, allow_null=True)
+    result = serializers.SlugRelatedField(queryset=AchievementResult.objects.all(), slug_field='code', required=False, allow_null=True)
+    achievement = serializers.CharField(required=False)
+    date_received = serializers.DateField(required=False)
+    doc_type = serializers.SlugRelatedField(queryset=DocType.objects.all(), slug_field='code', required=False)
+    files = serializers.ListField(child=serializers.FileField(), write_only=True, required=False)
+
+    def validate_files(self, files):
+        return validate_achievement_files(files)
+
+    def validate(self, data):
+        instance = self.instance
+        category = data.get('category', instance.category)
+
+        if 'sub_type' in data:
+            try:
+                data['sub_type'] = AchievementType.objects.get(category=category, code=data['sub_type'])
+            except AchievementType.DoesNotExist:
+                raise serializers.ValidationError({"sub_type": "Неверный подтип для данной категории."})
+        elif 'category' in data and instance.sub_type.category_id != category.id:
+            # Категорию сменили, но подтип не передали — текущий подтип не из новой категории.
+            raise serializers.ValidationError({"sub_type": "При смене категории необходимо указать подтип."})
+
+        return data
+
+    def update(self, instance, validated_data):
+        files = validated_data.pop('files', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        # Повторная подача: отклонённая заявка снова уходит на рассмотрение.
+        if instance.status.code == 'rejected':
+            instance.status = DocumentStatus.objects.get(code='pending')
+            instance.rejection_reason = ''
+
+        with transaction.atomic():
+            instance.save()  # балл пересчитывается в Document.save()
+
+            if files is not None:
+                old_files = list(instance.files.all())
+                instance.files.all().delete()
+
+                for order, file in enumerate(files):
+                    DocumentFile.objects.create(
+                        document=instance,
+                        file=file,
+                        original_file_name=file.name,
+                        order=order,
+                    )
+
+                # Старые файлы удаляем из хранилища только после коммита
+                def _cleanup_old_files(files_to_remove=old_files):
+                    for old_file in files_to_remove:
+                        try:
+                            old_file.file.delete(save=False)
+                        except Exception:
+                            logger.exception("Не удалось удалить старый файл достижения из хранилища")
+
+                transaction.on_commit(_cleanup_old_files)
+
+        return instance

@@ -178,7 +178,7 @@ AUTH_PASSWORD_VALIDATORS = [
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f"redis://{os.getenv('REDIS_USER')}:{os.getenv('REDIS_PORT')}/0",
+        'LOCATION': f"redis://{os.getenv('REDIS_HOST')}:{os.getenv('REDIS_PORT')}/0",
         'OPTIONS': {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "PASSWORD": f"{os.getenv('REDIS_PASSWORD')}"
@@ -250,8 +250,8 @@ AWS_ACCESS_KEY_ID = os.getenv('SEAWEEDFS_ACCESS_KEY')
 AWS_SECRET_ACCESS_KEY = os.getenv('SEAWEEDFS_SECRET_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('SEAWEEDFS_BUCKET_NAME')
 AWS_S3_ENDPOINT_URL = os.getenv('SEAWEEDFS_ENDPOINT_URL')
-AWS_S3_FILE_OVERWRITE = os.getenv('SEAWEEDFS_S3_FILE_OVERWRITE', False)
+AWS_S3_FILE_OVERWRITE = os.getenv('SEAWEEDFS_S3_FILE_OVERWRITE', 'False').lower() == 'true'
 AWS_DEFAULT_ACL = os.getenv('SEAWEEDFS_DEFAULT_ACL', 'public-read')
-AWS_S3_VERIFY = os.getenv('SEAWEEDFS_S3_VERIFY', False)
-AWS_QUERYSTRING_AUTH = os.getenv('SEAWEEDFS_QUERYSTRING_AUTH', True)
+AWS_S3_VERIFY = os.getenv('SEAWEEDFS_S3_VERIFY', 'False').lower() == 'true'
+AWS_QUERYSTRING_AUTH = os.getenv('SEAWEEDFS_QUERYSTRING_AUTH', 'True').lower() == 'true'
 AWS_QUERYSTRING_EXPIRE = int(os.getenv('SEAWEEDFS_QUERYSTRING_EXPIRE', 300))

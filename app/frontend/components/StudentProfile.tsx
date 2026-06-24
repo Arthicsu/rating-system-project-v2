@@ -1,16 +1,46 @@
 'use client';
 
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 import {Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, } from 'chart.js';
 import Link from 'next/link';
 import { Radar } from 'react-chartjs-2';
 import AchievementItem from '@/components/AchievementItem';
+import ModalConfirm from '@/components/modals/modalConfirm';
+import ModalEditAchievement from '@/components/modals/modalEditAchievement';
+import { studentApi } from '@/lib/apiRequests';
 import type { StudentProfileProps } from '@/interfaces/ProfileInterfaces';
 import type { Achievement } from '@/interfaces/AchievementInterfaces';
 import { Skeleton } from 'boneyard-js/react';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-export default function StudentProfile({ profile, isOwner, loading = false }: StudentProfileProps) {
+export default function StudentProfile({ profile, isOwner, loading = false, onRefresh }: StudentProfileProps) {
+  const [editingDoc, setEditingDoc] = useState<Achievement | null>(null);
+  const [deletingDoc, setDeletingDoc] = useState<Achievement | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingDoc) return;
+    // Подтверждённое достижение удалять нельзя (дублирует запрет на сервере).
+    if (deletingDoc.status_display === 'approved') {
+      toast.error('Нельзя удалить подтверждённое достижение');
+      setDeletingDoc(null);
+      return;
+    }
+    setDeleting(true);
+    try {
+      await studentApi.deleteAchievement(deletingDoc.id);
+      toast.success('Достижение удалено');
+      setDeletingDoc(null);
+      onRefresh?.();
+    } catch (error) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail ?? 'Не удалось удалить достижение');
+    } finally {
+      setDeleting(false);
+    }
+  };
   const data = {
     labels: profile.radar_stats.labels,
     datasets: [
@@ -184,7 +214,10 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
                 </div>
                 <div className="space-y-3">
                   {approvedDocs.map((doc: Achievement) => (
-                    <AchievementItem key={doc.id} doc={doc} />
+                    <AchievementItem
+                      key={doc.id}
+                      doc={doc}
+                    />
                   ))}
                 </div>
               </div>
@@ -203,7 +236,12 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
                 </div>
                 <div className="space-y-3">
                   {pendingDocs.map((doc: Achievement) => (
-                    <AchievementItem key={doc.id} doc={doc} />
+                    <AchievementItem
+                      key={doc.id}
+                      doc={doc}
+                      onEdit={isOwner ? (d) => setEditingDoc(d) : undefined}
+                      onDelete={isOwner ? (d) => setDeletingDoc(d) : undefined}
+                    />
                   ))}
                 </div>
               </div>
@@ -222,7 +260,12 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
                 </div>
                 <div className="space-y-3">
                   {rejectedDocs.map((doc: Achievement) => (
-                    <AchievementItem key={doc.id} doc={doc} />
+                    <AchievementItem
+                      key={doc.id}
+                      doc={doc}
+                      onEdit={isOwner ? (d) => setEditingDoc(d) : undefined}
+                      onDelete={isOwner ? (d) => setDeletingDoc(d) : undefined}
+                    />
                   ))}
                 </div>
               </div>
@@ -243,6 +286,24 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
           )}
         </div>
       </section>
+
+      <ModalEditAchievement
+        isOpen={!!editingDoc}
+        doc={editingDoc}
+        onClose={() => setEditingDoc(null)}
+        onSaved={() => { onRefresh?.(); }}
+      />
+
+      <ModalConfirm
+        isOpen={!!deletingDoc}
+        title="Удалить достижение?"
+        message="Достижение будет удалено безвозвратно."
+        confirmLabel="Удалить"
+        danger
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onClose={() => setDeletingDoc(null)}
+      />
     </>
   );
 }

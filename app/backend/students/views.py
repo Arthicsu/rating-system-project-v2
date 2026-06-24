@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.views import APIView, PermissionDenied
 from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.types import OpenApiTypes
@@ -18,13 +18,17 @@ from django.views.decorators.vary import vary_on_headers
 from django.shortcuts import get_object_or_404
 from django.http import StreamingHttpResponse
 
-from .serializers import DocumentSerializer, StudentProfileSerializer, CategorySerializer, AchievementConfigSerializer, AchievementUploadSerializer
+from .serializers import DocumentSerializer, StudentProfileSerializer, CategorySerializer, AchievementConfigSerializer, AchievementUploadSerializer, AchievementUpdateSerializer
 from .models import Document, Student, Level, AchievementResult, DocType, Category, AchievementType, DocumentStatus, DocumentFile
 from .scoring import calculate_achievement_score
 from core.students_query_set_mixin import StudentFilterMixin
+from core.scope_permission_mixin import ScopePermissionMixin
+from notifications.services import publish_document_event
 
 from urllib.parse import quote
-import json, uuid, requests
+import json, uuid, requests, logging
+
+logger = logging.getLogger(__name__)
 
 
 @method_decorator(cache_page(60 * 60), name='dispatch')  
@@ -117,12 +121,13 @@ class StudentProfileSelfAPIView(StudentFilterMixin, GenericAPIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
 
-class StudentProfileAPIView(StudentFilterMixin, GenericAPIView):
+class StudentProfileAPIView(ScopePermissionMixin, StudentFilterMixin, GenericAPIView):
     """
     API-представление для просмотра профиля студента по ID.
 
-    Предоставляет доступ к полной информации о студенте. 
-    Просмотр чужого профиля разрешён только пользователям с правами персонала.
+    Предоставляет доступ к полной информации о студенте.
+    Просмотр чужого профиля разрешён только сотрудникам и только в пределах их
+    области видимости (кафедра/факультет/ректорат).
     """
 
     authentication_classes = [SessionAuthentication]
@@ -137,25 +142,26 @@ class StudentProfileAPIView(StudentFilterMixin, GenericAPIView):
     )
     def get(self, request, student_id):
         user = request.user
-        
+
         # Запрос профиля по явно указанному student_id
-        student = Student.objects.select_related('user__student_profile').filter(id=student_id).first()
-        
+        student = Student.objects.select_related(
+            'user', 'faculty', 'group__specialty'
+        ).filter(id=student_id).first()
+
         if not student:
             return Response({"message": "Студент не найден"}, status=status.HTTP_404_NOT_FOUND)
-        
-        # Проверяем, является ли запрашивающий пользователем этого профиля
+
+        # Проверка: является ли запрашивающий пользователем этого профиля
         is_own_profile = (student.user and user.id == student.user.id)
-        
-        # Если это чужой профиль, проверяем наличие прав staff
-        if not is_own_profile and not hasattr(user, 'staff_profile'):
+
+        if not is_own_profile and not self.check_student_scope(user, student):
             return Response({"message": "Доступ запрещён"}, status=status.HTTP_403_FORBIDDEN)
-            
+
         response_data = self.get_student_full_profile(student, is_own_profile)
 
         return Response(response_data, status=status.HTTP_200_OK)
 
-class DocumentDownloadApiView(APIView):
+class DocumentDownloadApiView(ScopePermissionMixin, APIView):
     """
     API-представление для безопасного скачивания прикреплённых файлов документов.
 
@@ -208,8 +214,14 @@ class DocumentDownloadApiView(APIView):
             - Таймаут запроса к AWS - 5 секунд.
         """
         
-        file_obj = get_object_or_404(DocumentFile, id=file_id)
-        
+        file_obj = get_object_or_404(
+            DocumentFile.objects.select_related(
+                'document__user__student_profile__faculty',
+                'document__user__student_profile__group__specialty',
+            ),
+            id=file_id,
+        )
+
         if not self.can_download(request.user, file_obj):
             raise PermissionDenied("У вас нет прав на скачивание этого файла")
         
@@ -237,7 +249,12 @@ class DocumentDownloadApiView(APIView):
             return Response({"error": "AWS временно недоступен"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     
     def can_download(self, user, file_obj):
-        return user.id == file_obj.document.user_id or user.is_staff
+        # Владелец файла всегда может его скачать.
+        if user.id == file_obj.document.user_id:
+            return True
+        # Сотрудник — только в пределах своей области видимости (а не любой файл вуза).
+        student = getattr(file_obj.document.user, 'student_profile', None)
+        return self.check_student_scope(user, student)
 
 class AchievementUploadCreateAPIView(CreateAPIView):
     """
@@ -291,5 +308,83 @@ class AchievementUploadCreateAPIView(CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        
+
+        # Уведомляем сотрудников о новой заявке (после фиксации транзакции).
+        document = serializer.instance
+        transaction.on_commit(lambda: publish_document_event(document))
+
         return Response({"message": "Достижение успешно загружено"}, status=status.HTTP_201_CREATED)
+
+
+class AchievementDetailAPIView(ScopePermissionMixin, APIView):
+    """
+    Редактирование и удаление достижения самим студентом-владельцем.
+
+    - PATCH  — частичное обновление (только свои заявки со статусом 'pending' или
+      'rejected'; подтверждённые редактировать нельзя). Отклонённая заявка после
+      правок возвращается на повторное рассмотрение.
+    - DELETE — удаление своей заявки со статусом 'pending' или 'rejected'
+      (подтверждённую удалить нельзя — баллы уже начислены); файлы удаляются
+      из хранилища.
+
+    Владение проверяется на уровне запроса (`user=request.user`): для чужих заявок
+    возвращается 404, чтобы не раскрывать факт их существования.
+    """
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    pagination_class = None
+
+    def get_object(self, request, pk):
+        return get_object_or_404(
+            Document.objects.select_related('status', 'category', 'user__student_profile'),
+            pk=pk,
+            user=request.user,
+        )
+
+    @extend_schema(
+        request=AchievementUpdateSerializer,
+        responses={200: DocumentSerializer},
+    )
+    def patch(self, request, pk):
+        doc = self.get_object(request, pk)
+
+        if doc.status.code == 'approved':
+            return Response(
+                {"detail": "Нельзя редактировать подтверждённое достижение."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = AchievementUpdateSerializer(instance=doc, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        doc = serializer.save()
+
+        transaction.on_commit(lambda: publish_document_event(doc))
+
+        return Response(DocumentSerializer(doc).data, status=status.HTTP_200_OK)
+
+    @extend_schema(responses={204: None})
+    def delete(self, request, pk):
+        doc = self.get_object(request, pk)
+
+        # Подтверждённое достижение студент удалить не может
+        if doc.status.code == 'approved':
+            return Response(
+                {"detail": "Нельзя удалить подтверждённое достижение."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        files = list(doc.files.all())
+
+        with transaction.atomic():
+            doc.delete()
+            transaction.on_commit(lambda: publish_document_event(doc))
+
+        # Чистим файлы в хранилище
+        for document_file in files:
+            try:
+                document_file.file.delete(save=False)
+            except Exception:
+                logger.exception("Не удалось удалить файл достижения из хранилища")
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

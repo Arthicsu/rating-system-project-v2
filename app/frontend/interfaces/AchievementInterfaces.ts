@@ -17,6 +17,8 @@ export interface Achievement {
 export interface AchievementItemProps {
   doc?: Achievement;
   loading?: boolean;
+  onEdit?: (doc: Achievement) => void;
+  onDelete?: (doc: Achievement) => void;
 }
 
 export interface ScoringRule {

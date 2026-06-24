@@ -45,3 +45,22 @@ export interface ModalPreviewProps {
   onClose: () => void;
   onDownload: (fileId: number, fileName: string) => void;
 }
+
+export interface ModalConfirmProps {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
+  loading?: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}
+
+export interface ModalEditAchievementProps {
+  isOpen: boolean;
+  doc: import('./AchievementInterfaces').Achievement | null;
+  onClose: () => void;
+  onSaved: () => void;
+}

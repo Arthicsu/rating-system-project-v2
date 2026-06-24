@@ -26,7 +26,14 @@ export const studentApi = {
   uploadAchievement: (formData: FormData) => api.post<AchievementUploadResponse>('/student/api/v1/upload/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-  
+
+  updateAchievement: (id: number, formData: FormData) =>
+    api.patch(`/student/api/v1/achievement/${id}/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  deleteAchievement: (id: number) => api.delete(`/student/api/v1/achievement/${id}/`),
+
   downloadDocument: (fileId: number) => api.get(`/student/api/v1/document/download/${fileId}/`, {
     responseType: 'blob',
   }),

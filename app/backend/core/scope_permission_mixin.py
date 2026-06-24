@@ -17,22 +17,38 @@ class ScopePermissionMixin:
         Проверяет, имеет ли пользователь права на модерацию документа.
         Возвращает True, если документ принадлежит области видимости пользователя.
         """
+        student = getattr(document.user, 'student_profile', None)
+        return self.check_student_scope(user, student)
+
+    def check_student_scope(self, user, student) -> bool:
+        """
+        Проверяет, попадает ли студент в область видимости (scope) сотрудника.
+
+        Базис совпадает с подсчётом заявок и выборками дашборда:
+        - Ректорат — видит всех;
+        - Декан    — студентов своего факультета (`student.faculty`);
+        - Кафедра  — студентов своей кафедры (`student.group.specialty.department`).
+        """
         if not hasattr(user, 'staff_profile'):
             return False
-        
+
         if user.is_rectorate:
             return True
-        
-        student = getattr(document.user, 'student_profile', None)
-        if not student:
+
+        if student is None:
             return False
-        
-        if user.is_dean and student.faculty:
-            return student.faculty == user.staff_profile.faculty
-        
-        if user.is_dept_staff and student.department:
-            return student.department == user.staff_profile.department
-        
+
+        staff = user.staff_profile
+
+        if user.is_dean:
+            return bool(student.faculty_id) and student.faculty_id == staff.faculty_id
+
+        if user.is_dept_staff:
+            department_id = None
+            if student.group_id and student.group.specialty_id:
+                department_id = student.group.specialty.department_id
+            return bool(department_id) and department_id == staff.department_id
+
         return False
     
     def get_document_with_scope_check(self, user, doc_id):

@@ -34,4 +34,5 @@ export interface StudentProfileProps {
   profile: Profile;
   isOwner: boolean;
   loading?: boolean;
+  onRefresh?: () => void;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
@@ -12,36 +12,32 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await studentApi.getProfile();
+
+  const fetchProfile = useCallback(() => {
+    return studentApi.getProfile()
+      .then(res => {
         const profileData = res.data;
-        
         if (profileData.is_staff) {
           router.push('/staff-profile');
           return;
         }
-        
         setProfile(profileData);
-      } catch (error) {
-        toast.error('Ошибка: ' + error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchProfile();
+      })
+      .catch(error => toast.error('Ошибка: ' + error))
+      .finally(() => setIsLoading(false));
   }, [router]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   if (isLoading) {
     return <div className="p-10 text-center">Загрузка профиля...</div>;
   }
-  
+
   if (!profile) {
     return <div className="p-10 text-center">Данный профиль не найден.</div>;
   }
 
-  return <StudentProfile profile={profile} isOwner={profile.is_own_profile} />;
+  return <StudentProfile profile={profile} isOwner={profile.is_own_profile} onRefresh={fetchProfile} />;
 }
