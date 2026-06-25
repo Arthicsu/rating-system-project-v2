@@ -23,7 +23,6 @@ from .models import Document, Student, Level, AchievementResult, DocType, Catego
 from .scoring import calculate_achievement_score
 from core.students_query_set_mixin import StudentFilterMixin
 from core.scope_permission_mixin import ScopePermissionMixin
-from notifications.services import publish_document_event
 
 from urllib.parse import quote
 import json, uuid, requests, logging
