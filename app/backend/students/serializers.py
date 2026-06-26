@@ -11,8 +11,18 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc'}
-ALLOWED_CONTENT_TYPES = {'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/octet-stream'}
+ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc', '.png', '.jpeg', '.jpg', '.webp', '.gif', '.bmp'}
+ALLOWED_CONTENT_TYPES = {
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword',
+    'application/octet-stream',
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'image/gif',
+    'image/bmp',
+}
 MAX_FILE_SIZE = 20 * 1024 * 1024  # Ограничение на размер файла (20 МБ)
 MAX_FILES = 3  # Максимальное количество файлов
 
@@ -128,9 +138,9 @@ class StudentRatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = [
-            'id', 'user_id', 
+            'id', 'user_id',
             'full_name', 'short_name',
-            'group', 'group_id', 
+            'group', 'group_id',
             'course',
             'faculty', 'faculty_id',
             'total_score', 'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score',
@@ -160,25 +170,25 @@ class DocumentSerializer(serializers.ModelSerializer):
     result_display = serializers.CharField(source='result.label', read_only=True, default=None)
     doc_type_display = serializers.CharField(source='doc_type.label', read_only=True)
     status_display = serializers.CharField(source='status.code', read_only=True)
-    files = DocumentFileSerializer(many=True, read_only=True) 
+    files = DocumentFileSerializer(many=True, read_only=True)
 
     class Meta:
         model = Document
         fields = [
-            'id', 
+            'id',
             'category', 'category_display',
-            'sub_type', 'sub_type_display', 
+            'sub_type', 'sub_type_display',
             'level', 'level_display',
             'result', 'result_display',
             'achievement',
-            'rejection_reason', 
-            'score', 
+            'rejection_reason',
+            'score',
             'status', 'status_display',
-            'doc_type', 'doc_type_display', 
+            'doc_type', 'doc_type_display',
             'files',
             'date_received', 'uploaded_at',
         ]
-        
+
 class PendingDocumentSerializer(DocumentSerializer):
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     student_id = serializers.IntegerField(source='user.student_profile.id', read_only=True)
@@ -201,14 +211,14 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = [
-            'id', 'user_id', 
+            'id', 'user_id',
             'full_name', 'short_name',
-            'email', 'record_book', 
+            'email', 'record_book',
             'group', 'group_id', 'course', 'faculty',
             'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score', 'total_score',
             'documents',
         ]
-    
+
     @extend_schema_field(serializers.CharField())
     def get_short_name(self, obj):
         if obj.user:
