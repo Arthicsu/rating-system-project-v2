@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -44,7 +44,6 @@ export default function StaffProfilePage() {
   const [selectedGroupId, setSelectedGroupId] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [loadTrigger, setLoadTrigger] = useState(0);
-  const [refetchNonce, setRefetchNonce] = useState(0);
   const [selectedSemesterId, setSelectedSemesterId] = useState(0);
   const [selectedSemesterLabel, setSelectedSemesterLabel] = useState('');
   
@@ -215,16 +214,38 @@ export default function StaffProfilePage() {
       }
     };
     fetchDashboard();
-  }, [selectedGroupId, selectedSemesterId, currentPage, selectedCourse, requestsPage, pendingSearchValue, groupSearchValue, refetchNonce]);
+  }, [selectedGroupId, selectedSemesterId, currentPage, selectedCourse, requestsPage, pendingSearchValue, groupSearchValue]);
+  const pollPendingRequests = useCallback(async () => {
+    if (!selectedGroupId || !selectedSemesterId) return;
 
-  // Short-polling списка заявок. Пока открыта страница, периодически обновляем дашборд, чтобы заявки появлялись/исчезали без перезагрузки. На паузе, когда вкладка скрыта.
+    try {
+      const statsParams: DashboardStatsParams = {
+        group_id: selectedGroupId,
+        academic_year: String(selectedSemesterId),
+        page: requestsPage,
+        page_size: requestsPageSize,
+        search: pendingSearchValue || undefined,
+      };
+
+      const statsRes = await universityApi.getFilteredDashboardStats(statsParams);
+
+      setPendingDocsData(statsRes.data.results || []);
+      setTotalRequests(statsRes.data.count || 0);
+      setStats(statsRes.data.stats || { total_students: 0, avg_score: 0 });
+      setTop5Students(statsRes.data.top5 || []);
+    } catch (error) {
+      console.error("Ошибка обновления списка заявок: ", error);
+    }
+  }, [selectedGroupId, selectedSemesterId, requestsPage, pendingSearchValue]);
+
+  // Short-polling списка заявок. Пока открыта страница, периодически обновляем только заявки, чтобы они появлялись/исчезали без перезагрузки. На паузе, когда вкладка скрыта.
   useEffect(() => {
     const POLL_INTERVAL_MS = 15_000;
     let intervalId: ReturnType<typeof setInterval> | null = null;
 
     const startPolling = () => {
       if (intervalId === null) {
-        intervalId = setInterval(() => setRefetchNonce(n => n + 1), POLL_INTERVAL_MS);
+        intervalId = setInterval(pollPendingRequests, POLL_INTERVAL_MS);
       }
     };
     const stopPolling = () => {
@@ -237,7 +258,7 @@ export default function StaffProfilePage() {
       if (document.hidden) {
         stopPolling();
       } else {
-        setRefetchNonce(n => n + 1);
+        pollPendingRequests();
         startPolling();
       }
     };
@@ -249,7 +270,7 @@ export default function StaffProfilePage() {
       document.removeEventListener('visibilitychange', handleVisibility);
       stopPolling();
     };
-  }, []);
+  }, [pollPendingRequests]);
 
   const dynamicStats = useMemo(() => {
     const students = studentsData || [];
