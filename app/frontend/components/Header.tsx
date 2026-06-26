@@ -30,6 +30,12 @@ export default function Header() {
                 Главная
               </Link>
               <span className="mx-2 sm:mx-3">/</span>
+              <a
+                href="https://eos.bgitu.ru/"
+                className="text-xs sm:text-[14px] leading-[1.43] text-[#6a7a98] hover:underline"
+              >
+                ЭОС
+              </a>
             </div>
           </div>
 
