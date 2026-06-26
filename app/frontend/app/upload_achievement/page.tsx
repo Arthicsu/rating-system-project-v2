@@ -179,14 +179,14 @@ export default function UploadAchievement() {
     formData.append('sub_type', subType.code);
     formData.append('achievement', achievementName);
     formData.append('date_received', dateReceived);
-    
+
     if (docType) {
         formData.append('doc_type', docType.code);
     }
 
     if (subType.needsLevel && level) formData.append('level', level.code);
     if (subType.needsResult && result) formData.append('result', result.code);
-    
+
     if (files.length) {
       files.forEach((f) => formData.append('files', f));
     }
@@ -208,7 +208,7 @@ export default function UploadAchievement() {
       } else {
         toast.error('Ошибка при отправке достижения');
       }
-    }    
+    }
   };
 
   return (
@@ -533,13 +533,13 @@ export default function UploadAchievement() {
                   Файлы (обязательно)
                 </label>
                 <p className="text-[11px] text-slate-400">
-                  Максимальный размер файла: 20 МБ, максимум 3 файла. Формат: .doc, .docx, .pdf.
+                  Максимальный размер файла: 20 МБ, максимум 3 файла. Формат: .doc, .docx, .pdf, .png, .jpg, .jpeg, .webp, .gif, .bmp.
                 </p>
                 <label className="mt-1 inline-flex w-full cursor-pointer flex-col rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-left text-xs text-slate-500 transition hover:border-sky-600 hover:bg-slate-100">
                   <input
                     type="file"
                     multiple
-                    accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, .doc"
+                    accept=".doc,.docx,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,image/png,image/jpeg,image/webp,image/gif,image/bmp"
                     className="hidden"
                     onChange={handleFileChange}
                   />

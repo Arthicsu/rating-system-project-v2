@@ -171,13 +171,13 @@ export default function ModalEditAchievement({
               Заменить файлы (необязательно)
             </label>
             <p className="text-[11px] text-slate-400">
-              Если выбрать новые файлы — старые будут заменены. Максимум 3 файла по 20 МБ. Формат: .doc, .docx, .pdf.
+              Если выбрать новые файлы — старые будут заменены. Максимум 3 файла по 20 МБ. Формат: .doc, .docx, .pdf, .png, .jpg, .jpeg, .webp, .gif, .bmp.
             </p>
             <label className="mt-1 inline-flex w-full cursor-pointer flex-col rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-left text-xs text-slate-500 transition hover:border-sky-600 hover:bg-slate-100">
               <input
                 type="file"
                 multiple
-                accept="application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, .doc"
+                accept=".doc,.docx,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,image/png,image/jpeg,image/webp,image/gif,image/bmp"
                 className="hidden"
                 onChange={handleFileChange}
               />
