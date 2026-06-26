@@ -44,6 +44,7 @@ export default function StaffProfilePage() {
   const [selectedGroupId, setSelectedGroupId] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [loadTrigger, setLoadTrigger] = useState(0);
+  const [refetchNonce, setRefetchNonce] = useState(0);
   const [selectedSemesterId, setSelectedSemesterId] = useState(0);
   const [selectedSemesterLabel, setSelectedSemesterLabel] = useState('');
   
@@ -214,7 +215,41 @@ export default function StaffProfilePage() {
       }
     };
     fetchDashboard();
-  }, [selectedGroupId, selectedSemesterId, currentPage, selectedCourse, requestsPage, pendingSearchValue, groupSearchValue]);
+  }, [selectedGroupId, selectedSemesterId, currentPage, selectedCourse, requestsPage, pendingSearchValue, groupSearchValue, refetchNonce]);
+
+  // Short-polling списка заявок. Пока открыта страница, периодически обновляем дашборд, чтобы заявки появлялись/исчезали без перезагрузки. На паузе, когда вкладка скрыта.
+  useEffect(() => {
+    const POLL_INTERVAL_MS = 15_000;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (intervalId === null) {
+        intervalId = setInterval(() => setRefetchNonce(n => n + 1), POLL_INTERVAL_MS);
+      }
+    };
+    const stopPolling = () => {
+      if (intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        setRefetchNonce(n => n + 1);
+        startPolling();
+      }
+    };
+
+    if (!document.hidden) startPolling();
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      stopPolling();
+    };
+  }, []);
 
   const dynamicStats = useMemo(() => {
     const students = studentsData || [];

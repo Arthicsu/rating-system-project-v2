@@ -59,11 +59,11 @@ export default function Main() {
 
         {/* Правая колонка с действиями */}
         <div className="flex w-full max-w-xs flex-col items-stretch justify-center gap-3 rounded-2xl bg-[#F5F7FB] px-5 py-6 shadow-sm md:max-w-sm">
-          <button className="cursor-pointer w-full rounded-md bg-sky-700 text-sm font-semibold text-white transition hover:bg-sky-900">
+          {/* <button className="cursor-pointer w-full rounded-md bg-sky-700 text-sm font-semibold text-white transition hover:bg-sky-900">
             <Link href="/register" className="block w-full text-center px-4 py-3">
               Зарегистрироваться
             </Link>
-          </button>
+          </button> */}
 
           <button className="cursor-pointer w-full rounded-md bg-white text-sm font-semibold text-[#0069a8] ring-1 ring-[#0069a8] transition hover:bg-sky-700 hover:text-white">
             <Link href="/login" className="block w-full text-center px-4 py-3">
@@ -71,11 +71,11 @@ export default function Main() {
             </Link>
           </button>
 
-          {/* <button className="cursor-pointer mt-1 text-center text-xs text-[#6a7a98] underline underline-offset-2 hover:text-[#0069a8]">
+          <button className="cursor-pointer mt-1 text-center text-xs text-[#6a7a98] underline underline-offset-2 hover:text-[#0069a8]">
             <Link href="/reset-password">
               Восстановить пароль
             </Link>
-          </button> */}
+          </button>
         </div>
       </div>
     </section>

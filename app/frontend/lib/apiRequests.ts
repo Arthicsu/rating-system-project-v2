@@ -14,6 +14,11 @@ export const authApi = {
   register: (data: RegisterFormData) => api.post<AuthUser>('/user/api/v1/register/student/', data),
   
   logout: () => api.post('/user/api/v1/logout/'),
+
+  getPendingCount: () =>
+    api.get<{ pending_docs_count: number }>('/api/v1/notifications/pending-count/', {
+      skipErrorRedirect: true,
+    }),
 };
 
 export const studentApi = {
@@ -23,14 +28,11 @@ export const studentApi = {
   
   getAchievementConfig: () => api.get<AchievementConfigResponse>('/student/api/v1/achievement-config/'),
   
-  uploadAchievement: (formData: FormData) => api.post<AchievementUploadResponse>('/student/api/v1/upload/', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  uploadAchievement: (formData: FormData) =>
+    api.post<AchievementUploadResponse>('/student/api/v1/upload/', formData),
 
   updateAchievement: (id: number, formData: FormData) =>
-    api.patch(`/student/api/v1/achievement/${id}/`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    api.patch(`/student/api/v1/achievement/${id}/`, formData),
 
   deleteAchievement: (id: number) => api.delete(`/student/api/v1/achievement/${id}/`),
 

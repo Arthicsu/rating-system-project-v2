@@ -44,8 +44,9 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     const status = error.response?.status;
     const isOnErrorPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/error/');
+    const skipRedirect = error.config?.skipErrorRedirect;
 
-    if (status && !isOnErrorPage && ERROR_REDIRECT_CODES.includes(status)) {
+    if (status && !skipRedirect && !isOnErrorPage && ERROR_REDIRECT_CODES.includes(status)) {
       // const message = (error.response?.data as { detail?: string })?.detail || error.message;
       // window.location.href = `/error/${status}?msg=${encodeURIComponent(message)}`;
       window.location.href = `/error/${status}`;

@@ -2,7 +2,8 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from students.models import Student, Document
+from students.models import Student
+from notifications.services import get_pending_docs_count
 
 User = get_user_model()
 
@@ -13,7 +14,7 @@ class UserResponseSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     short_name = serializers.SerializerMethodField()
     roles = serializers.SerializerMethodField()
-    pending_docs_count = serializers.SerializerMethodField()
+    # pending_docs_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -26,32 +27,16 @@ class UserResponseSerializer(serializers.ModelSerializer):
             'full_name',
             'short_name',
             'roles',
-            'pending_docs_count',
+            # 'pending_docs_count',
         ]
 
     @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_roles(self, obj):
         return list(obj.groups.values_list('name', flat=True))
 
-    @extend_schema_field(serializers.IntegerField())
-    def get_pending_docs_count(self, obj):
-        if not hasattr(obj, 'staff_profile'):
-            return 0
-        staff = obj.staff_profile
-
-        if getattr(obj, 'is_rectorate', False):
-            return Document.objects.filter(status__code='approved').count()
-        elif getattr(obj, 'is_dean', False) and staff.faculty:
-            return Document.objects.filter(
-                user__student_profile__faculty=staff.faculty,
-                status__code='approved'
-            ).count()
-        elif getattr(obj, 'is_dept_staff', False) and staff.department:
-            return Document.objects.filter(
-                user__student_profile__group__specialty__department=staff.department,
-                status__code='pending'
-            ).count()
-        return 0
+    # @extend_schema_field(serializers.IntegerField())
+    # def get_pending_docs_count(self, obj):
+    #     return get_pending_docs_count(obj)
 
     @extend_schema_field(serializers.CharField())
     def get_full_name(self, obj):
@@ -108,6 +93,7 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
         
         Student.objects.create(
             user=user,
+            # external_id=None,
             group=None,
             record_book=record_book,
             full_name=user.get_full_name()

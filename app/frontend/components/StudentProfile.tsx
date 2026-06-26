@@ -41,12 +41,17 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
       setDeleting(false);
     }
   };
+  // radar_stats может отсутствовать в ответе (рассинхрон версий бэка/сид-данных) —
+  // не роняем весь профиль, а деградируем до пустой диаграммы.
+  const radarLabels = profile?.radar_stats?.labels ?? [];
+  const radarData = profile?.radar_stats?.data ?? [];
+
   const data = {
-    labels: profile.radar_stats.labels,
+    labels: radarLabels,
     datasets: [
       {
         label: 'Баллы',
-        data: profile.radar_stats.data,
+        data: radarData,
         backgroundColor: 'rgba(0, 80, 207, 0.35)',
         borderColor: '#0069a8',
         borderWidth: 2,
@@ -180,7 +185,7 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
                   Распределение баллов по видам деятельности
                 </p>
                 <div className="space-y-2.5">
-                  {profile.radar_stats.labels.map(
+                  {radarLabels.map(
                     (label: string, index: number) => (
                       <div
                         key={label}
@@ -191,7 +196,7 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
                           <span>{label}</span>
                         </div>
                         <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-sky-700 shadow-sm">
-                          {profile.radar_stats.data[index]}
+                          {radarData[index]}
                         </span>
                       </div>
                     )

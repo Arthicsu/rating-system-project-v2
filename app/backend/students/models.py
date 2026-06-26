@@ -17,6 +17,7 @@ class Student(models.Model):
     номер зачётной книжки, контактную информацию и баллы по различным направлениям активности.
     """
     external_id = models.CharField("Код студента", max_length=50, unique=True, help_text="Код студента из БД вуза")
+    # external_id = models.CharField("Код студента", max_length=50, unique=True, null=True, blank=True, help_text="Код студента из БД вуза")
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         null=True, blank=True,
         related_name='student_profile')

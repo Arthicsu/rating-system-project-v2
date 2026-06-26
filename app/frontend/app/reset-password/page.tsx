@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
           <div className="mt-6 flex justify-center">
             <Link
               href="/login"
-              className="rounded-md bg-[#0050CF] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#002D6E]"
+              className="rounded-md bg-sky-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-900"
             >
               Вернуться ко входу
             </Link>

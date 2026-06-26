@@ -1,3 +1,9 @@
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipErrorRedirect?: boolean;
+  }
+}
+
 export interface AuthUser {
   user_id: number;
   username: string;

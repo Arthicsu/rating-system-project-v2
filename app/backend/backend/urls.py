@@ -29,6 +29,7 @@ urlpatterns = [
     path('user/', include('users.urls', namespace='user')),
     path('student/', include('students.urls', namespace='students')),
     path('university/', include('university_structure.urls', namespace='university_structure')),
+    path('', include('notifications.urls', namespace='notifications')),
 
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     # Swagger

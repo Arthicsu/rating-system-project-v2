@@ -125,14 +125,14 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm text-[#0069a8]">
-            <Link className="text-[#0069a8] hover:text-sky-900 underline underline-offset-2" href="/register">
+            {/* <Link className="text-[#0069a8] hover:text-sky-900 underline underline-offset-2" href="/register">
               Зарегистрироваться
-            </Link>
+            </Link> */}
             {/* <span className="h-5 w-px bg-slate-300" /> */}
             {/* пока коммитим */}
-            {/* <Link className="text-sky-700 hover:text-sky-900 underline underline-offset-2" href="/reset-password">
+            <Link className="text-sky-700 hover:text-sky-900 underline underline-offset-2" href="/reset-password">
               Восстановить пароль
-            </Link> */}
+            </Link>
           </p>
         </div>
 

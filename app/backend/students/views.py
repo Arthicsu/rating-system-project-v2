@@ -11,7 +11,6 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.types import OpenApiTypes
 
-from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
@@ -308,10 +307,6 @@ class AchievementUploadCreateAPIView(CreateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
 
-        # Уведомляем сотрудников о новой заявке (после фиксации транзакции).
-        document = serializer.instance
-        transaction.on_commit(lambda: publish_document_event(document))
-
         return Response({"message": "Достижение успешно загружено"}, status=status.HTTP_201_CREATED)
 
 
@@ -358,8 +353,6 @@ class AchievementDetailAPIView(ScopePermissionMixin, APIView):
         serializer.is_valid(raise_exception=True)
         doc = serializer.save()
 
-        transaction.on_commit(lambda: publish_document_event(doc))
-
         return Response(DocumentSerializer(doc).data, status=status.HTTP_200_OK)
 
     @extend_schema(responses={204: None})
@@ -375,9 +368,7 @@ class AchievementDetailAPIView(ScopePermissionMixin, APIView):
 
         files = list(doc.files.all())
 
-        with transaction.atomic():
-            doc.delete()
-            transaction.on_commit(lambda: publish_document_event(doc))
+        doc.delete()
 
         # Чистим файлы в хранилище
         for document_file in files:

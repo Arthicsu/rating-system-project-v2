@@ -147,7 +147,9 @@ services:
       - "443:443"
     volumes:
       - static_files:/app/staticfiles:ro
-      - nginx_cache:/var/cache/nginx
+      # DEV: монтируем cache-free конфиг поверх запечённого прод-конфига из образа.
+      # Правки применяются через `restart nginx` / `nginx -s reload`, без пересборки (--build).
+      - ./app/nginx/default.dev.conf:/etc/nginx/conf.d/default.conf:ro
     deploy:
       resources:
         limits:
@@ -172,6 +174,5 @@ volumes:
   redis_data:
   seaweedfs_data:
   static_files:
-  nginx_cache:
   next_cache:
   backend_logs:

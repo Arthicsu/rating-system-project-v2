@@ -15,8 +15,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 1G
-    ports:
-      - "8000:8000"
     env_file:
       - .env
     environment:
@@ -44,8 +42,6 @@ services:
         reservations:
           cpus: '0.25'
           memory: 256M
-    ports:
-      - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NEXT_TELEMETRY_DISABLED=1
@@ -85,8 +81,6 @@ services:
     environment:
       REDIS_USER: ${REDIS_USER}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     deploy:
@@ -107,10 +101,6 @@ services:
   seaweedfs:
     image: chrislusf/seaweedfs:4.25
     container_name: app_seaweedfs
-    ports:
-      - "8333:8333"
-      - "9333:9333"
-      # - "8888:8888"
     environment:
       AWS_ACCESS_KEY_ID: ${SEAWEEDFS_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${SEAWEEDFS_SECRET_KEY}
