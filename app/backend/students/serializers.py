@@ -26,6 +26,19 @@ ALLOWED_CONTENT_TYPES = {
 MAX_FILE_SIZE = 20 * 1024 * 1024  # Ограничение на размер файла (20 МБ)
 MAX_FILES = 3  # Максимальное количество файлов
 
+# Сигнатуры разрешённых форматов и содержимое сверяется с этим расширением.
+FILE_SIGNATURES = {
+    '.pdf': (b'%PDF-',),
+    '.doc': (b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1',),
+    '.docx': (b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08'),
+    '.png': (b'\x89PNG\r\n\x1a\n',),
+    '.jpg': (b'\xff\xd8\xff',),
+    '.jpeg': (b'\xff\xd8\xff',),
+    '.gif': (b'GIF87a', b'GIF89a'),
+    '.bmp': (b'BM',),
+    '.webp': (b'RIFF',),
+}
+
 
 def validate_achievement_files(files):
     """
@@ -46,6 +59,17 @@ def validate_achievement_files(files):
         # Проверка mime-типа
         if file.content_type not in ALLOWED_CONTENT_TYPES:
             raise serializers.ValidationError(f"Недопустимый тип содержимого для {file.name}.")
+
+        # Проверка сигнатуры реальное содержимое должно соответствовать расширению (см. FILE_SIGNATURES).
+        header = file.read(12)
+        file.seek(0)
+        ok = any(header.startswith(sig) for sig in FILE_SIGNATURES.get(ext, ()))
+        if ext == '.webp':
+            ok = ok and header[8:12] == b'WEBP'
+        if not ok:
+            raise serializers.ValidationError(
+                f"Содержимое файла {file.name} не соответствует расширению {ext}."
+            )
     return files
 
 

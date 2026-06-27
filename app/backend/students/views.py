@@ -7,6 +7,7 @@ from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.views import APIView, PermissionDenied
 from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.throttling import ScopedRateThrottle
 
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.types import OpenApiTypes
@@ -242,9 +243,9 @@ class DocumentDownloadApiView(ScopePermissionMixin, APIView):
             
             return proxy_response
             
-        except requests.exceptions.RequestException as e:
-            print(f"AWS Proxy Error: {e}")
-            return Response({"error": "AWS временно недоступен"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except requests.exceptions.RequestException:
+            logger.exception("Ошибка проксирования файла из хранилища")
+            return Response({"error": "Хранилище временно недоступено"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     
     def can_download(self, user, file_obj):
         # Владелец файла всегда может его скачать.
@@ -264,6 +265,8 @@ class AchievementUploadCreateAPIView(CreateAPIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     parser_classes = [MultiPartParser, FormParser]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'upload'
     serializer_class = AchievementUploadSerializer
     pagination_class = None
 

@@ -61,8 +61,8 @@ class StaffProfileAPIView(ScopePermissionMixin, GenericAPIView):
         
         is_own_profile = (staff.user_id == user.id)
 
-        if not is_own_profile and not staff:
-            return Response({"message": "Доступ запрещён"}, status=status.HTTP_403_FORBIDDEN)    
+        # if not is_own_profile and not staff:
+        #     return Response({"message": "Доступ запрещён"}, status=status.HTTP_403_FORBIDDEN)    
 
 
         # Сериализация данных из модели

@@ -95,6 +95,18 @@ SESSION_COOKIE_HTTPONLY = os.getenv('SESSION_COOKIE_HTTPONLY', 'True').lower() =
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = os.getenv('DJANGO_USE_X_FORWARDED_HOST', 'True').lower() == 'true'
 
+# запрет mime-sniffing
+SECURE_CONTENT_TYPE_NOSNIFF = True
+# ограничение утечки реферера.
+SECURE_REFERRER_POLICY = 'same-origin'
+# принудительный редирект на https
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
+
+if not DEBUG:
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', 31536000))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv('SECURE_HSTS_INCLUDE_SUBDOMAINS', 'True').lower() == 'true'
+    SECURE_HSTS_PRELOAD = os.getenv('SECURE_HSTS_PRELOAD', 'True').lower() == 'true'
+
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
@@ -108,7 +120,12 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'core.pagination.StandardResultsSetPagination',
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
-    'PAGE_SIZE': 20
+    'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_RATES': {
+        'login': os.getenv('THROTTLE_LOGIN', '5/min'),
+        'register': os.getenv('THROTTLE_REGISTER', '60/hour'),
+        'upload': os.getenv('THROTTLE_UPLOAD', '60/hour'),
+    },
 }
 
 ROOT_URLCONF = 'backend.urls'
@@ -149,9 +166,6 @@ DATABASES = {
         'CONN_MAX_AGE': 60,
         # 'OPTIONS': {
         #     'sslmode': os.getenv('SSL_MODE', 'require'),
-        #     'sslcert': os.getenv('SSL_CERT', ''),
-        #     'sslkey': os.getenv('SSL_KEY', ''),
-        #     'sslrootcert': os.getenv('SSL_ROOT_CERT', ''),
         # },
     }
 }
@@ -252,7 +266,7 @@ AWS_SECRET_ACCESS_KEY = os.getenv('SEAWEEDFS_SECRET_KEY')
 AWS_STORAGE_BUCKET_NAME = os.getenv('SEAWEEDFS_BUCKET_NAME')
 AWS_S3_ENDPOINT_URL = os.getenv('SEAWEEDFS_ENDPOINT_URL')
 AWS_S3_FILE_OVERWRITE = os.getenv('SEAWEEDFS_S3_FILE_OVERWRITE', 'False').lower() == 'true'
-AWS_DEFAULT_ACL = os.getenv('SEAWEEDFS_DEFAULT_ACL', 'public-read')
+AWS_DEFAULT_ACL = os.getenv('SEAWEEDFS_DEFAULT_ACL', 'private')
 AWS_S3_VERIFY = os.getenv('SEAWEEDFS_S3_VERIFY', 'False').lower() == 'true'
 AWS_QUERYSTRING_AUTH = os.getenv('SEAWEEDFS_QUERYSTRING_AUTH', 'True').lower() == 'true'
 AWS_QUERYSTRING_EXPIRE = int(os.getenv('SEAWEEDFS_QUERYSTRING_EXPIRE', 300))

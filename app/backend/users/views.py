@@ -17,7 +17,9 @@ from rest_framework.response import Response
 from rest_framework import status, serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.throttling import ScopedRateThrottle
 
+from core.throttling import LoginRateThrottle
 from university_structure.models import Faculty, Group
 from students.models import Category
 from .serializers import StudentRegistrationSerializer, LoginRequestSerializer, UserResponseSerializer
@@ -42,7 +44,9 @@ class RegistrationAPIView(CreateAPIView):
     
     permission_classes = [AllowAny]
     authentication_classes = []
-    serializer_class = StudentRegistrationSerializer 
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'register'
+    serializer_class = StudentRegistrationSerializer
 
     @extend_schema(
         request=StudentRegistrationSerializer,
@@ -87,6 +91,7 @@ class RegistrationAPIView(CreateAPIView):
 class LoginAPIView(GenericAPIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+    throttle_classes = [LoginRateThrottle]
     serializer_class = LoginRequestSerializer
 
     @extend_schema(
