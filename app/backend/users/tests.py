@@ -194,7 +194,8 @@ class LogoutAPIViewTests(UsersAPITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
         check = self.client.get(reverse("user:api_check_auth"))
-        self.assertEqual(check.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(check.status_code, status.HTTP_200_OK)
+        self.assertEqual(check.json(), {"isAuthenticated": False})
 
 
 @override_settings(**TEST_SETTINGS)
@@ -208,10 +209,10 @@ class CheckAuthAPIViewTests(UsersAPITestCase):
             username="me@uni.ru", first_name="Анна", last_name="Сидорова"
         )
 
-    def test_anonymous_returns_401_with_flag(self):
+    def test_anonymous_returns_200_with_flag(self):
         resp = self.client.get(self.url)
 
-        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.json(), {"isAuthenticated": False})
 
     def test_authenticated_returns_user(self):

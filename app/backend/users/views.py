@@ -122,15 +122,14 @@ class CheckAuthAPIView(APIView):
     @extend_schema(
         responses={
             200: UserResponseSerializer,
-            401: inline_serializer(name='NotAuthenticated', fields={'isAuthenticated': serializers.BooleanField(default=False)})
         }
     )
     def get(self, request):
         if request.user.is_authenticated:
             response_data = UserResponseSerializer(request.user).data
             return Response(response_data, status=status.HTTP_200_OK)
-        
-        return Response({"isAuthenticated": False}, status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response({"isAuthenticated": False}, status=status.HTTP_200_OK)
 
 # @method_decorator(ensure_csrf_cookie, name='dispatch')
 # class CsrfTokenAPIView(APIView):
