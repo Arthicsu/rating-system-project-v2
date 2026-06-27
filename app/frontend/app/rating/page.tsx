@@ -230,19 +230,19 @@ export default function RatingPage() {
 
           <div className="rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
             <div className="w-full overflow-x-auto">
-              <table className="min-w-full border-collapse">
+              <table className="min-w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead>
                   <tr className="bg-slate-500 text-white">
-                    <th className="w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
+                    <th className="w-10 sm:w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
                     </th>
-                    <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                    <th className="w-[35%] sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
                       ФИО Студента
                     </th>
-                    <th className="px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                    <th className=" w-16 sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
                       Баллы
                     </th>
 
-                    <th className=" px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-[11px] sm:text-xs md:text-sm lg:text-base font-normal ">
+                    <th className="w-[20%] sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-[11px] sm:text-xs md:text-sm lg:text-base font-normal ">
                       <div className="flex max-[544px]:flex-col items-center justify-center gap-1.5 sm:gap-2 text-center text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-white">
                         <label htmlFor="faculty-select" className="font-medium">
                           Факультет
@@ -265,7 +265,7 @@ export default function RatingPage() {
                       </div>
                     </th>
 
-                    <th className=" px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                    <th className="w-[15%] sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
                       <div className="flex max-[544px]:flex-col items-center justify-center gap-1.5 sm:gap-2 text-center text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-white">
                         <label htmlFor="course-select" className="font-medium">
                           Курс
@@ -287,7 +287,7 @@ export default function RatingPage() {
                       </div>
                     </th>
 
-                    <th className=" px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-r-lg">
+                    <th className="w-[20%] sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-r-lg">
                       <div className="flex max-[544px]:flex-col items-center justify-center gap-1.5 sm:gap-2 text-center text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-white">
                         <label htmlFor="group-select" className="font-medium">
                           Группа
@@ -316,11 +316,11 @@ export default function RatingPage() {
                           {(currentPage - 1) * pageSize + index + 1}
                         </div>
                       </td>
-                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-[#333]">
-                        <span className="inline md:hidden">
+                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-[#333] overflow-hidden">
+                        <span className="inline md:hidden block truncate">
                           {student.short_name}
                         </span>
-                        <span className="hidden md:inline">{student.full_name}</span>
+                        <span className="hidden md:inline truncate">{student.full_name}</span>
                       </td>
                       <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm font-bold text-sky-700">
                         {Number(student[scoreKey])}
