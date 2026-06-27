@@ -54,6 +54,7 @@ services:
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
       - NODE_ENV=development
+      - CI=true
     env_file:
       - .env
     depends_on:
