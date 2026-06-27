@@ -51,6 +51,7 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NEXT_TELEMETRY_DISABLED=1
+      # - NEXT_TURBOPACK_TRACING=1
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
       - NODE_ENV=development

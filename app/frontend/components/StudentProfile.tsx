@@ -208,12 +208,12 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
 
           <div className="mt-6 space-y-5">
             {approvedDocs.length > 0 && (
-              <div className="rounded-2xl border border-slate-500/80 bg-slate-500/80 p-4 shadow-sm sm:p-5">
+              <div className="rounded-2xl border border-sky-100 bg-sky-100 p-4 shadow-sm sm:p-5">
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-white">
                     <i className="fa-solid fa-check" />
                   </span>
-                  <h2 className="text-sm font-semibold text-white sm:text-base">
+                  <h2 className="text-sm font-semibold text-sky-700 sm:text-base">
                     Подтвержденные достижения
                   </h2>
                 </div>

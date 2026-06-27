@@ -145,7 +145,7 @@ export default function ModalPreview({ isOpen, doc, onClose, onDownload }: Modal
     <div
       className={`fixed inset-0 z-40 flex items-end justify-center sm:items-center sm:p-4 md:p-6 transition-all duration-200 ${
         visible ? 'bg-slate-900/60' : 'bg-slate-900/0 pointer-events-none'
-      }`}indev123
+      }`}
 
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
