@@ -1,5 +1,6 @@
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
+from django.utils.html import format_html
 from .models import User
 
 
@@ -30,13 +31,26 @@ class CustomUserAdmin(UserAdmin):
     @admin.display(description='Студент')
     def get_student_profile(self, obj):
         try:
-            return obj.students.full_name if hasattr(obj, 'students') else '—'
+            student = obj if not obj.is_staff else None
+            if student:
+                return format_html("<a href='/admin/users/user/{}/'>{}</a>", student.id, student.last_name + ' ' + student.first_name + ' ' + student.patronymic)
+            else:
+                return '—'
         except Exception:
             return '—'
 
     @admin.display(description='Сотрудник')
     def get_staff_profile(self, obj):
         try:
-            return obj.staff_profile.email if hasattr(obj, 'staff_profile') else '—'
+            attr = {k: str(v) for k, v in obj.__dict__.items()}
+            print(attr)
+            staff = obj if obj.is_staff else None
+            if staff:
+                if staff.first_name in ["Кафедра", "Ректорат", ""]:
+                    return format_html("<a href='/admin/users/user/{}/'>{}</a>", staff.id, staff.username)
+                else:
+                    return format_html("<a href='/admin/users/user/{}/'>{}</a>", staff.id, staff.last_name + ' ' + staff.first_name + (' ' + staff.patronymic) if staff.patronymic else '')
+            else:
+                return '—'
         except Exception:
             return '—'
