@@ -29,10 +29,10 @@ export const studentApi = {
   getAchievementConfig: () => api.get<AchievementConfigResponse>('/student/api/v1/achievement-config/'),
   
   uploadAchievement: (formData: FormData) =>
-    api.post<AchievementUploadResponse>('/student/api/v1/upload/', formData),
+    api.post<AchievementUploadResponse>('/student/api/v1/upload/', formData, {headers: { 'Content-Type': 'multipart/form-data' }}),
 
   updateAchievement: (id: number, formData: FormData) =>
-    api.patch(`/student/api/v1/achievement/${id}/`, formData),
+    api.patch(`/student/api/v1/achievement/${id}/`, formData, {headers: { 'Content-Type': 'multipart/form-data' },}),
 
   deleteAchievement: (id: number) => api.delete(`/student/api/v1/achievement/${id}/`),
 
