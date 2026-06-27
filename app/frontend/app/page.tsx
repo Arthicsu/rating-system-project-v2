@@ -17,7 +17,7 @@ export default function Main() {
     
   if (user?.isAuthenticated === true) {redirect("/rating")}
   return (
-    <section className="min-h-screen bg-slate-100 px-4 pt-30 pb-10">
+    <section className="min-h-screen px-4 flex flex-col justify-center pb-6">
       <div className="mx-auto flex max-w-300 flex-col gap-6 rounded-2xl bg-white/90 p-6 shadow-sm items-center lg:flex-row md:gap-8 md:px-10 md:py-8">
         {/* Левая колонка с описанием */}
         <div className="flex-1 space-y-4">
@@ -65,13 +65,13 @@ export default function Main() {
             </Link>
           </button> */}
 
-          <button className="cursor-pointer w-full rounded-md bg-white text-sm font-semibold text-[#0069a8] ring-1 ring-[#0069a8] transition hover:bg-sky-700 hover:text-white">
+          <button className="cursor-pointer w-full rounded-md bg-sky-700 text-sm font-semibold text-white transition hover:bg-sky-900">
             <Link href="/login" className="block w-full text-center px-4 py-3">
               Войти
             </Link>
           </button>
 
-          <button className="cursor-pointer mt-1 text-center text-xs text-[#6a7a98] underline underline-offset-2 hover:text-[#0069a8]">
+          <button className="cursor-pointer mt-1 text-center text-xs text-sky-700 underline underline-offset-2 hover:text-sky-800">
             <Link href="/reset-password">
               Восстановить пароль
             </Link>

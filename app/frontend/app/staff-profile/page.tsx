@@ -399,11 +399,11 @@ export default function StaffProfilePage() {
           </div>
 
           {mobileFiltersOpen && (
-            <div className="mb-3 max-[640px]:block hidden rounded-lg bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.08)] text-[11px] text-slate-700">
+            <div className="mb-3 max-[640px]:block hidden rounded-lg bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.08)] text-[11px] text-sky-700">
               <div className="space-y-2">
                 {isRectorate && (
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="m-faculty" className="text-[10px] uppercase tracking-wide text-slate-500">Факультет</label>
+                  <label htmlFor="m-faculty" className="text-[10px] uppercase tracking-wide text-sky-700">Факультет</label>
                   <select
                     id="m-faculty"
                     value={selectedFacultyId}
@@ -422,7 +422,7 @@ export default function StaffProfilePage() {
                 </div>
                 )}
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="m-course" className="text-[10px] uppercase tracking-wide text-slate-500">Курс</label>
+                  <label htmlFor="m-course" className="text-[10px] uppercase tracking-wide text-sky-700">Курс</label>
                   <select
                     id="m-course"
                     value={selectedCourse}
@@ -436,7 +436,7 @@ export default function StaffProfilePage() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="m-group" className="text-[10px] uppercase tracking-wide text-slate-500">Группа</label>
+                  <label htmlFor="m-group" className="text-[10px] uppercase tracking-wide text-sky-700">Группа</label>
                   <select
                     id="m-group"
                     value={selectedGroupId}
@@ -450,7 +450,7 @@ export default function StaffProfilePage() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="m-semester" className="text-[10px] uppercase tracking-wide text-slate-500">Период</label>
+                  <label htmlFor="m-semester" className="text-[10px] uppercase tracking-wide text-sky-700">Период</label>
                   <select
                     id="m-semester"
                     value={selectedSemesterId}
@@ -479,7 +479,7 @@ export default function StaffProfilePage() {
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 sm:gap-4">
               {isRectorate && (
               <div className="space-y-1.5">
-                <label htmlFor="faculty-select" className="block text-[11px] font-medium text-slate-500">Факультет</label>
+                <label htmlFor="faculty-select" className="block text-[11px] font-medium text-sky-700">Факультет</label>
                 <select
                   id="faculty-select"
                   className="w-full min-w-28 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
@@ -498,7 +498,7 @@ export default function StaffProfilePage() {
               </div>
               )}
               <div className="space-y-1.5">
-                <label htmlFor="course-select" className="block text-[11px] font-medium text-slate-500">Курс</label>
+                <label htmlFor="course-select" className="block text-[11px] font-medium text-sky-700">Курс</label>
                 <select
                   id="course-select"
                   className="w-full min-w-28 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
@@ -512,7 +512,7 @@ export default function StaffProfilePage() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="group-select" className="block text-[11px] font-medium text-slate-500">Группа</label>
+                <label htmlFor="group-select" className="block text-[11px] font-medium text-sky-700">Группа</label>
                 <select
                   id="group-select"
                   className="w-full min-w-35 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
@@ -531,7 +531,7 @@ export default function StaffProfilePage() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="semester-select" className="block text-[11px] font-medium text-slate-500">Период</label>
+                <label htmlFor="semester-select" className="block text-[11px] font-medium text-sky-700">Период</label>
                 <select
                   id="semester-select"
                   className="w-full min-w-40 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
@@ -560,8 +560,8 @@ export default function StaffProfilePage() {
               onClick={() => setActiveTab('my-group')}
               className={`cursor-pointer inline-flex items-center whitespace-nowrap rounded-l-md px-4 py-2 font-medium transition ${
                 activeTab === 'my-group'
-                  ? 'bg-slate-500 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'
+                  ? 'bg-sky-700 text-white shadow-sm'
+                  : 'bg-slate-100 text-sky-700 hover:bg-slate-200 hover:text-slate-900'
               }`}
             >
               Группа
@@ -571,13 +571,13 @@ export default function StaffProfilePage() {
               onClick={() => setActiveTab('pending-requests')}
               className={`cursor-pointer inline-flex items-center whitespace-nowrap px-4 py-2 font-medium transition ${
                 activeTab === 'pending-requests'
-                  ? 'bg-slate-500 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'
+                  ? 'bg-sky-700 text-white shadow-sm'
+                  : 'bg-slate-100 text-sky-700 hover:bg-slate-200 hover:text-slate-900'
               }`}
             >
               Заявки на подтверждение
               {totalRequests > 0 && (
-                <span className="ml-1 inline-flex min-w-6 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-semibold leading-tight text-white">
+                <span className="ml-1 inline-flex min-w-4.5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-semibold leading-tight text-white">
                   {totalRequests}
                 </span>
               )}
@@ -587,8 +587,8 @@ export default function StaffProfilePage() {
               onClick={() => setActiveTab('statistics')}
               className={`cursor-pointer inline-flex items-center whitespace-nowrap rounded-r-md px-4 py-2 font-medium transition ${
                 activeTab === 'statistics'
-                  ? 'bg-slate-500 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900'
+                  ? 'bg-sky-700 text-white shadow-sm'
+                  : 'bg-slate-100 text-sky-700 hover:bg-slate-200 hover:text-slate-900'
               }`}
             >
               Статистика
@@ -601,7 +601,7 @@ export default function StaffProfilePage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
                     {selectedGroupId === 'all' ? 'Все студенты' : `Список студентов группы ${currentGroupName}`}{' '}
-                    <span className="text-xs font-normal text-slate-500">
+                    <span className="text-xs font-normal text-sky-700">
                       (всего: {totalStudents})
                     </span>
                   </h2>
@@ -622,7 +622,7 @@ export default function StaffProfilePage() {
                     <Skeleton name="staff-students-table" loading={false}>
                       <table className="min-w-full border-collapse text-xs sm:text-sm" style={{ tableLayout: 'fixed' }}>
                         <thead>
-                          <tr className="bg-slate-500 text-white">
+                          <tr className="bg-sky-700 text-white">
                             <th className="w-10 sm:w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
                             </th>
                             <th className="w-[28%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
@@ -741,7 +741,7 @@ export default function StaffProfilePage() {
                             >
                               {doc.student_name}
                             </Link>
-                            <p className="text-[10px] text-slate-500 sm:text-xs">{doc.record_book}</p>
+                            <p className="text-[10px] text-sky-700 sm:text-xs">{doc.record_book}</p>
                           </div>
                           <div className="flex shrink-0 items-center gap-1">
                             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs sm:text-xs font-small text-amber-700">
@@ -760,7 +760,7 @@ export default function StaffProfilePage() {
 
                       <div className="flex items-center justify-between">
                         {doc.files && doc.files.length > 0 && (
-                          <span className="text-[10px] text-slate-500 sm:text-xs">
+                          <span className="text-[10px] text-sky-700 sm:text-xs">
                             <i className="fa-solid fa-file mr-1" />
                             Прикреплённых файл(ов): {doc.files.length}
                           </span>
@@ -774,7 +774,7 @@ export default function StaffProfilePage() {
                         <button
                           type="button"
                           onClick={() => setPreviewDoc(doc)}
-                          className="cursor-pointer ml-auto text-[10px] text-sky-600 hover:text-sky-800 sm:text-xs"
+                          className="cursor-pointer ml-auto text-[10px] font-semibold text-sky-700 hover:text-sky-900 sm:text-xs"
                         >
                           Подробнее
                           {/* <i className="fa-solid fa-arrow-right ml-1" /> */}
@@ -804,7 +804,7 @@ export default function StaffProfilePage() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-sky-700">
                     Нет заявок за период &quot;{selectedSemesterLabel}&quot; в группе &quot;{currentGroupName}&quot;
                   </p>
                 </div>
@@ -825,14 +825,14 @@ export default function StaffProfilePage() {
               <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.10)] sm:p-5">
                 <h2 className="mb-5 text-sm font-semibold text-slate-900 sm:text-base">
                   Аналитика: {currentGroupName}{' '}
-                  <span className="text-xs font-normal text-slate-500 sm:text-sm">
+                  <span className="text-xs font-normal text-sky-700 sm:text-sm">
                     ({selectedSemesterLabel})
                   </span>
                 </h2>
 
                 <div className="mb-6 grid gap-3 grid-cols-2 md:grid-cols-4">
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 sm:p-4">
-                    <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                    <div className="text-[11px] font-medium uppercase tracking-wide text-sky-700">
                       Студентов
                     </div>
                     <div className="mt-1 text-2xl font-bold text-sky-700">
@@ -840,7 +840,7 @@ export default function StaffProfilePage() {
                     </div>
                   </div>
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 sm:p-4">
-                    <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                    <div className="text-[11px] font-medium uppercase tracking-wide text-sky-700">
                       Средний балл
                     </div>
                     <div className="mt-1 text-2xl font-bold text-sky-700">
@@ -848,7 +848,7 @@ export default function StaffProfilePage() {
                     </div>
                   </div>
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 sm:p-4">
-                    <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                    <div className="text-[11px] font-medium uppercase tracking-wide text-sky-700">
                       Максимальный / Минимальный
                     </div>
                     <div className="mt-1 text-lg font-semibold text-slate-900">
@@ -913,8 +913,8 @@ export default function StaffProfilePage() {
                       Топ-5 студентов по баллам
                     </h3>
                     <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
-                      <table className="min-w-full text-left text-[13px] text-slate-500">
-                        <thead className="bg-slate-500 text-[11px] font-semibold uppercase tracking-wide text-slate-100">
+                      <table className="min-w-full text-left text-[13px] text-sky-700">
+                        <thead className="bg-sky-700 text-[11px] font-semibold uppercase tracking-wide text-slate-100">
                           <tr>
                             <th className="px-4 py-2.5">Место</th>
                             <th className="px-4 py-2.5">ФИО</th>

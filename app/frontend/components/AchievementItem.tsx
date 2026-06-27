@@ -36,7 +36,7 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
   return (
     <><div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:p-4.5">
       <div className="flex flex-1 items-start gap-3">
-        <div className="mt-1 flex px-1.5 sm:px-2 lg:px-2 py-1.5 sm:py-2 lg:py-2 items-center justify-center rounded-full bg-slate-900/90 text-white">
+        <div className="mt-1 flex px-1.5 sm:px-2 lg:px-2 py-1.5 sm:py-2 lg:py-2 items-center justify-center rounded-full bg-sky-700 text-white">
           <i className={`fa-regular ${statusIcon} text-sm`} />
         </div>
         <div className="min-w-0 space-y-1">
