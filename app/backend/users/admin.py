@@ -49,7 +49,7 @@ class CustomUserAdmin(UserAdmin):
                 if staff.first_name in ["Кафедра", "Ректорат", ""]:
                     return format_html("<a href='/admin/users/user/{}/'>{}</a>", staff.id, staff.username)
                 else:
-                    return format_html("<a href='/admin/users/user/{}/'>{}</a>", staff.id, staff.last_name + ' ' + staff.first_name + (' ' + staff.patronymic) if staff.patronymic else '')
+                    return format_html("<a href='/admin/users/user/{}/'>{}</a>", staff.id, staff.last_name + ' ' + staff.first_name + ' ' + staff.patronymic)
             else:
                 return '—'
         except Exception:
