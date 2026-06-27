@@ -3,11 +3,13 @@ import '@/styles/normalize.css';
 // import '../styles/style.css';
 import '@/app/globals.css';
 import '@/styles/fontawesome-free-7.2.0-web/css/all.min.css';
+import CookieConsentBanner from '@/components/CookieConsentBanner';
 import Header from '@/components/Header';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'react-hot-toast';
-import '@/bones/registry'
+import '@/bones/registry';
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <Toaster />
           {children}
+          <CookieConsentBanner />
         </AuthProvider>
       </body>
     {/* </ThemeProvider> */}
