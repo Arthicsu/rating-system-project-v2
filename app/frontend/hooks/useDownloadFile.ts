@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import api from '@/lib/axios';
 
 export function useDownloadFile() {
@@ -5,6 +6,7 @@ export function useDownloadFile() {
     try {
       const response = await api.get(`/student/api/v1/document/download/${fileId}/`, {
         responseType: 'blob',
+        skipErrorRedirect: true,
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -18,6 +20,7 @@ export function useDownloadFile() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Ошибка скачивания файла:', error);
+      toast.error('Не удалось скачать файл');
     }
   };
 

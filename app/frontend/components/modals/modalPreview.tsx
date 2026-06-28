@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { ModalPreviewProps } from '@/interfaces/ModalInterfaces';
+import { useDownloadFile } from '@/hooks/useDownloadFile';
 import { useFilePreview, getFilePreviewKind } from '@/hooks/useFilePreview';
 import { renderAsync } from 'docx-preview';
 
@@ -101,12 +102,20 @@ if (previewKind === 'docx') {
   );
 }
 
-export default function ModalPreview({ isOpen, doc, onClose, onDownload }: ModalPreviewProps) {
+export default function ModalPreview({ isOpen, doc, onClose }: ModalPreviewProps) {
+  const { downloadFile } = useDownloadFile();
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewSectionRef = useRef<HTMLDivElement | null>(null);
+
+  const handleDownload = useCallback(
+    (fileId: number, fileName: string) => {
+      void downloadFile(fileId, fileName);
+    },
+    [downloadFile],
+  );
 
   const handleSelectFile = useCallback((index: number) => {
     setSelectedFileIndex(index);
@@ -231,7 +240,7 @@ export default function ModalPreview({ isOpen, doc, onClose, onDownload }: Modal
                 fileId={selectedFile.id}
                 fileName={selectedFile.original_file_name}
                 isOpen={isOpen && visible}
-                onDownload={() => onDownload(selectedFile.id, selectedFile.original_file_name)}
+                onDownload={() => handleDownload(selectedFile.id, selectedFile.original_file_name)}
               />
             ) : (
               <div className="flex flex-1 items-center justify-center p-4 text-sm text-slate-500 sm:p-6">
@@ -339,8 +348,9 @@ export default function ModalPreview({ isOpen, doc, onClose, onDownload }: Modal
                         {doc.files.map((file, index) => (
                           <button
                             key={file.id}
-                            onClick={() => onDownload(file.id, file.original_file_name)}
-                            className="cursor-pointer flex cursor-pointer items-center gap-2 text-left text-sm text-sky-600 hover:text-sky-800"
+                            type="button"
+                            onClick={() => handleDownload(file.id, file.original_file_name)}
+                            className="cursor-pointer flex items-center gap-2 text-left text-sm text-sky-600 hover:text-sky-800"
                           >
                             <i className="fa-solid fa-file" />
                             <span>{file.original_file_name || `Файл ${index + 1}`}</span>
