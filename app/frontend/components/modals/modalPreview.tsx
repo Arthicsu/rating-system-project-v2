@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { ModalPreviewProps } from '@/interfaces/ModalInterfaces';
 import { useFilePreview, getFilePreviewKind } from '@/hooks/useFilePreview';
+import { renderAsync } from 'docx-preview';
 
 function FilePreviewPanel({
   fileId,
@@ -53,7 +54,23 @@ function FilePreviewPanel({
       />
     );
   }
-
+if (previewKind === 'docx') {
+  return (
+    <div className="flex-1 w-full h-full min-h-[inherit] overflow-auto bg-white p-4 text-left">
+      <div 
+        ref={(el) => {
+          // Рендерим документ, когда элемент появился
+          if (el && previewUrl) {
+            fetch(previewUrl)
+              .then(res => res.blob())
+              .then(blob => renderAsync(blob, el, undefined, { inWrapper: false }));
+          }
+        }} 
+        className="docx-body" 
+      />
+    </div>
+  );
+}
   if (previewKind === 'image') {
     return (
       <div className="flex h-full min-h-[inherit] flex-1 items-center justify-center overflow-auto p-3 sm:p-4">
@@ -151,15 +168,16 @@ export default function ModalPreview({ isOpen, doc, onClose, onDownload }: Modal
         if (e.target === e.currentTarget) handleClose();
       }}
     >
-      <div
-        className={`relative flex w-full flex-col overflow-hidden bg-white shadow-[0_18px_60px_rgba(15,23,42,0.35)] transform transition-all duration-200
-          h-[100dvh] max-h-[100dvh] rounded-none
-          sm:h-auto sm:max-h-[96vh] sm:min-h-[580px] sm:max-w-[min(98vw,96rem)] sm:rounded-2xl sm:border sm:border-slate-100
-          md:min-h-[660px]
-          xl:max-h-[94vh] xl:min-h-[720px] xl:flex-row
-          ${visible ? 'opacity-100 scale-100 sm:translate-y-0' : 'opacity-0 scale-95 sm:translate-y-2'}
-        `}
-      >
+	{/* Решина проблема с Разные размеры предпросматриваемого файла заставляют модальное окно расширяться и наоборот. */}
+	<div
+	className={`relative flex w-full flex-col overflow-hidden bg-white shadow-[0_18px_60px_rgba(15,23,42,0.35)] transform transition-all duration-200
+		h-[100dvh] max-h-[100dvh] rounded-none
+		sm:h-[80vh] sm:max-w-4xl sm:rounded-2xl sm:border sm:border-slate-100
+		md:h-[85vh] md:max-w-5xl
+		xl:h-[85vh] xl:max-w-7xl xl:flex-row
+		${visible ? 'opacity-100 scale-100 sm:translate-y-0' : 'opacity-0 scale-95 sm:translate-y-2'}
+	`}
+	>
         <button
           type="button"
           aria-label="Закрыть"
@@ -192,15 +210,15 @@ export default function ModalPreview({ isOpen, doc, onClose, onDownload }: Modal
                   type="button"
                   onClick={() => handleSelectFile(index)}
                   title={file.original_file_name || `Файл ${index + 1}`}
-                  className={`cursor-pointer max-w-35 shrink-0 truncate rounded-lg px-2.5 py-1.5 text-[11px] transition sm:max-w-55 sm:px-3 sm:text-xs ${
-                    index === selectedFileIndex
-                      ? 'bg-sky-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`cursor-pointer max-w-35 shrink-0 inline-flex items-center justify-center rounded-lg px-3 pt-1.5 pb-2.5 text-[11px] font-medium leading-normal tracking-wide transition sm:max-w-55 sm:px-4 sm:text-xs ${
+				index === selectedFileIndex
+					? 'bg-sky-600 text-white'
+					: 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+				}`}
                 >
-                  <span className="block truncate w-full text-left sm:text-center">
-                    {file.original_file_name || `Файл ${index + 1}`}
-                  </span>
+                  <span className="block truncate w-full text-left sm:text-center leading-normal">
+					{file.original_file_name || `Файл ${index + 1}`}
+					</span>
                 </button>
               ))}
             </div>

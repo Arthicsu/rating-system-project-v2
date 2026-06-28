@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/axios';
 
-export type FilePreviewKind = 'pdf' | 'image' | 'unsupported';
+export type FilePreviewKind = 'pdf' | 'image' | 'docx' | 'unsupported';
 
-export function getFilePreviewKind(fileName: string): FilePreviewKind {
-  const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
+export function getFilePreviewKind(fileName: string) {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) return 'image';
   if (ext === 'pdf') return 'pdf';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return 'image';
+  if (ext === 'docx') return 'docx'; 
+  
   return 'unsupported';
 }
 
