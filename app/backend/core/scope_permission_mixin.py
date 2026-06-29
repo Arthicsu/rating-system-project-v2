@@ -27,7 +27,7 @@ class ScopePermissionMixin:
         Базис совпадает с подсчётом заявок и выборками дашборда:
         - Ректорат — видит всех;
         - Декан    — студентов своего факультета (`student.faculty`);
-        - Кафедра  — студентов своей кафедры (`student.group.specialty.department`).
+        - Кафедра  — студентов своей кафедры (`student.department`).
         """
         if not hasattr(user, 'staff_profile'):
             return False
@@ -44,10 +44,7 @@ class ScopePermissionMixin:
             return bool(student.faculty_id) and student.faculty_id == staff.faculty_id
 
         if user.is_dept_staff:
-            department_id = None
-            if student.group_id and student.group.specialty_id:
-                department_id = student.group.specialty.department_id
-            return bool(department_id) and department_id == staff.department_id
+            return bool(student.department_id) and student.department_id == staff.department_id
 
         return False
     

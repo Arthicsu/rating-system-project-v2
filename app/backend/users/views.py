@@ -24,7 +24,7 @@ from university_structure.models import Faculty, Group
 from students.models import Category
 from .serializers import StudentRegistrationSerializer, LoginRequestSerializer, UserResponseSerializer
 from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
-from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RatingFiltersResponseSerializer
+from university_structure.serializers import FacultySerializer, DepartmentSerializer, GroupSerializer, StaffSerializer, RatingFiltersResponseSerializer
 from core.pagination import StandardResultsSetPagination
 from core.students_query_set_mixin import StudentWithAccessMixin, StudentRatingQuerySetMixin
 
@@ -179,7 +179,7 @@ class RatingFiltersAPIView(GenericAPIView):
     def get(self, request):
         faculties = Faculty.objects.values('id', 'short_name', 'name')
         courses = Group.objects.values_list('course', flat=True).distinct().order_by('course')
-        groups = Group.objects.filter(students__isnull=False).select_related('specialty__faculty').distinct()
+        groups = Group.objects.filter(students__isnull=False).select_related('faculty').distinct()
         
         serializer = RatingFiltersResponseSerializer({
             'faculties': faculties,
