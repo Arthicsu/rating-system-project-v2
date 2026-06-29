@@ -232,7 +232,7 @@ export default function RatingPage() {
             <div className="w-full overflow-x-auto">
               <table className="min-w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead>
-                  <tr className="bg-slate-500 text-white">
+                  <tr className="bg-sky-700 text-white">
                     <th className="w-10 sm:w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
                     </th>
                     <th className="w-[35%] sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
