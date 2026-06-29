@@ -221,10 +221,10 @@ export default function RatingPage() {
                   <tr className="bg-sky-700 text-white">
                     <th className="w-10 sm:w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
                     </th>
-                    <th className="w-[35%] sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                    <th className="w-[35%] sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-xl font-normal">
                       ФИО Студента
                     </th>
-                    <th className=" w-16 sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                    <th className=" w-16 sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-xl font-normal">
                       Баллы
                     </th>
 
@@ -291,7 +291,7 @@ export default function RatingPage() {
                 <tbody>
                   {!loading && students.length > 0 ? (
                     students.map((student, index) => (
-                      <tr key={student.user_id} className="border-b border-[#f0f0f0] text-xs sm:text-xs md:text-sm last:border-b-0 hover:bg-slate-50">
+                      <tr key={student.user_id} className="border-b border-[#0068a825] text-xs sm:text-xs md:text-sm last:border-b-0 hover:bg-slate-50 divide-x divide-[#0069a825]">
                         <td className="p-1 sm:p-2 md:px-4  md:py-3 text-center align-middle">
                           <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-[11px] md:text-sm font-bold text-white">
                             {(currentPage - 1) * pageSize + index + 1}
