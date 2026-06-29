@@ -315,7 +315,7 @@ export default function RatingPage() {
                     <tr>
                       <td
                         colSpan={6}
-                        className="p-4 text-center text-xs md:text-sm text-slate-500"
+                        className="p-20 text-center text-xs md:text-xl text-slate-500"
                       >
                         Студенты не найдены
                       </td>
