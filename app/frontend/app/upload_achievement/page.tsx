@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useMySession } from '@/context/AuthContext';
 import { Skeleton } from 'boneyard-js/react';
 import { useRouter } from 'next/navigation';
-
+import FileDropZone from '@/components/upload/FileDropZone';
 import { studentApi } from '@/lib/apiRequests';
 import type { SelectOption, DataStructure } from '@/interfaces/AchievementInterfaces';
 
@@ -528,31 +528,12 @@ export default function UploadAchievement() {
               </div>
 
               {/* Файлы */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-slate-500">
-                  Файлы (обязательно)
-                </label>
-                <p className="text-[11px] text-slate-400">
-                  Максимальный размер файла: 20 МБ, максимум 3 файла. Формат: .doc, .docx, .pdf, .png, .jpg, .jpeg, .webp, .gif, .bmp.
-                </p>
-                <label className="mt-1 inline-flex w-full cursor-pointer flex-col rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-left text-xs text-slate-500 transition hover:border-sky-600 hover:bg-slate-100">
-                  <input
-                    type="file"
-                    multiple
-                    accept=".doc,.docx,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,image/png,image/jpeg,image/webp,image/gif,image/bmp"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                  <span className="text-[11px] font-medium text-slate-700">
-                    {files.length
-                      ? `Файл(ы): ${files.map((f, i) => `${i + 1}. ${f.name}`).join(', ')}`
-                      : 'Нажмите, чтобы загрузить документ'}
-                  </span>
-                </label>
-                {files.length === 3 && (
-                  <p className="text-[10px] text-amber-600">Максимальное количество файлов (3)</p>
-                )}
-              </div>
+				<div className="space-y-1.5">
+					<label className="text-[11px] font-medium text-slate-500">
+						Файлы (обязательно)
+					</label>
+					<FileDropZone files={files} setFiles={setFiles} />
+				</div>
             </div>
 
             {/* Правая колонка: кнопка + QR */}
