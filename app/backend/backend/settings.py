@@ -70,7 +70,12 @@ CSRF_TRUSTED_ORIGINS = os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", '').split("
 
 EXTERNAL_SITE_URL = os.getenv('CLIENT_URL', '')
 API_SCHEMA_URL = os.getenv('API_SCHEMA_URL', '')
-CORS_ALLOW_CREDENTIALS = True 
+
+# Базовый URL публичного API ЭОС для синхронизации справочников
+EOS_BASE_URL = os.getenv('EOS_BASE_URL', 'https://eos.bgitu.ru/api')
+# Токен авторизации ЭОС для ЗАКРЫТЫХ ручек (напр. список студентов). Пусто = только публичные.
+EOS_AUTH_TOKEN = os.getenv('EOS_AUTH_TOKEN', '')
+CORS_ALLOW_CREDENTIALS = True
 # CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 CORS_ALLOW_METHODS = (
     "DELETE",
