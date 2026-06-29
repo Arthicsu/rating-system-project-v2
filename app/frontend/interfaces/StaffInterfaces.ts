@@ -54,6 +54,7 @@ export interface Document {
   score: number;
   files: Array<{ id: number; original_file_name: string }>;
   rejection_reason: string | null;
+  status_display?: string;
 }
 
 export interface StaffProfile {
@@ -93,6 +94,7 @@ export interface DashboardStatsParams {
   search?: string;
   faculty_id?: string;
   course?: string;
+  list_type?: 'pending' | 'reviewed';
 }
 
 export interface DashboardStatsResponse {

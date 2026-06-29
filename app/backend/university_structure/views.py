@@ -162,65 +162,73 @@ class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
         
         if not self.check_staff_scope(request.user, doc):
             return Response({"error": "Документ находится за пределами вашей области модерации"}, status=status.HTTP_403_FORBIDDEN)
-        
+
         action = request.data.get('action')
+        if action not in ('approve', 'reject'):
+            return Response({"error": "Неверное действие"}, status=status.HTTP_400_BAD_REQUEST)
 
         status_pending = get_object_or_404(DocumentStatus, code='pending')
         status_approved = get_object_or_404(DocumentStatus, code='approved')
         status_rejected = get_object_or_404(DocumentStatus, code='rejected')
 
         student = getattr(doc.user, 'student_profile', None)
+        current_status = doc.status.code
 
-        # позже заменим ответ
-        if request.user.is_dept_staff:
-            if doc.status.code != 'pending':
-                return Response({"error": "Кафедра может обрабатывать только новые заявки (pending)"}, status=status.HTTP_400_BAD_REQUEST)        
-            
-            if action == 'approve':
-                doc.status = status_approved
-                doc.rejection_reason = ''
-                doc.verified_by = request.user
-                doc.save()
-                
-                field_name = f"{doc.category.code}_score"
-                if hasattr(student, field_name):
-                    setattr(student, field_name, getattr(student, field_name) + doc.score) 
-                    student.save()
-                
-                return Response({"message": "Документ подтвержден кафедрой, баллы начислены"}, status=status.HTTP_200_OK)
+        def adjust_score(add_points: bool):
+            if student is None:
+                return
+            field_name = f"{doc.category.code}_score"
+            if hasattr(student, field_name):
+                delta = doc.score if add_points else -doc.score
+                setattr(student, field_name, max(0, getattr(student, field_name) + delta))
+                student.save()
 
-            elif action == 'reject':
-                reasons = request.data.get('reasons', [])
-                reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
-                
-                doc.status= status_rejected
-                doc.rejection_reason = reason_text
-                doc.verified_by = request.user
-                doc.save()
-                
-                return Response({"message": "Документ отклонен кафедрой"}, status=status.HTTP_200_OK)
-            return Response({"error": "Неверное действие для кафедры"}, status=status.HTTP_400_BAD_REQUEST)
-    
-        if request.user.is_dean or request.user.is_rectorate:
-            if action == 'reject':
-                if doc.status.code == 'approved':
-                    field_name = f"{doc.category.code}_score"
-                    if hasattr(student, field_name):
-                        new_score = max(0, getattr(student, field_name) - doc.score)
-                        setattr(student, field_name, new_score)
-                        student.save()
-                
-                reasons = request.data.get('reasons', [])
-                reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
-                
-                doc.status = status_pending 
-                doc.rejection_reason = reason_text
-                doc.verified_by = request.user
-                doc.save()
-                
-                return Response({"message": "Решение отменено руководством. Заявка возвращена на рассмотрение, баллы вычтены."}, status=status.HTTP_200_OK)
-            return Response({"error": "Руководство может только отклонять заявки"}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"error": "Неизвестная ошибка"}, status=status.HTTP_400_BAD_REQUEST)
+        if action == 'approve':
+            if current_status == 'approved':
+                return Response({"error": "Документ уже подтверждён"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if current_status == 'pending' and not request.user.is_dept_staff:
+                return Response(
+                    {"error": "Подтверждать новые заявки может только кафедра"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            doc.status = status_approved
+            doc.rejection_reason = ''
+            doc.verified_by = request.user
+            doc.save()
+            adjust_score(add_points=True)
+
+            return Response({"message": "Документ подтверждён, баллы начислены"}, status=status.HTTP_200_OK)
+
+        reasons = request.data.get('reasons', [])
+        reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
+
+        if current_status == 'rejected':
+            return Response({"error": "Документ уже отклонён"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not reason_text:
+            return Response({"error": "Укажите причину отклонения"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if current_status == 'approved':
+            adjust_score(add_points=False)
+            if request.user.is_dean or request.user.is_rectorate:
+                doc.status = status_pending
+                message = "Решение отменено. Заявка возвращена на рассмотрение, баллы вычтены."
+            else:
+                doc.status = status_rejected
+                message = "Документ отклонён, баллы вычтены."
+        elif current_status == 'pending':
+            doc.status = status_rejected
+            message = "Документ отклонён."
+        else:
+            return Response({"error": "Нельзя отклонить документ в текущем статусе"}, status=status.HTTP_400_BAD_REQUEST)
+
+        doc.rejection_reason = reason_text
+        doc.verified_by = request.user
+        doc.save()
+
+        return Response({"message": message}, status=status.HTTP_200_OK)
 
 @method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
 class RejectionReasonListView(ListAPIView):
@@ -307,6 +315,9 @@ class FilteredDashboardStatsAPIView(DashboardStatsQuerySetMixin, ListAPIView):
     
     Возвращает агрегированную статистику, топ-5 студентов и документы на модерацию.
     Поддерживает фильтрацию по faculty_id, course, group_id.
+    Query-параметр list_type:
+      - pending (по умолчанию) — заявки на рассмотрение;
+      - reviewed — уже рассмотренные (approved/rejected).
     """
     permission_classes = [IsStaffProfile]
     authentication_classes = [SessionAuthentication]
@@ -314,6 +325,9 @@ class FilteredDashboardStatsAPIView(DashboardStatsQuerySetMixin, ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
+        list_type = self.request.query_params.get('list_type', 'pending')
+        if list_type == 'reviewed':
+            return self.get_reviewed_documents_queryset(user)
         return self.get_pending_documents_queryset(user)
 
     @extend_schema(

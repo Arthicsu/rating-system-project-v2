@@ -30,6 +30,7 @@ export default function StaffProfilePage() {
   const [groupsList, setGroupsList] = useState<Group[]>([]);
   const [studentsData, setStudentsData] = useState<Student[]>([]);
   const [pendingDocsData, setPendingDocsData] = useState<Document[]>([]);
+  const [reviewedDocsData, setReviewedDocsData] = useState<Document[]>([]);
   const [stats, setStats] = useState({ total_students: 0, avg_score: 0 });
   const [top5Students, setTop5Students] = useState<StudentSimple[]>([]);
 
@@ -54,9 +55,15 @@ export default function StaffProfilePage() {
   
   const [requestsPage, setRequestsPage] = useState(1);
   const [totalRequests, setTotalRequests] = useState(0);
+
+  const [reviewedPage, setReviewedPage] = useState(1);
+  const [totalReviewed, setTotalReviewed] = useState(0);
+  const [reviewedLoading, setReviewedLoading] = useState(false);
   
   const [groupSearchValue, setGroupSearchValue] = useState('');
   const [pendingSearchValue, setPendingSearchValue] = useState('');
+  const [reviewedSearchValue, setReviewedSearchValue] = useState('');
+  const [modalSourceTab, setModalSourceTab] = useState<'pending' | 'reviewed'>('pending');
   
   const [rejectionReasonsList, setRejectionReasonsList] = useState<RejectionReason[]>([]);
   const [semesterOptions, setSemesterOptions] = useState<Semester[]>([]);
@@ -75,12 +82,15 @@ export default function StaffProfilePage() {
     }
   }, [user, router]);
   
-  const openModal = (type: string, doc: Document) => setModalState({ 
+  const openModal = (type: string, doc: Document, source: 'pending' | 'reviewed' = 'pending') => {
+    setModalSourceTab(source);
+    setModalState({ 
       type, 
       targetId: doc.id, 
       targetScore: doc.score,
       targetStudentId: doc.student_id 
-  });
+    });
+  };
 
   const closeModal = () => {
       setModalState({ type: null, targetId: null, targetScore: 0, targetStudentId: null });
@@ -99,6 +109,10 @@ export default function StaffProfilePage() {
   useEffect(() => {
     setRequestsPage(1);
   }, [pendingSearchValue]);
+
+  useEffect(() => {
+    setReviewedPage(1);
+  }, [reviewedSearchValue]);
   
   const handleGroupChange = (groupId: string) => {
     setSelectedGroupId(groupId);
@@ -228,6 +242,42 @@ export default function StaffProfilePage() {
     };
     fetchDashboard();
   }, [selectedGroupId, selectedSemesterId, selectedFacultyId, selectedCourse, currentPage, requestsPage, pendingSearchValue, groupSearchValue]);
+
+  const buildFilterParams = useCallback(() => ({
+    faculty_id: selectedFacultyId !== 'all' ? selectedFacultyId : undefined,
+    course: selectedCourse !== 'all' ? selectedCourse : undefined,
+  }), [selectedFacultyId, selectedCourse]);
+
+  const fetchReviewedDocs = useCallback(async () => {
+    if (!selectedGroupId || !selectedSemesterId) return;
+    setReviewedLoading(true);
+
+    try {
+      const res = await universityApi.getFilteredDashboardStats({
+        group_id: selectedGroupId,
+        academic_year: String(selectedSemesterId),
+        page: reviewedPage,
+        page_size: requestsPageSize,
+        search: reviewedSearchValue || undefined,
+        list_type: 'reviewed',
+        ...buildFilterParams(),
+      });
+
+      setReviewedDocsData(res.data.results || []);
+      setTotalReviewed(res.data.count || 0);
+    } catch (error) {
+      console.error('Ошибка загрузки рассмотренных заявок: ', error);
+    } finally {
+      setReviewedLoading(false);
+    }
+  }, [selectedGroupId, selectedSemesterId, reviewedPage, reviewedSearchValue, buildFilterParams]);
+
+  useEffect(() => {
+    if (activeTab === 'reviewed-requests') {
+      fetchReviewedDocs();
+    }
+  }, [activeTab, fetchReviewedDocs]);
+
   const pollPendingRequests = useCallback(async () => {
     if (!selectedGroupId || !selectedSemesterId) return;
 
@@ -327,8 +377,13 @@ export default function StaffProfilePage() {
       await universityApi.reviewDocument(modalState.targetId, { action: 'approve' });
       toast.success("Заявка одобрена");
 
-      setPendingDocsData(prev => prev.filter(doc => doc.id !== modalState.targetId));
-      setTotalRequests(prev => prev - 1);
+      if (modalSourceTab === 'pending') {
+        setPendingDocsData(prev => prev.filter(doc => doc.id !== modalState.targetId));
+        setTotalRequests(prev => prev - 1);
+      } else {
+        await fetchReviewedDocs();
+      }
+
       setStudentsData(prev => prev.map(student => {
           if (student.id === modalState.targetStudentId) {
               return { ...student, total_score: student.total_score + modalState.targetScore };
@@ -366,15 +421,31 @@ export default function StaffProfilePage() {
       return;
     }
 
+    const wasApproved = modalSourceTab === 'reviewed'
+      && reviewedDocsData.find(d => d.id === modalState.targetId)?.status_display === 'approved';
+
     try {
       await universityApi.reviewDocument(modalState.targetId, { 
         action: 'reject', 
         reasons: allReasons 
       });
-      toast.success("Заявка отклонена");
+      toast.success("Решение по заявке изменено");
 
-      setPendingDocsData(prev => prev.filter(doc => doc.id !== modalState.targetId));
-      setTotalRequests(prev => prev - 1);
+      if (modalSourceTab === 'pending') {
+        setPendingDocsData(prev => prev.filter(doc => doc.id !== modalState.targetId));
+        setTotalRequests(prev => prev - 1);
+      } else {
+        await fetchReviewedDocs();
+      }
+
+      if (wasApproved) {
+        setStudentsData(prev => prev.map(student => {
+          if (student.id === modalState.targetStudentId) {
+            return { ...student, total_score: Math.max(0, student.total_score - modalState.targetScore) };
+          }
+          return student;
+        }));
+      }
 
       closeModal();
       await refreshUser();
@@ -579,6 +650,17 @@ export default function StaffProfilePage() {
                   {totalRequests}
                 </span>
               )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('reviewed-requests')}
+              className={`cursor-pointer inline-flex items-center whitespace-nowrap px-4 py-2 font-medium transition ${
+                activeTab === 'reviewed-requests'
+                  ? 'bg-sky-700 text-white shadow-sm'
+                  : 'bg-slate-100 text-sky-700 hover:bg-slate-200 hover:text-slate-900'
+              }`}
+            >
+              Рассмотренные заявки
             </button>
             <button
               type="button"
@@ -824,6 +906,130 @@ export default function StaffProfilePage() {
                 pageSize={requestsPageSize}
                 loading={loading}
                 onPageChange={setRequestsPage}
+              />
+            </div>
+          )}
+
+          {activeTab === 'reviewed-requests' && (
+            <div className="mt-5 space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
+                  Рассмотренные: {currentGroupName}, {selectedSemesterLabel}
+                </h2>
+                <div className="w-full sm:w-64">
+                  <SearchInput onSearch={setReviewedSearchValue} placeholder="Поиск по ФИО..." />
+                </div>
+              </div>
+
+              {reviewedLoading ? (
+                <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+                  <p className="text-sm text-sky-700">Загрузка заявок...</p>
+                </div>
+              ) : reviewedDocsData.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {reviewedDocsData.map((doc) => {
+                    const isApproved = doc.status_display === 'approved';
+
+                    return (
+                      <div
+                        key={doc.id}
+                        className="flex flex-col rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-[0_4px_12px_rgba(15,23,42,0.08)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)] transition-shadow"
+                      >
+                        <div className="flex-1 mb-2 flex flex-col gap-1.5">
+                          <div className="flex max-[941px]:flex-col items-start justify-between gap-1 sm:gap-2">
+                            <div className="flex-1 min-w-0">
+                              <Link
+                                href={`/profile/${doc.student_id}`}
+                                className="text-xs font-semibold text-sky-700 hover:text-sky-900 hover:underline sm:text-sm sm:line-clamp-1"
+                              >
+                                {doc.student_name}
+                              </Link>
+                              <p className="text-[10px] text-sky-700 sm:text-xs">{doc.record_book}</p>
+                            </div>
+                            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold sm:text-xs ${
+                                  isApproved
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-rose-100 text-rose-700'
+                                }`}
+                              >
+                                {isApproved ? 'Подтверждена' : 'Отклонена'}
+                              </span>
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-small text-amber-700">
+                                {doc.category_display}
+                              </span>
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.25 text-[10px] font-semibold text-emerald-700 sm:text-xs">
+                                +{doc.score}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mb-2">
+                          <p className="text-xs text-slate-800 sm:text-sm line-clamp-2">{doc.achievement}</p>
+                        </div>
+
+                        {!isApproved && doc.rejection_reason && (
+                          <p className="mb-2 text-[10px] text-rose-600 sm:text-xs line-clamp-2">
+                            Причина: {doc.rejection_reason}
+                          </p>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          {doc.files && doc.files.length > 0 && (
+                            <span className="text-[10px] text-sky-700 sm:text-xs">
+                              <i className="fa-solid fa-file mr-1" />
+                              Файлов: {doc.files.length}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDoc(doc)}
+                            className="cursor-pointer ml-auto text-[10px] font-semibold text-sky-700 hover:text-sky-900 sm:text-xs"
+                          >
+                            Подробнее
+                          </button>
+                        </div>
+
+                        <div className="mt-3 flex gap-2">
+                          {!isApproved && (
+                            <button
+                              type="button"
+                              onClick={() => openModal('approve', doc, 'reviewed')}
+                              className="cursor-pointer flex-1 rounded-lg bg-emerald-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:text-xs"
+                            >
+                              Одобрить
+                            </button>
+                          )}
+                          {isApproved && (
+                            <button
+                              type="button"
+                              onClick={() => openModal('reject', doc, 'reviewed')}
+                              className="cursor-pointer flex-1 rounded-lg bg-rose-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-rose-700 sm:text-xs sm:px-3 sm:py-2"
+                            >
+                              Отклонить
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+                  <p className="text-sm text-sky-700">
+                    Нет рассмотренных заявок за период &quot;{selectedSemesterLabel}&quot; в группе &quot;{currentGroupName}&quot;
+                  </p>
+                </div>
+              )}
+
+              <Pagination
+                page={reviewedPage}
+                totalCount={totalReviewed}
+                pageSize={requestsPageSize}
+                loading={reviewedLoading}
+                onPageChange={setReviewedPage}
               />
             </div>
           )}

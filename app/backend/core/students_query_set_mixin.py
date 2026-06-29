@@ -219,3 +219,46 @@ class DashboardStatsQuerySetMixin(StudentWithAccessMixin):
             )
 
         return qs.order_by('-uploaded_at')
+
+    def get_reviewed_documents_queryset(self, user):
+        """
+        Документы с финальным решением (подтверждены или отклонены) в области видимости сотрудника.
+        """
+        filtered_queryset = self.get_filtered_students_queryset(user)
+
+        academic_year_id = self.request.query_params.get('academic_year')
+        date_filter = {}
+
+        if academic_year_id:
+            ay = AcademicYear.objects.filter(id=academic_year_id).first()
+            if ay:
+                start = timezone.make_aware(datetime.combine(ay.start_date, time.min))
+                end = timezone.make_aware(datetime.combine(ay.end_date, time.max))
+                date_filter = {
+                    'uploaded_at__range': (start, end)
+                }
+
+        qs = Document.objects.filter(
+            user__student_profile__in=filtered_queryset,
+            status__code__in=['approved', 'rejected'],
+            **date_filter,
+        ).select_related(
+            'user__student_profile',
+            'user__student_profile__group',
+            'status',
+            'category',
+            'sub_type',
+            'level',
+            'result',
+            'doc_type',
+        ).prefetch_related('files')
+
+        search = self.request.query_params.get('search')
+        if search:
+            qs = qs.filter(
+                Q(user__student_profile__full_name__icontains=search) |
+                Q(user__student_profile__record_book__icontains=search) |
+                Q(achievement__icontains=search)
+            )
+
+        return qs.order_by('-uploaded_at')
