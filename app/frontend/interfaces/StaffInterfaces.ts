@@ -81,6 +81,8 @@ export interface FilterStudentsParams {
   page: number;
   page_size: number;
   search?: string;
+  faculty_id?: string;
+  course?: string;
 }
 
 export interface DashboardStatsParams {
@@ -89,6 +91,8 @@ export interface DashboardStatsParams {
   page: number;
   page_size: number;
   search?: string;
+  faculty_id?: string;
+  course?: string;
 }
 
 export interface DashboardStatsResponse {
