@@ -577,7 +577,7 @@ export default function StaffProfilePage() {
             >
               Заявки на подтверждение
               {totalRequests > 0 && (
-                <span className="ml-1 inline-flex min-w-4.5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-semibold leading-tight text-white">
+                <span className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[11px] font-semibold leading-tight text-white">
                   {totalRequests}
                 </span>
               )}
