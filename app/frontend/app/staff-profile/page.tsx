@@ -631,6 +631,11 @@ export default function StaffProfilePage() {
                             <th className="w-[18%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
                               Зачетная книжка
                             </th>
+                            {isRectorate && (
+                              <th className="w-[12%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                                Факультет
+                              </th>
+                            )}
                             <th className="w-16 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
                               Курс
                             </th>
@@ -666,6 +671,11 @@ export default function StaffProfilePage() {
                                 <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm">
                                   {student.record_book}
                                 </td>
+                                {isRectorate && (
+                                  <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm">
+                                    {student.faculty}
+                                  </td>
+                                )}
                                 <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">
                                   {student.course}
                                 </td>
@@ -688,7 +698,7 @@ export default function StaffProfilePage() {
                         ) : (
                           <tr>
                             <td
-                              colSpan={6}
+                              colSpan={isRectorate ? 8 : 7}
                               className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm"
                             >
                               Студенты не найдены
