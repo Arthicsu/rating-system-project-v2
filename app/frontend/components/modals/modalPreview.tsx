@@ -6,7 +6,7 @@ import { useDownloadFile } from '@/hooks/useDownloadFile';
 import { useFilePreview, getFilePreviewKind } from '@/hooks/useFilePreview';
 import { renderAsync } from 'docx-preview';
 
-function FilePreviewPanel({
+export function FilePreviewPanel({
   fileId,
   fileName,
   isOpen,
@@ -19,6 +19,20 @@ function FilePreviewPanel({
 }) {
   const { previewUrl, loading, error } = useFilePreview(fileId, isOpen);
   const previewKind = getFilePreviewKind(fileName);
+
+  // Состояние для масштаба (1 = 100%, 1.2 = 120%, и т.д.)
+  const [zoom, setZoom] = useState<number>(1);
+
+  // Сбрасываем масштаб при открытии нового файла
+  useEffect(() => {
+    if (isOpen) {
+      setZoom(1);
+    }
+  }, [fileId, isOpen]);
+
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.1, 2)); // Макс 200%
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.1, 0.5)); // Мин 50%
+  const handleResetZoom = () => setZoom(1);
 
   if (loading) {
     return (
@@ -46,61 +60,142 @@ function FilePreviewPanel({
 
   if (!previewUrl) return null;
 
-  if (previewKind === 'pdf') {
-    return (
-      <iframe
-        src={previewUrl}
-        title={fileName}
-        className="h-full min-h-[inherit] w-full flex-1 border-0 bg-white"
-      />
-    );
-  }
-if (previewKind === 'docx') {
-  return (
-    <div className="flex-1 w-full h-full min-h-[inherit] overflow-auto bg-white p-4 text-left">
-      <div 
-        ref={(el) => {
-          // Рендерим документ, когда элемент появился
-          if (el && previewUrl) {
-            fetch(previewUrl)
-              .then(res => res.blob())
-              .then(blob => renderAsync(blob, el, undefined, { inWrapper: false }));
-          }
-        }} 
-        className="docx-body" 
-      />
-    </div>
-  );
-}
-  if (previewKind === 'image') {
-    return (
-      <div className="flex h-full min-h-[inherit] flex-1 items-center justify-center overflow-auto p-3 sm:p-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={previewUrl}
-          alt={fileName}
-          className="max-h-full max-w-full object-contain"
-        />
-      </div>
-    );
-  }
+  // Проверяем, поддерживает ли формат зуммирование (документы)
+  const isZoomable = previewKind === 'pdf' || previewKind === 'docx';
 
   return (
-    <div className="flex h-full min-h-[inherit] flex-1 flex-col items-center justify-center gap-3 p-4 text-center sm:p-6">
-      <i className="fa-solid fa-file text-3xl text-slate-400 sm:text-4xl" />
-      <p className="max-w-xs text-sm text-slate-600">
-        Предпросмотр недоступен для этого типа файла
-      </p>
-      <button
-        type="button"
-        onClick={onDownload}
-        className="cursor-pointer rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700"
-      >
-        Скачать файл
-      </button>
+    <div className="flex-1 w-full h-full min-h-[inherit] flex flex-col overflow-hidden bg-slate-100">
+      
+      {/* ПАНЕЛЬ УПРАВЛЕНИЯ МАСШТАБОМ */}
+      {isZoomable && (
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-2 select-none shadow-sm z-10">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleZoomOut}
+              disabled={zoom <= 0.5}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+              title="Уменьшить"
+            >
+              <i className="fa-solid fa-magnifying-glass-minus" />
+            </button>
+            
+            <span className="min-w-[56px] text-center text-xs font-semibold text-slate-600">
+              {Math.round(zoom * 100)}%
+            </span>
+
+            <button
+              type="button"
+              onClick={handleZoomIn}
+              disabled={zoom >= 2}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+              title="Увеличить"
+            >
+              <i className="fa-solid fa-magnifying-glass-plus" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleResetZoom}
+              className="ml-1 text-xs text-sky-600 font-medium hover:underline"
+            >
+              Сбросить
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={onDownload}
+            className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1.5"
+          >
+            <i className="fa-solid fa-download" />
+            Скачать оригинал
+          </button>
+        </div>
+      )}
+
+      {/* ОБЛАСТЬ ОТРЕНДЕРЕННОГО КОНТЕНТА */}
+      <div className="flex-1 overflow-auto p-6 flex justify-center items-start bg-slate-100">
+        
+        {/* ПРЕДПРОСМОТР PDF */}
+        {previewKind === 'pdf' && (
+          <div 
+            className="w-full h-full max-w-4xl transition-transform duration-150 ease-out origin-top will-change-transform"
+            style={{ 
+              transform: `scale(${zoom})`,
+              height: '100%',
+              minHeight: '650px' // Жесткая высота, чтобы фрейм не схлопывался
+            }}
+          >
+            <iframe
+              src={previewUrl}
+              title={fileName}
+              className="w-full h-full border-0 bg-white shadow-md rounded-lg"
+            />
+          </div>
+        )}
+
+        {/* ПРЕДПРОСМОТР DOCX */}
+        {previewKind === 'docx' && (
+          <div className="w-full flex justify-center">
+            <div 
+              className="w-full bg-white p-8 shadow-md rounded-lg text-left transition-transform duration-150 ease-out origin-top will-change-transform"
+              style={{ 
+                transform: `scale(${zoom})`,
+                width: '100%',
+                maxWidth: '800px'
+              }}
+            >
+              <div 
+                ref={(el) => {
+                  if (el && previewUrl) {
+                    el.innerHTML = '';
+                    fetch(previewUrl)
+                      .then((res) => res.blob())
+                      .then((blob) => renderAsync(blob, el, undefined, { inWrapper: false }))
+                      .catch((err) => console.error('Ошибка рендеринга DOCX:', err));
+                  }
+                }} 
+                className="docx-body" 
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ПРЕДПРОСМОТР ИЗОБРАЖЕНИЙ */}
+        {previewKind === 'image' && (
+          <div className="flex h-full min-h-[inherit] flex-1 items-center justify-center p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl}
+              alt={fileName}
+              className="max-h-full max-w-full object-contain shadow-sm rounded-md bg-white"
+            />
+          </div>
+        )}
+
+        {/* ДЕФОЛТНАЯ ЗАГЛУШКА ДЛЯ ОСТАЛЬНЫХ ФОРМАТОВ */}
+        {previewKind !== 'pdf' && previewKind !== 'docx' && previewKind !== 'image' && (
+          <div className="flex h-full min-h-[inherit] flex-1 flex-col items-center justify-center gap-3 text-center">
+            <i className="fa-solid fa-file text-3xl text-slate-400 sm:text-4xl" />
+            <p className="max-w-xs text-sm text-slate-600">
+              Предпросмотр недоступен для этого типа файла
+            </p>
+            <button
+              type="button"
+              onClick={onDownload}
+              className="cursor-pointer rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700"
+            >
+              Скачать  файл
+            </button>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
+
 
 export default function ModalPreview({ isOpen, doc, onClose }: ModalPreviewProps) {
   const { downloadFile } = useDownloadFile();
