@@ -8,6 +8,7 @@ import { useMySession } from '@/context/AuthContext';
 import { Skeleton } from 'boneyard-js/react';
 import { useRouter } from 'next/navigation';
 import FileDropZone from '@/components/upload/FileDropZone';
+import CustomSelect from '@/components/CustomSelect';
 import { studentApi } from '@/lib/apiRequests';
 import type { SelectOption, DataStructure } from '@/interfaces/AchievementInterfaces';
 
@@ -29,12 +30,6 @@ export default function UploadAchievement() {
   const [docType, setDocType] = useState<SelectOption | null>(null);
   const [dateReceived, setDateReceived] = useState('');
 
-  const [showCategory, setShowCategory] = useState(false);
-  const [showSubType, setShowSubType] = useState(false);
-  const [showLevel, setShowLevel] = useState(false);
-  const [showResult, setShowResult] = useState(false);
-  const [showDocType, setShowDocType] = useState(false);
-
   useEffect(() => {
     const fetchConfig = async () => {
       try {
@@ -50,19 +45,6 @@ export default function UploadAchievement() {
     };
     fetchConfig();
   }, []);
-
-  const closeAllDropdowns = () => {
-    setShowCategory(false);
-    setShowSubType(false);
-    setShowLevel(false);
-    setShowResult(false);
-    setShowDocType(false);
-  };
-
-  useEffect(() => {
-    document.addEventListener('click', closeAllDropdowns);
-    return () => document.removeEventListener('click', closeAllDropdowns);
-  });
 
   if (authLoading) {
     return (
@@ -253,245 +235,97 @@ export default function UploadAchievement() {
               </div>
 
               {/* Категория */}
-              <div
-                className="space-y-1.5 relative"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <label className="text-[11px] font-medium text-slate-500">
-                  Категория (обязательно)
-                </label>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowCategory(!showCategory);
-                    setShowSubType(false);
-                    setShowLevel(false);
-                    setShowResult(false);
-                    setShowDocType(false);
-                  }}
-                  className="cursor-pointer flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-600/0 transition hover:border-sky-600 hover:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-600"
-                >
-                  <span>
-                    {category
-                      ? dataStructure[category].label
-                      : 'Выберите категорию'}
-                  </span>
-                  <span className="text-xs text-slate-400">▼</span>
-                </button>
-                {showCategory && (
-                  <div
-                    className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 text-sm shadow-xl"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {Object.keys(dataStructure).map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        className="cursor-pointer block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
-                        onClick={() => {
-                          setCategory(key);
-                          setSubType(null);
-                          setLevel(null);
-                          setResult(null);
-                          setShowCategory(false);
-                        }}
-                      >
-                        {dataStructure[key].label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <CustomSelect
+                label="Категория (обязательно)"
+                value={category ?? ''}
+                placeholder="Выберите категорию"
+                options={Object.keys(dataStructure).map((key) => ({
+                  value: key,
+                  label: dataStructure[key].label,
+                }))}
+                onChange={(value) => {
+                  setCategory(value);
+                  setSubType(null);
+                  setLevel(null);
+                  setResult(null);
+                }}
+              />
 
               {/* Вид деятельности */}
               {category && (
-                <div
-                  className="space-y-1.5 relative"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <label className="text-[11px] font-medium text-slate-500">
-                    Вид деятельности (обязательно)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowSubType(!showSubType);
-                      setShowCategory(false);
-                      setShowLevel(false);
-                      setShowResult(false);
-                      setShowDocType(false);
-                    }}
-                    className="cursor-pointer flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-600/0 transition hover:border-slate-400 hover:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-600"
-                  >
-                    <span>
-                      {subType ? subType.label : 'Выберите вид деятельности'}
-                    </span>
-                    <span className="text-xs text-slate-400">▼</span>
-                  </button>
-                  {showSubType && (
-                    <div
-                      className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 text-sm shadow-xl"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {dataStructure[category].sub_types.map((item) => (
-                        <button
-                          key={item.code}
-                          type="button"
-                          className="cursor-pointer block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
-                          onClick={() => {
-                            setSubType(item);
-                            setLevel(null);
-                            setResult(null);
-                            setShowSubType(false);
-                          }}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <CustomSelect
+                  label="Вид деятельности (обязательно)"
+                  value={subType?.code ?? ''}
+                  placeholder="Выберите вид деятельности"
+                  options={dataStructure[category].sub_types.map((item) => ({
+                    value: item.code,
+                    label: item.label,
+                  }))}
+                  onChange={(value) => {
+                    const selected = dataStructure[category].sub_types.find((item) => item.code === value);
+                    if (selected) {
+                      setSubType(selected);
+                      setLevel(null);
+                      setResult(null);
+                    }
+                  }}
+                />
               )}
 
               {/* Уровень */}
               {subType?.needsLevel && (
-                <div
-                  className="space-y-1.5 relative"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <label className="text-[11px] font-medium text-slate-500">
-                    Уровень мероприятия (обязательно)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowLevel(!showLevel);
-                      setShowCategory(false);
-                      setShowSubType(false);
-                      setShowResult(false);
-                      setShowDocType(false);
-                    }}
-                    className="cursor-pointer flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-600/0 transition hover:border-sky-600 hover:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-600"
-                  >
-                    <span>{level ? level.label : 'Выберите уровень'}</span>
-                    <span className="text-xs text-slate-400">▼</span>
-                  </button>
-                  {showLevel && (
-                    <div
-                      className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 text-sm shadow-xl"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {getFilteredLevels().map((item) => (
-                        <button
-                          key={item.code}
-                          type="button"
-                          className="cursor-pointer block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
-                          onClick={() => {
-                            setLevel(item);
-                            setShowLevel(false);
-                          }}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <CustomSelect
+                  label="Уровень мероприятия (обязательно)"
+                  value={level?.code ?? ''}
+                  placeholder="Выберите уровень"
+                  options={getFilteredLevels().map((item) => ({
+                    value: item.code,
+                    label: item.label,
+                  }))}
+                  onChange={(value) => {
+                    const selected = getFilteredLevels().find((item) => item.code === value);
+                    if (selected) {
+                      setLevel(selected);
+                    }
+                  }}
+                />
               )}
 
               {/* Результат */}
               {subType?.needsResult && (
-                <div
-                  className="space-y-1.5 relative"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <label className="text-[11px] font-medium text-slate-500">
-                    Результат / Место (обязательно)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowResult(!showResult);
-                      setShowCategory(false);
-                      setShowSubType(false);
-                      setShowLevel(false);
-                      setShowDocType(false);
-                    }}
-                    className="cursor-pointer flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-600/0 transition hover:border-sky-600 hover:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-600"
-                  >
-                    <span>{result ? result.label : 'Выберите результат'}</span>
-                    <span className="text-xs text-slate-400">▼</span>
-                  </button>
-                  {showResult && (
-                    <div
-                      className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 text-sm shadow-xl"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {getFilteredResults().map((item) => (
-                        <button
-                          key={item.code}
-                          type="button"
-                          className="cursor-pointer block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
-                          onClick={() => {
-                            setResult(item);
-                            setShowResult(false);
-                          }}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <CustomSelect
+                  label="Результат / Место (обязательно)"
+                  value={result?.code ?? ''}
+                  placeholder="Выберите результат"
+                  options={getFilteredResults().map((item) => ({
+                    value: item.code,
+                    label: item.label,
+                  }))}
+                  onChange={(value) => {
+                    const selected = getFilteredResults().find((item) => item.code === value);
+                    if (selected) {
+                      setResult(selected);
+                    }
+                  }}
+                />
               )}
 
               {/* Тип документа */}
-              <div
-                className="space-y-1.5 relative"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <label className="text-[11px] font-medium text-slate-500">
-                  Тип документа (обязательно)
-                </label>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowDocType(!showDocType);
-                    setShowCategory(false);
-                    setShowSubType(false);
-                    setShowLevel(false);
-                    setShowResult(false);
-                  }}
-                  className="cursor-pointer flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-600/0 transition hover:border-sky-600 hover:bg-white focus:border-sky-600 focus:ring-2 focus:ring-sky-600"
-                >
-                  <span>
-                    {docType ? docType.label : 'Выберите тип документа'}
-                  </span>
-                  <span className="text-xs text-slate-400">▼</span>
-                </button>
-                {showDocType && (
-                  <div className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 text-sm shadow-xl">
-                    {docTypesList.map((item) => (
-                      <button
-                        key={item.code}
-                        type="button"
-                        className="cursor-pointer block w-full px-3 py-1.5 text-left text-sm text-slate-800 hover:bg-slate-50"
-                        onClick={() => {
-                          setDocType(item);
-                          setShowDocType(false);
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <CustomSelect
+                label="Тип документа (обязательно)"
+                value={docType?.code ?? ''}
+                placeholder="Выберите тип документа"
+                options={docTypesList.map((item) => ({
+                  value: item.code,
+                  label: item.label,
+                }))}
+                onChange={(value) => {
+                  const selected = docTypesList.find((item) => item.code === value);
+                  if (selected) {
+                    setDocType(selected);
+                  }
+                }}
+              />
 
               {/* Название достижения */}
               <div className="space-y-1.5">

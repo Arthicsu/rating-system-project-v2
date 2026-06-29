@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import Pagination from '@/components/Pagination';
+import CustomSelect from '@/components/CustomSelect';
 import { userApi } from '@/lib/apiRequests';
 import type { FilterOptions, Tab, RatingParams } from '@/interfaces/RatingInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
@@ -52,6 +53,7 @@ export default function RatingPage() {
   useEffect(() => {
     const fetchRating = async () => {
       setLoading(true);
+      setStudents([]);
       try {
         const params: RatingParams = {
           category: activeTab,
@@ -69,6 +71,8 @@ export default function RatingPage() {
         setTotalCount(response.data.count);
       } catch (error) {
         console.error('Ошибка: ', error);
+        setStudents([]);
+        setTotalCount(0);
       } finally {
         setLoading(false);
       }
@@ -101,21 +105,15 @@ export default function RatingPage() {
       <div className="mb-5 w-full bg-transparent">
         <div className="mx-auto max-w-350 px-5">
           <div className="block sm:hidden">
-            <label htmlFor='tab-select' className="block text-[11px] font-medium text-slate-500">
-              Фильтры рейтинга
-            </label>
-            <select
+            <CustomSelect
               id="tab-select"
-              className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-xs text-[#333] shadow-[0_2px_10px_rgba(0,0,0,0.05)] focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
+              label="Фильтры рейтинга"
               value={activeTab}
-              onChange={(e) => handleTabChange(e.target.value)}
-            >
-              {tabs.map((tab) => (
-                <option key={tab.id} onClick={() => handleTabChange(tab.id)} value={tab.id}>
-                  {tab.label}
-                </option>
-              ))}
-            </select>
+              labelClassName="block text-[11px] font-medium text-slate-500"
+              triggerClassName="text-xs"
+              options={tabs.map((tab) => ({ value: tab.id, label: tab.label }))}
+              onChange={handleTabChange}
+            />
           </div>
 
           <div className="hidden sm:inline-flex overflow-hidden rounded-lg bg-white shadow-[0_2px_10px_rgba(0,0,0,0.05)] text-[11px] sm:text-xs md:text-sm lg:text-base">
@@ -166,64 +164,52 @@ export default function RatingPage() {
             <div className="mb-3 max-[411px]:block hidden rounded-lg bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.08)] text-[11px] text-slate-700">
               <div className="mb-2 font-semibold">Фильтры</div>
               <div className="space-y-2">
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="m-faculty" className="text-[10px] uppercase tracking-wide text-slate-500">
-                    Факультет
-                  </label>
-                  <select
-                    id="m-faculty"
-                    value={selectedFaculty}
-                    onChange={(e) => {
-                      handleFilterChange(setSelectedFaculty, e.target.value);
-                      handleFilterChange(setSelectedCourse, 'all');
-                      handleFilterChange(setSelectedGroup, 'all');
-                    }}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
-                  >
-                    <option value="all">Все</option>
-                    {filterOptions.faculties.map(f => (
-                      <option key={f.id} value={f.id}>{f.short_name}</option>
-                    ))}
-                  </select>
-                </div>
+                <CustomSelect
+                  id="m-faculty"
+                  label="Факультет"
+                  value={selectedFaculty}
+                  labelClassName="text-[10px] uppercase tracking-wide text-slate-500"
+                  triggerClassName="text-[11px] py-1 px-2"
+                  options={[
+                    { value: 'all', label: 'Все' },
+                    ...filterOptions.faculties.map((f) => ({ value: f.id, label: f.short_name })),
+                  ]}
+                  onChange={(value) => {
+                    handleFilterChange(setSelectedFaculty, value);
+                    handleFilterChange(setSelectedCourse, 'all');
+                    handleFilterChange(setSelectedGroup, 'all');
+                  }}
+                />
 
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="m-course" className="text-[10px] uppercase tracking-wide text-slate-500">
-                    Курс
-                  </label>
-                  <select
-                    id="m-course"
-                    value={selectedCourse}
-                    onChange={(e) => {
-                      handleFilterChange(setSelectedCourse, e.target.value);
-                      handleFilterChange(setSelectedGroup, 'all');
-                    }}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
-                  >
-                    <option value="all">Все</option>
-                    {[1, 2, 3, 4, 5].map(c => (
-                      <option key={c} value={String(c)}>{c} курс</option>
-                    ))}
-                  </select>
-                </div>
+                <CustomSelect
+                  id="m-course"
+                  label="Курс"
+                  value={selectedCourse}
+                  labelClassName="text-[10px] uppercase tracking-wide text-slate-500"
+                  triggerClassName="text-[11px] py-1 px-2"
+                  options={[
+                    { value: 'all', label: 'Все' },
+                    ...[1, 2, 3, 4, 5].map((c) => ({ value: String(c), label: `${c} курс` })),
+                  ]}
+                  onChange={(value) => {
+                    handleFilterChange(setSelectedCourse, value);
+                    handleFilterChange(setSelectedGroup, 'all');
+                  }}
+                />
 
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="m-group" className="text-[10px] uppercase tracking-wide text-slate-500">
-                    Группа
-                  </label>
-                  <select
-                    id="m-group"
-                    value={selectedGroup}
-                    onChange={(e) => handleFilterChange(setSelectedGroup, e.target.value)}
-                    disabled={availableGroups.length === 0}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
-                  >
-                    <option value="all">Все</option>
-                    {availableGroups.map(g => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
-                </div>
+                <CustomSelect
+                  id="m-group"
+                  label="Группа"
+                  value={selectedGroup}
+                  disabled={availableGroups.length === 0}
+                  labelClassName="text-[10px] uppercase tracking-wide text-slate-500"
+                  triggerClassName="text-[11px] py-1 px-2"
+                  options={[
+                    { value: 'all', label: 'Все' },
+                    ...availableGroups.map((g) => ({ value: g.id, label: g.name })),
+                  ]}
+                  onChange={(value) => handleFilterChange(setSelectedGroup, value)}
+                />
               </div>
             </div>
           )}
@@ -243,93 +229,98 @@ export default function RatingPage() {
                     </th>
 
                     <th className="w-[20%] sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-[11px] sm:text-xs md:text-sm lg:text-base font-normal ">
-                      <div className="flex max-[544px]:flex-col items-center justify-center gap-1.5 sm:gap-2 text-center text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-white">
-                        <label htmlFor="faculty-select" className="font-medium">
-                          Факультет
-                        </label>
-                        <select
-                          id="faculty-select"
-                          value={selectedFaculty}
-                          onChange={(e) => {
-                            handleFilterChange(setSelectedFaculty, e.target.value);
-                            handleFilterChange(setSelectedCourse, 'all');
-                            handleFilterChange(setSelectedGroup, 'all');
-                          }}
-                          className="w-auto max-[411px]:hidden rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
-                        >
-                          <option value="all">Все</option>
-                          {filterOptions.faculties.map(f => (
-                            <option key={f.id} value={f.id}>{f.short_name}</option>
-                          ))}
-                        </select>
-                      </div>
+                      <CustomSelect
+                        id="faculty-select"
+                        inline
+                        label="Факультет"
+                        value={selectedFaculty}
+                        labelClassName="font-medium text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-white"
+                        triggerClassName="max-[411px]:hidden w-auto text-[9px] sm:text-[11px] md:text-xs lg:text-sm py-0.5 md:py-1 px-1 sm:px-1.5 md:px-2"
+                        className="max-[544px]:flex-col"
+                        options={[
+                          { value: 'all', label: 'Все' },
+                          ...filterOptions.faculties.map((f) => ({ value: f.id, label: f.short_name })),
+                        ]}
+                        onChange={(value) => {
+                          handleFilterChange(setSelectedFaculty, value);
+                          handleFilterChange(setSelectedCourse, 'all');
+                          handleFilterChange(setSelectedGroup, 'all');
+                        }}
+                      />
                     </th>
 
                     <th className="w-[15%] sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
-                      <div className="flex max-[544px]:flex-col items-center justify-center gap-1.5 sm:gap-2 text-center text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-white">
-                        <label htmlFor="course-select" className="font-medium">
-                          Курс
-                        </label>
-                        <select
-                          id="course-select"
-                          value={selectedCourse}
-                          onChange={(e) => {
-                            handleFilterChange(setSelectedCourse, e.target.value);
-                            handleFilterChange(setSelectedGroup, 'all');
-                          }}
-                          className=" max-[411px]:hidden w-auto rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
-                        >
-                          <option value="all">Все</option>
-                          {[1, 2, 3, 4, 5].map(c => (
-                            <option key={c} value={String(c)}>{c} курс</option>
-                          ))}
-                        </select>
-                      </div>
+                      <CustomSelect
+                        id="course-select"
+                        inline
+                        label="Курс"
+                        value={selectedCourse}
+                        labelClassName="font-medium text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-white"
+                        triggerClassName="max-[411px]:hidden w-auto text-[9px] sm:text-[11px] md:text-xs lg:text-sm py-0.5 md:py-1 px-1 sm:px-1.5 md:px-2"
+                        className="max-[544px]:flex-col"
+                        options={[
+                          { value: 'all', label: 'Все' },
+                          ...[1, 2, 3, 4, 5].map((c) => ({ value: String(c), label: `${c} курс` })),
+                        ]}
+                        onChange={(value) => {
+                          handleFilterChange(setSelectedCourse, value);
+                          handleFilterChange(setSelectedGroup, 'all');
+                        }}
+                      />
                     </th>
 
                     <th className="w-[20%] sm:w-auto px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-r-lg">
-                      <div className="flex max-[544px]:flex-col items-center justify-center gap-1.5 sm:gap-2 text-center text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-white">
-                        <label htmlFor="group-select" className="font-medium">
-                          Группа
-                        </label>
-                        <select
-                          id="group-select"
-                          value={selectedGroup}
-                          onChange={(e) => handleFilterChange(setSelectedGroup, e.target.value)}
-                          disabled={availableGroups.length === 0}
-                          className=" max-[411px]:hidden w-auto rounded-md border border-slate-300 bg-white px-1 sm:px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-black outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 disabled:cursor-not-allowed disabled:bg-slate-100"
-                        >
-                          <option value="all">Все</option>
-                          {availableGroups.map(g => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
-                          ))}
-                        </select>
-                      </div>
+                      <CustomSelect
+                        id="group-select"
+                        inline
+                        label="Группа"
+                        value={selectedGroup}
+                        disabled={availableGroups.length === 0}
+                        labelClassName="font-medium text-[9px] sm:text-[11px] md:text-xs lg:text-sm text-white"
+                        triggerClassName="max-[411px]:hidden w-auto text-[9px] sm:text-[11px] md:text-xs lg:text-sm py-0.5 md:py-1 px-1 sm:px-1.5 md:px-2"
+                        className="max-[544px]:flex-col"
+                        options={[
+                          { value: 'all', label: 'Все' },
+                          ...availableGroups.map((g) => ({ value: g.id, label: g.name })),
+                        ]}
+                        onChange={(value) => handleFilterChange(setSelectedGroup, value)}
+                      />
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {students.map((student, index) => (
-                    <tr key={student.user_id} className="border-b border-[#f0f0f0] text-xs sm:text-xs md:text-sm last:border-b-0 hover:bg-slate-50">
-                      <td className="p-1 sm:p-2 md:px-4  md:py-3 text-center align-middle">
-                        <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-[11px] md:text-sm font-bold text-white">
-                          {(currentPage - 1) * pageSize + index + 1}
-                        </div>
+                  {!loading && students.length > 0 ? (
+                    students.map((student, index) => (
+                      <tr key={student.user_id} className="border-b border-[#f0f0f0] text-xs sm:text-xs md:text-sm last:border-b-0 hover:bg-slate-50">
+                        <td className="p-1 sm:p-2 md:px-4  md:py-3 text-center align-middle">
+                          <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-[11px] md:text-sm font-bold text-white">
+                            {(currentPage - 1) * pageSize + index + 1}
+                          </div>
+                        </td>
+                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-[#333] overflow-hidden">
+                          <span className="inline md:hidden block truncate">
+                            {student.short_name}
+                          </span>
+                          <span className="hidden md:inline truncate">{student.full_name}</span>
+                        </td>
+                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm font-bold text-sky-700">
+                          {Number(student[scoreKey])}
+                        </td>
+                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.faculty}</td>
+                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.course}</td>
+                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.group}</td>
+                      </tr>
+                    ))
+                  ) : !loading ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="p-4 text-center text-xs md:text-sm text-slate-500"
+                      >
+                        Студенты не найдены
                       </td>
-                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-[#333] overflow-hidden">
-                        <span className="inline md:hidden block truncate">
-                          {student.short_name}
-                        </span>
-                        <span className="hidden md:inline truncate">{student.full_name}</span>
-                      </td>
-                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm font-bold text-sky-700">
-                        {Number(student[scoreKey])}
-                      </td>
-                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.faculty}</td>
-                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.course}</td>
-                      <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.group}</td>
                     </tr>
-                  ))}
+                  ) : null}
                 </tbody>
               </table>
               

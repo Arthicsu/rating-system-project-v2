@@ -9,6 +9,7 @@ import { Skeleton } from 'boneyard-js/react';
 import { useMySession } from '@/context/AuthContext';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
 import SearchInput from '@/components/SearchInput';
+import CustomSelect from '@/components/CustomSelect';
 import Pagination from '@/components/Pagination';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import ModalApprove from '@/components/modals/modalApprove';
@@ -106,6 +107,7 @@ export default function StaffProfilePage() {
   
   const handleCourseChange = (courseId: string) => {
     setSelectedCourse(courseId);
+    setCurrentPage(1);
     if (courseId === 'all') {
       setSelectedGroupId('all');
     }
@@ -114,6 +116,7 @@ export default function StaffProfilePage() {
   
   const handleFacultyChange = (facultyId: string) => {
     setSelectedFacultyId(facultyId);
+    setCurrentPage(1);
     if (facultyId === 'all') {
       setSelectedGroupId('all');
     }
@@ -176,15 +179,22 @@ export default function StaffProfilePage() {
 
   useEffect(() => {
     const fetchDashboard = async () => {
-      if (!selectedGroupId || !selectedSemesterId) return; 
+      if (!selectedGroupId || !selectedSemesterId) return;
       setLoading(true);
-      
+      setStudentsData([]);
+
       try {
+        const filterParams = {
+          faculty_id: selectedFacultyId !== 'all' ? selectedFacultyId : undefined,
+          course: selectedCourse !== 'all' ? selectedCourse : undefined,
+        };
+
         const studentsParams: FilterStudentsParams = {
           group_id: selectedGroupId,
           page: currentPage,
           page_size: pageSize,
           search: groupSearchValue || undefined,
+          ...filterParams,
         };
 
         const statsParams: DashboardStatsParams = {
@@ -193,6 +203,7 @@ export default function StaffProfilePage() {
           page: requestsPage,
           page_size: requestsPageSize,
           search: pendingSearchValue || undefined,
+          ...filterParams,
         };
 
         const [studentsRes, statsRes] = await Promise.all([
@@ -209,12 +220,14 @@ export default function StaffProfilePage() {
         
       } catch (error) {
         console.error("Ошибка загрузки данных дашборда: ", error);
+        setStudentsData([]);
+        setTotalStudents(0);
       } finally {
         setLoading(false);
       }
     };
     fetchDashboard();
-  }, [selectedGroupId, selectedSemesterId, currentPage, selectedCourse, requestsPage, pendingSearchValue, groupSearchValue]);
+  }, [selectedGroupId, selectedSemesterId, selectedFacultyId, selectedCourse, currentPage, requestsPage, pendingSearchValue, groupSearchValue]);
   const pollPendingRequests = useCallback(async () => {
     if (!selectedGroupId || !selectedSemesterId) return;
 
@@ -225,6 +238,8 @@ export default function StaffProfilePage() {
         page: requestsPage,
         page_size: requestsPageSize,
         search: pendingSearchValue || undefined,
+        faculty_id: selectedFacultyId !== 'all' ? selectedFacultyId : undefined,
+        course: selectedCourse !== 'all' ? selectedCourse : undefined,
       };
 
       const statsRes = await universityApi.getFilteredDashboardStats(statsParams);
@@ -236,7 +251,7 @@ export default function StaffProfilePage() {
     } catch (error) {
       console.error("Ошибка обновления списка заявок: ", error);
     }
-  }, [selectedGroupId, selectedSemesterId, requestsPage, pendingSearchValue]);
+  }, [selectedGroupId, selectedSemesterId, selectedFacultyId, selectedCourse, requestsPage, pendingSearchValue]);
 
   // Short-polling списка заявок. Пока открыта страница, периодически обновляем только заявки, чтобы они появлялись/исчезали без перезагрузки. На паузе, когда вкладка скрыта.
   useEffect(() => {
@@ -402,72 +417,65 @@ export default function StaffProfilePage() {
             <div className="mb-3 max-[640px]:block hidden rounded-lg bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.08)] text-[11px] text-sky-700">
               <div className="space-y-2">
                 {isRectorate && (
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="m-faculty" className="text-[10px] uppercase tracking-wide text-sky-700">Факультет</label>
-                  <select
-                    id="m-faculty"
-                    value={selectedFacultyId}
-                    onChange={(e) => {
-                      handleFacultyChange(e.target.value);
-                      handleCourseChange('all');
-                      handleGroupChange('all');
-                    }}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
-                  >
-                    <option value="all">Все</option>
-                    {facultiesList.map(f => (
-                      <option key={f.id} value={f.id}>{f.short_name}</option>
-                    ))}
-                  </select>
-                </div>
+                <CustomSelect
+                  id="m-faculty"
+                  label="Факультет"
+                  value={selectedFacultyId}
+                  labelClassName="text-[10px] uppercase tracking-wide text-sky-700"
+                  triggerClassName="text-[11px] py-1 px-2"
+                  options={[
+                    { value: 'all', label: 'Все' },
+                    ...facultiesList.map((f) => ({ value: f.id, label: f.short_name })),
+                  ]}
+                  onChange={(value) => {
+                    handleFacultyChange(value);
+                    handleCourseChange('all');
+                    handleGroupChange('all');
+                  }}
+                />
                 )}
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="m-course" className="text-[10px] uppercase tracking-wide text-sky-700">Курс</label>
-                  <select
-                    id="m-course"
-                    value={selectedCourse}
-                    onChange={(e) => handleCourseChange(e.target.value)}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
-                  >
-                    <option value="all">Все</option>
-                    {[1, 2, 3, 4, 5].map(c => (
-                      <option key={c} value={String(c)}>{c} курс</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="m-group" className="text-[10px] uppercase tracking-wide text-sky-700">Группа</label>
-                  <select
-                    id="m-group"
-                    value={selectedGroupId}
-                    onChange={(e) => handleGroupChange(e.target.value)}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
-                  >
-                    <option value="all">Все</option>
-                    {groupsList.map(g => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="m-semester" className="text-[10px] uppercase tracking-wide text-sky-700">Период</label>
-                  <select
-                    id="m-semester"
-                    value={selectedSemesterId}
-                    onChange={(e) => {
-                      const selected = semesterOptions.find(opt => opt.id === Number(e.target.value));
-                      if (selected) {
-                        setSelectedSemesterId(selected.id);
-                        setSelectedSemesterLabel(selected.label);
-                      }
-                    }}
-                    className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
-                  >
-                    {semesterOptions.map((opt) => (
-                      <option key={opt.id} value={opt.id}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
+                <CustomSelect
+                  id="m-course"
+                  label="Курс"
+                  value={selectedCourse}
+                  labelClassName="text-[10px] uppercase tracking-wide text-sky-700"
+                  triggerClassName="text-[11px] py-1 px-2"
+                  options={[
+                    { value: 'all', label: 'Все' },
+                    ...[1, 2, 3, 4, 5].map((c) => ({ value: String(c), label: `${c} курс` })),
+                  ]}
+                  onChange={handleCourseChange}
+                />
+                <CustomSelect
+                  id="m-group"
+                  label="Группа"
+                  value={selectedGroupId}
+                  labelClassName="text-[10px] uppercase tracking-wide text-sky-700"
+                  triggerClassName="text-[11px] py-1 px-2"
+                  options={[
+                    { value: 'all', label: 'Все' },
+                    ...groupsList.map((g) => ({ value: g.id, label: g.name })),
+                  ]}
+                  onChange={handleGroupChange}
+                />
+                <CustomSelect
+                  id="m-semester"
+                  label="Период"
+                  value={String(selectedSemesterId)}
+                  labelClassName="text-[10px] uppercase tracking-wide text-sky-700"
+                  triggerClassName="text-[11px] py-1 px-2"
+                  options={semesterOptions.map((opt) => ({
+                    value: String(opt.id),
+                    label: opt.label,
+                  }))}
+                  onChange={(value) => {
+                    const selected = semesterOptions.find((opt) => opt.id === Number(value));
+                    if (selected) {
+                      setSelectedSemesterId(selected.id);
+                      setSelectedSemesterLabel(selected.label);
+                    }
+                  }}
+                />
               </div>
             </div>
           )}
@@ -478,79 +486,69 @@ export default function StaffProfilePage() {
             </p>
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 sm:gap-4">
               {isRectorate && (
-              <div className="space-y-1.5">
-                <label htmlFor="faculty-select" className="block text-[11px] font-medium text-sky-700">Факультет</label>
-                <select
-                  id="faculty-select"
-                  className="w-full min-w-28 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
-                  value={selectedFacultyId}
-                  onChange={(e) => {
-                    handleFacultyChange(e.target.value);
-                    handleCourseChange('all');
-                    handleGroupChange('all');
-                  }}
-                >
-                  <option value="all">Все факультеты</option>
-                  {facultiesList.map(f => (
-                    <option key={f.id} value={f.id}>{f.short_name}</option>
-                  ))}
-                </select>
-              </div>
+              <CustomSelect
+                id="faculty-select"
+                label="Факультет"
+                value={selectedFacultyId}
+                labelClassName="block text-[11px] font-medium text-sky-700"
+                triggerClassName="text-xs sm:text-sm"
+                options={[
+                  { value: 'all', label: 'Все факультеты' },
+                  ...facultiesList.map((f) => ({ value: f.id, label: f.short_name })),
+                ]}
+                onChange={(value) => {
+                  handleFacultyChange(value);
+                  handleCourseChange('all');
+                  handleGroupChange('all');
+                }}
+              />
               )}
-              <div className="space-y-1.5">
-                <label htmlFor="course-select" className="block text-[11px] font-medium text-sky-700">Курс</label>
-                <select
-                  id="course-select"
-                  className="w-full min-w-28 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
-                  value={selectedCourse}
-                  onChange={(e) => handleCourseChange(e.target.value)}
-                >
-                  <option value="all">Все курсы</option>
-                  {[1, 2, 3, 4, 5].map((c) => (
-                    <option key={c} value={String(c)}>{c} курс</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="group-select" className="block text-[11px] font-medium text-sky-700">Группа</label>
-                <select
-                  id="group-select"
-                  className="w-full min-w-35 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
-                  value={selectedGroupId}
-                  onChange={(e) => handleGroupChange(e.target.value)}
-                >
-                  {groupsList.length > 0 && (
-                    <option value="all">Все группы</option>
-                  )}
-                  {groupsList.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                  {groupsList.length === 0 && <option value="all">Нет групп</option>}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label htmlFor="semester-select" className="block text-[11px] font-medium text-sky-700">Период</label>
-                <select
-                  id="semester-select"
-                  className="w-full min-w-40 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-sm outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
-                  value={selectedSemesterId}
-                  onChange={(e) => {
-                    const selected = semesterOptions.find(opt => opt.id === Number(e.target.value));
-                    if (selected) {
-                      setSelectedSemesterId(selected.id);
-                      setSelectedSemesterLabel(selected.label);
-                    }
-                  }}
-                >
-                  {semesterOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <CustomSelect
+                id="course-select"
+                label="Курс"
+                value={selectedCourse}
+                labelClassName="block text-[11px] font-medium text-sky-700"
+                triggerClassName="text-xs sm:text-sm"
+                options={[
+                  { value: 'all', label: 'Все курсы' },
+                  ...[1, 2, 3, 4, 5].map((c) => ({ value: String(c), label: `${c} курс` })),
+                ]}
+                onChange={handleCourseChange}
+              />
+              <CustomSelect
+                id="group-select"
+                label="Группа"
+                value={selectedGroupId}
+                labelClassName="block text-[11px] font-medium text-sky-700"
+                triggerClassName="text-xs sm:text-sm"
+                options={
+                  groupsList.length > 0
+                    ? [
+                        { value: 'all', label: 'Все группы' },
+                        ...groupsList.map((g) => ({ value: g.id, label: g.name })),
+                      ]
+                    : [{ value: 'all', label: 'Нет групп' }]
+                }
+                onChange={handleGroupChange}
+              />
+              <CustomSelect
+                id="semester-select"
+                label="Период"
+                value={String(selectedSemesterId)}
+                labelClassName="block text-[11px] font-medium text-sky-700"
+                triggerClassName="text-xs sm:text-sm"
+                options={semesterOptions.map((opt) => ({
+                  value: String(opt.id),
+                  label: opt.label,
+                }))}
+                onChange={(value) => {
+                  const selected = semesterOptions.find((opt) => opt.id === Number(value));
+                  if (selected) {
+                    setSelectedSemesterId(selected.id);
+                    setSelectedSemesterLabel(selected.label);
+                  }
+                }}
+              />
             </div>
           </div>
 
@@ -619,7 +617,7 @@ export default function StaffProfilePage() {
 
                 <div className="mt-4 rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
                   <div className="w-full overflow-x-auto">
-                    <Skeleton name="staff-students-table" loading={false}>
+                    <Skeleton name="staff-students-table" loading={loading}>
                       <table className="min-w-full border-collapse text-xs sm:text-sm" style={{ tableLayout: 'fixed' }}>
                         <thead>
                           <tr className="bg-sky-700 text-white">
@@ -651,7 +649,7 @@ export default function StaffProfilePage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {studentsData.length > 0 ? (
+                          {!loading && studentsData.length > 0 ? (
                             studentsData.map((student, idx) => (
                               <tr
                                 key={student.id}
@@ -695,16 +693,16 @@ export default function StaffProfilePage() {
                               </td>
                             </tr>
                           ))
-                        ) : (
+                        ) : !loading ? (
                           <tr>
                             <td
                               colSpan={isRectorate ? 8 : 7}
-                              className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm"
+                              className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm text-slate-500"
                             >
                               Студенты не найдены
                             </td>
                           </tr>
-                        )}
+                        ) : null}
                         </tbody>
                       </table>
                     </Skeleton>
