@@ -85,7 +85,7 @@ export default function Header() {
                       <i className={item.icon} aria-hidden="true" />
                       {item.label}
                       {!!item.badge && item.badge > 0 && (
-                        <span className="inline-flex min-w-4.5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-semibold leading-tight text-white">
+                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[11px] font-semibold leading-tight text-white">
                           {item.badge}
                         </span>
                       )}
@@ -171,7 +171,7 @@ export default function Header() {
                 <i className={`${item.icon} text-lg`} aria-hidden="true" />
                 <span>{item.label}</span>
                 {!!item.badge && item.badge > 0 && (
-                  <span className="absolute left-1/2 top-1 ml-1.5 inline-flex min-w-4.5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-semibold leading-tight text-white">
+                  <span className="absolute left-1/2 top-1 ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-semibold leading-tight text-white">
                     {item.badge}
                   </span>
                 )}
