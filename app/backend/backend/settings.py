@@ -125,6 +125,7 @@ REST_FRAMEWORK = {
         'login': os.getenv('THROTTLE_LOGIN', '5/min'),
         'register': os.getenv('THROTTLE_REGISTER', '60/hour'),
         'upload': os.getenv('THROTTLE_UPLOAD', '60/hour'),
+        'preview': os.getenv('THROTTLE_PREVIEW', '120/hour'),
     },
 }
 
@@ -270,3 +271,13 @@ AWS_DEFAULT_ACL = os.getenv('SEAWEEDFS_DEFAULT_ACL', 'private')
 AWS_S3_VERIFY = os.getenv('SEAWEEDFS_S3_VERIFY', 'False').lower() == 'true'
 AWS_QUERYSTRING_AUTH = os.getenv('SEAWEEDFS_QUERYSTRING_AUTH', 'True').lower() == 'true'
 AWS_QUERYSTRING_EXPIRE = int(os.getenv('SEAWEEDFS_QUERYSTRING_EXPIRE', 300))
+
+# Предпросмотр документов (конвертация офисных файлов в PDF)
+# Gotenberg — sidecar над LibreOffice; конвертация изолирована от backend.
+GOTENBERG_URL = os.getenv('GOTENBERG_URL', 'http://gotenberg:3000')
+GOTENBERG_TIMEOUT = int(os.getenv('GOTENBERG_TIMEOUT', 100))
+# Префикс в основном бакете под кэш конвертированных PDF (TTL через lifecycle).
+PREVIEW_CACHE_PREFIX = os.getenv('PREVIEW_CACHE_PREFIX', 'preview-cache')
+PREVIEW_CACHE_TTL_DAYS = int(os.getenv('PREVIEW_CACHE_TTL_DAYS', 7))
+# Потолок одновременных конвертаций на стороне backend (Redis-семафор).
+PREVIEW_MAX_CONCURRENCY = int(os.getenv('PREVIEW_MAX_CONCURRENCY', 2))
