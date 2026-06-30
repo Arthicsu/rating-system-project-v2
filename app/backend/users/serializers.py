@@ -2,10 +2,33 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from students.models import Student
+from students.models import Student, DocumentFile
 from notifications.services import get_pending_docs_count
 
 User = get_user_model()
+
+
+class DocumentFileAccessSerializer(serializers.ModelSerializer):
+    """
+    Метаданные файла документа для эндпоинтов скачивания/предпросмотра.
+
+    Сами эндпоинты отдают бинарный поток, поэтому сериализатор не используется для
+    тела ответа — он описывает ресурс (`DocumentFile`) для схемы OpenAPI и
+    `get_object()`/`get_serializer()` базовой вьюшки.
+    """
+    size = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DocumentFile
+        fields = ['id', 'original_file_name', 'size', 'uploaded_at']
+        read_only_fields = fields
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_size(self, obj):
+        try:
+            return obj.file.size
+        except Exception:
+            return None
 
 
 class UserResponseSerializer(serializers.ModelSerializer):

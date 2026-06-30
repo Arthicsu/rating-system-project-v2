@@ -14,5 +14,8 @@ urlpatterns: list = [
     path('api/v1/check-auth/', views.CheckAuthAPIView.as_view(), name='api_check_auth'),
     # path('api/v1/csrf/', views.CsrfTokenAPIView.as_view(), name='api_csrf_token'),
 
+    path('api/v1/document/download/<int:file_id>/', views.DocumentDownloadApiView.as_view(), name='api_file_download'),
+    path('api/v1/document/preview/<int:file_id>/', views.DocumentPreviewApiView.as_view(), name='api_file_preview'),
+
     path('api/v2/rating/', views.RatingListAPIView.as_view(), name='api_v2_student_rating'),
 ]

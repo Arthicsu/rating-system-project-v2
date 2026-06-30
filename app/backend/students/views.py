@@ -4,19 +4,17 @@ from rest_framework.decorators import api_view
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import authentication_classes, permission_classes
-from rest_framework.views import APIView, PermissionDenied
+from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.throttling import ScopedRateThrottle
 
 from drf_spectacular.utils import extend_schema
-from drf_spectacular.types import OpenApiTypes
 
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 from django.shortcuts import get_object_or_404
-from django.http import StreamingHttpResponse
 
 from .serializers import DocumentSerializer, StudentProfileSerializer, CategorySerializer, AchievementConfigSerializer, AchievementUploadSerializer, AchievementUpdateSerializer
 from .models import Document, Student, Level, AchievementResult, DocType, Category, AchievementType, DocumentStatus, DocumentFile
@@ -24,8 +22,7 @@ from .scoring import calculate_achievement_score
 from core.students_query_set_mixin import StudentFilterMixin
 from core.scope_permission_mixin import ScopePermissionMixin
 
-from urllib.parse import quote
-import json, uuid, requests, logging
+import json, uuid, logging
 
 logger = logging.getLogger(__name__)
 
@@ -159,101 +156,6 @@ class StudentProfileAPIView(ScopePermissionMixin, StudentFilterMixin, GenericAPI
         response_data = self.get_student_full_profile(student, is_own_profile)
 
         return Response(response_data, status=status.HTTP_200_OK)
-
-class DocumentDownloadApiView(ScopePermissionMixin, APIView):
-    """
-    API-представление для безопасного скачивания прикреплённых файлов документов.
-
-    Проксирует запрос к хранилищу, проверяя права пользователя
-    и ограничивая размер скачиваемого файла.
-    
-    Предотвращает прямой доступ к URL-адресам файлов.
-    """
-    
-    authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
-    pagination_class = None
-
-    @extend_schema(
-        summary="Скачать файл документа",
-        responses={200: OpenApiTypes.BINARY},
-    )
-    def get(self, request, file_id):
-        """
-        Обрабатывает GET-запрос на скачивание файла по его ID.
-
-        Проверяет:
-        - Существование файла.
-        - Права пользователя на скачивание (владелец или персонал).
-        - Размер файла (не более 20 МБ).
-
-        При успехе проксирует содержимое файла от хранилища клиенту с корректным заголовком Content-Disposition.
-
-        Параметры:
-            request (Request): Объект HTTP-запроса с аутентифицированным пользователем.
-            file_id (int): Идентификатор объекта DocumentFile.
-
-        Возвращает:
-            StreamingHttpResponse: Потоковый ответ с содержимым файла.
-            Или JSON-ошибку при:
-                - 403 Forbidden - нет прав.
-                - 400 Bad Request - файл слишком большой.
-                - 503 Service Unavailable - ошибка подключения к хранилищу.
-
-        Логика:
-            - Получает объект DocumentFile по ID.
-            - Проверяет доступ через метод can_download.
-            - Ограничивает размер файла 20 МБ.
-            - Выполняет потоковый запрос к AWS S3.
-            - Передаёт содержимое клиенту с сохранением оригинального имени файла.
-
-        Особенности:
-            - Использует StreamingHttpResponse для эффективной передачи больших файлов без загрузки в память.
-            - Имя файла кодируется в UTF-8 с помощью quote для корректного отображения кириллицы.
-            - Таймаут запроса к AWS - 5 секунд.
-        """
-        
-        file_obj = get_object_or_404(
-            DocumentFile.objects.select_related(
-                'document__user__student_profile__faculty',
-                'document__user__student_profile__group__specialty',
-            ),
-            id=file_id,
-        )
-
-        if not self.can_download(request.user, file_obj):
-            raise PermissionDenied("У вас нет прав на скачивание этого файла")
-        
-        if file_obj.file.size > 20 * 1024 * 1024:  # Ограничение на размер файла (20 МБ)
-            return Response({"error": "Файл слишком большой"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        aws_url = file_obj.file.url
-        
-        try:
-            response = requests.get(aws_url, stream=True, timeout=5)
-            response.raise_for_status()
-            
-            proxy_response = StreamingHttpResponse(
-                response.iter_content(chunk_size=8192),
-                content_type=response.headers.get('Content-Type', 'application/octet-stream')
-            )
-            
-            filename = quote(file_obj.original_file_name)
-            proxy_response['Content-Disposition'] = f"attachment; filename*=UTF-8''{filename}"
-            
-            return proxy_response
-            
-        except requests.exceptions.RequestException:
-            logger.exception("Ошибка проксирования файла из хранилища")
-            return Response({"error": "Хранилище временно недоступено"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-    
-    def can_download(self, user, file_obj):
-        # Владелец файла всегда может его скачать.
-        if user.id == file_obj.document.user_id:
-            return True
-        # Сотрудник — только в пределах своей области видимости (а не любой файл вуза).
-        student = getattr(file_obj.document.user, 'student_profile', None)
-        return self.check_student_scope(user, student)
 
 class AchievementUploadCreateAPIView(CreateAPIView):
     """

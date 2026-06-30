@@ -10,23 +10,37 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.middleware.csrf import get_token
+from django.http import StreamingHttpResponse
 
-from rest_framework.views import APIView
+from rest_framework.views import APIView, PermissionDenied
 from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
 from rest_framework.response import Response
 from rest_framework import status, serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.exceptions import APIException
 
 from core.throttling import LoginRateThrottle
 from university_structure.models import Faculty, Group
-from students.models import Category
-from .serializers import StudentRegistrationSerializer, LoginRequestSerializer, UserResponseSerializer
+from students.models import Category, DocumentFile
+from .serializers import StudentRegistrationSerializer, LoginRequestSerializer, UserResponseSerializer, DocumentFileAccessSerializer
 from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
 from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RatingFiltersResponseSerializer
 from core.pagination import StandardResultsSetPagination
 from core.students_query_set_mixin import StudentWithAccessMixin, StudentRatingQuerySetMixin
+from core.scope_permission_mixin import ScopePermissionMixin
+from core.preview import (
+    is_office_file,
+    render_office_pdf,
+    PreviewBusyError,
+    PreviewConversionError,
+)
+
+from urllib.parse import quote
+import logging, re, mimetypes, requests
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 pagination_class = StandardResultsSetPagination
@@ -214,3 +228,181 @@ class RatingListAPIView(StudentRatingQuerySetMixin, ListAPIView):
     )
     def get_queryset(self):
         return self.get_base_rating_queryset()
+
+
+class FileTooLargeError(APIException):
+    """Файл превышает допустимый размер для отдачи клиенту (HTTP 400)."""
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = {"error": "Файл слишком большой"}
+    default_code = "file_too_large"
+
+
+class BaseDocumentFileAccessView(ScopePermissionMixin, GenericAPIView):
+    """
+    Базовый класс для эндпоинтов, отдающих файл документа (скачивание/предпросмотр).
+
+    Инкапсулирует общую для них логику: выборку `DocumentFile` с нужными
+    `select_related`, проверку прав доступа в области видимости пользователя и
+    ограничение размера файла. Наследникам остаётся реализовать только сам способ
+    отдачи файла в `get()` (проксирование на скачивание или inline-предпросмотр).
+    """
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = DocumentFileAccessSerializer
+    queryset = DocumentFile.objects.select_related(
+        'document__user__student_profile__faculty',
+        'document__user__student_profile__group__specialty',
+    )
+    lookup_field = 'id'
+    lookup_url_kwarg = 'file_id'
+    pagination_class = None
+
+    # Ограничение на размер файла, отдаваемого клиенту (20 МБ).
+    max_file_size = 20 * 1024 * 1024
+    # Сообщение об отказе в доступе — уточняется в наследниках.
+    access_denied_message = "У вас нет прав на доступ к этому файлу"
+
+    def get_accessible_file(self):
+        """
+        Возвращает `DocumentFile` по `file_id` из URL, проверив права и размер.
+
+        Поднимает:
+            - Http404 — файл не найден;
+            - PermissionDenied (403) — нет доступа в области видимости пользователя;
+            - FileTooLargeError (400) — файл превышает `max_file_size`.
+        """
+        file_obj = self.get_object()
+
+        if not self.can_access_document_file(self.request.user, file_obj):
+            raise PermissionDenied(self.access_denied_message)
+
+        if file_obj.file.size > self.max_file_size:
+            raise FileTooLargeError()
+
+        return file_obj
+
+
+class DocumentDownloadApiView(BaseDocumentFileAccessView):
+    """
+    API-представление для безопасного скачивания прикреплённых файлов документов.
+
+    Проксирует запрос к хранилищу (`Content-Disposition: attachment`), проверяя
+    права пользователя и ограничивая размер скачиваемого файла. Предотвращает
+    прямой доступ к URL-адресам файлов в хранилище.
+    """
+
+    access_denied_message = "У вас нет прав на скачивание этого файла"
+
+    @extend_schema(
+        summary="Скачать файл документа",
+        responses={200: OpenApiTypes.BINARY},
+    )
+    def get(self, request, file_id):
+        """
+        Обрабатывает GET-запрос на скачивание файла по его ID.
+
+        Получает объект через `get_accessible_file()` (существование + права +
+        размер ≤ 20 МБ), затем потоково проксирует содержимое из хранилища клиенту
+        с сохранением оригинального имени файла (UTF-8 в Content-Disposition).
+        Таймаут запроса к хранилищу — 5 секунд.
+        """
+        file_obj = self.get_accessible_file()
+
+        aws_url = file_obj.file.url
+
+        try:
+            response = requests.get(aws_url, stream=True, timeout=5)
+            response.raise_for_status()
+
+            proxy_response = StreamingHttpResponse(
+                response.iter_content(chunk_size=8192),
+                content_type=response.headers.get('Content-Type', 'application/octet-stream')
+            )
+
+            filename = quote(file_obj.original_file_name)
+            proxy_response['Content-Disposition'] = f"attachment; filename*=UTF-8''{filename}"
+
+            return proxy_response
+
+        except requests.exceptions.RequestException:
+            logger.exception("Ошибка проксирования файла из хранилища")
+            return Response({"error": "Хранилище временно недоступено"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+class DocumentPreviewApiView(BaseDocumentFileAccessView):
+    """
+    API-представление для предпросмотра прикреплённых файлов.
+
+    В отличие от скачивания, отдаёт содержимое с `Content-Disposition: inline`,
+    чтобы клиент рендерил файл (в `<iframe>`/`<img>`), а не сохранял.
+
+    Офисные документы (.doc/.docx) конвертируются в PDF на сервере (Gotenberg)
+    и кэшируются; PDF и изображения отдаются как есть. Скачивание оригинала —
+    по-прежнему через DocumentDownloadApiView.
+    """
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'preview'
+    access_denied_message = "У вас нет прав на просмотр этого файла"
+
+    @extend_schema(
+        summary="Предпросмотр файла документа (офисные форматы — в PDF)",
+        responses={200: OpenApiTypes.BINARY},
+    )
+    def get(self, request, file_id):
+        file_obj = self.get_accessible_file()
+
+        if is_office_file(file_obj.original_file_name):
+            return self._office_preview(file_obj)
+        return self._passthrough_preview(file_obj)
+
+    def _office_preview(self, file_obj):
+        """Отдаёт PDF (из кэша или после конвертации) для офисного документа."""
+        try:
+            pdf_stream = render_office_pdf(file_obj)
+        except PreviewBusyError:
+            response = Response(
+                {"error": "Сервис предпросмотра занят, повторите позже"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+            response['Retry-After'] = '5'
+            return response
+        except PreviewConversionError:
+            return Response(
+                {"error": "Не удалось сконвертировать документ для предпросмотра"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        pdf_name = re.sub(r'\.[^.]+$', '', file_obj.original_file_name) + '.pdf'
+        return self._inline_stream(pdf_stream, 'application/pdf', pdf_name)
+
+    def _passthrough_preview(self, file_obj):
+        """PDF и изображения отдаём как есть, но inline (для рендера на клиенте)."""
+        content_type = mimetypes.guess_type(file_obj.original_file_name)[0] or 'application/octet-stream'
+        try:
+            stream = file_obj.file.open('rb')
+        except Exception:
+            logger.exception("Ошибка чтения файла из хранилища для предпросмотра")
+            return Response(
+                {"error": "Хранилище временно недоступно"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return self._inline_stream(stream, content_type, file_obj.original_file_name)
+
+    def _inline_stream(self, file_like, content_type, filename):
+        response = StreamingHttpResponse(self._iter_file(file_like), content_type=content_type)
+        encoded = quote(filename)
+        response['Content-Disposition'] = f"inline; filename*=UTF-8''{encoded}"
+        return response
+
+    @staticmethod
+    def _iter_file(file_like, chunk_size=8192):
+        try:
+            while True:
+                chunk = file_like.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            file_like.close()
