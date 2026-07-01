@@ -55,7 +55,7 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
         return;
       }
       
-      toast.error(`Можно добавить еще только столько файлов: ${allowedSlots}. Лишние отсечены.`);
+      toast.error(`Максимум можно  добавить файлов: ${allowedSlots}. Лишние отсечены.`);
       
       // Берем только то количество, которое влезает в лимит
       const slicedNewFiles = uniqueNewFiles.slice(0, allowedSlots);
@@ -148,15 +148,15 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
           }`}
       >
         <div className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 transition-colors
-          ${isDragging ? 'text-sky-600 bg-sky-50' : 'text-slate-400 group-hover:text-sky-500'}`}
+          ${isDragging ? 'text-sky-700 bg-sky-50' : 'text-sky-700 group-hover:text-sky-700'}`}
         >
           <i className={`fa-solid text-lg ${isDragging ? 'fa-file-arrow-up fa-bounce' : 'fa-cloud-arrow-up'}`} />
         </div>
         
         <p className="text-xs font-medium text-slate-700">
-          Перетащите файлы сюда или <span className="text-sky-600 group-hover:text-sky-700 font-semibold">выберите на компьютере</span>
+          Перетащите файлы сюда или <span className="text-sky-700 group-hover:text-sky-600 font-semibold">выберите на компьютере</span>
         </p>
-        <p className="mt-1 text-[10px] text-slate-400 max-w-xs">
+        <p className="mt-1 text-[10px] text-sky-700 max-w-xs">
           До 3-х файлов по очереди или вместе. Общий размер до 20 МБ.
         </p>
       </div>
@@ -169,9 +169,9 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
               className="flex items-center justify-between rounded-lg border border-slate-100 bg-white shadow-sm p-2.5 text-xs"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <i className="fa-solid fa-file-lines text-slate-400 text-sm shrink-0" />
-                <span className="truncate font-medium text-slate-700">{file.name}</span>
-                <span className="text-slate-400 shrink-0">({formatFileSize(file.size)})</span>
+                <i className="fa-solid fa-file-lines text-sky-700 text-sm shrink-0" />
+                <span className="truncate font-medium text-sky-700">{file.name}</span>
+                <span className="text-sky-700 shrink-0">({formatFileSize(file.size)})</span>
               </div>
               <button
                 type="button"

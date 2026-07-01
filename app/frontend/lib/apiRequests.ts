@@ -36,7 +36,7 @@ export const studentApi = {
 
   deleteAchievement: (id: number) => api.delete(`/student/api/v1/achievement/${id}/`),
 
-  downloadDocument: (fileId: number) => api.get(`/student/api/v1/document/download/${fileId}/`, {
+  downloadDocument: (fileId: number) => api.get(`/user/api/v1/document/download/${fileId}/`, {
     responseType: 'blob',
   }),
 };

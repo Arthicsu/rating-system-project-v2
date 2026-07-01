@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/axios';
 
-export type FilePreviewKind = 'pdf' | 'image' | 'docx' | 'unsupported';
+export type FilePreviewKind = 'pdf' | 'image' | 'unsupported';
 
-export function getFilePreviewKind(fileName: string) {
+export function getFilePreviewKind(fileName: string): FilePreviewKind {
   const ext = fileName.split('.').pop()?.toLowerCase();
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) return 'image';
-  if (ext === 'pdf') return 'pdf';
-  if (ext === 'docx') return 'docx'; 
-  
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '')) return 'image';
+  // Офисные документы сервер конвертирует в PDF, поэтому рендерим их PDF-ветке.
+  if (['pdf', 'doc', 'docx'].includes(ext || '')) return 'pdf';
+
   return 'unsupported';
 }
 
@@ -43,7 +43,7 @@ export function useFilePreview(fileId: number | null, enabled: boolean) {
       setError(null);
 
       try {
-        const response = await api.get(`/student/api/v1/document/download/${fileId}/`, {
+        const response = await api.get(`/user/api/v1/document/preview/${fileId}/`, {
           responseType: 'blob',
           skipErrorRedirect: true,
           timeout: 30000,
