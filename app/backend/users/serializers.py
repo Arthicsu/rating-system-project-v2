@@ -100,3 +100,7 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
         )
         
         return user
+
+
+class ForgotPasswordRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(help_text="Введите ваш email для восстановления пароля")

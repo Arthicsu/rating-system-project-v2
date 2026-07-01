@@ -270,3 +270,16 @@ AWS_DEFAULT_ACL = os.getenv('SEAWEEDFS_DEFAULT_ACL', 'private')
 AWS_S3_VERIFY = os.getenv('SEAWEEDFS_S3_VERIFY', 'False').lower() == 'true'
 AWS_QUERYSTRING_AUTH = os.getenv('SEAWEEDFS_QUERYSTRING_AUTH', 'True').lower() == 'true'
 AWS_QUERYSTRING_EXPIRE = int(os.getenv('SEAWEEDFS_QUERYSTRING_EXPIRE', 300))
+
+# Email settings
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # Временно консольный бэкенд для тестирования
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Правильный бэкенд для прода
+EMAIL_HOST = 'temp'
+EMAIL_PORT = 111                             # 587 для TLS, 465 для SSL
+EMAIL_USE_TLS = True                         # True если используем порт 587
+EMAIL_USE_SSL = False                        # True если используем порт 465
+EMAIL_HOST_USER = 'your-email@gmail.com'     
+EMAIL_HOST_PASSWORD = 'your-app-password'    # Пароль приложения
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER         # Стандартный адрес отправителя
