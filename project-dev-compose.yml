@@ -29,6 +29,32 @@ services:
       seaweedfs:
         condition: service_healthy
     restart: unless-stopped
+  celery:
+    build: ./app/backend
+    container_name: app_celery
+    command: celery -A backend worker --beat --pool=solo --loglevel=info --schedule=/tmp/celerybeat-schedule --without-gossip --without-mingle --without-heartbeat
+    volumes:
+      - ./app/backend:/app
+      - backend_logs:/app/logs
+      - ./backups:/backups
+    env_file:
+      - .env
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+    restart: unless-stopped
   frontend:
     build:
       context: ./app/frontend
