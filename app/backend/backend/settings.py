@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from urllib.parse import quote as _url_quote
+from celery.schedules import crontab
 
 load_dotenv()
 
@@ -250,6 +252,33 @@ TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True
 
 USE_TZ = True
+
+# Celery
+_REDIS_PW = _url_quote(os.getenv('REDIS_PASSWORD', ''), safe='')
+CELERY_BROKER_URL = f"redis://:{_REDIS_PW}@{os.getenv('REDIS_HOST')}:{os.getenv('REDIS_PORT')}/1"
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = True
+CELERY_TASK_TRACK_STARTED = True
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+# Минимизация ресурсов: пока один процесс, без набора очереди впрок. + лимиты времени от зависаний.
+CELERY_WORKER_CONCURRENCY = 1
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_SOFT_TIME_LIMIT = 60 * 25
+CELERY_TASK_TIME_LIMIT = 60 * 30
+
+BACKUPS_DIR = os.getenv('BACKUPS_DIR', '/backups')
+BACKUP_KEEP = int(os.getenv('BACKUP_KEEP', 3))
+
+CELERY_BEAT_SCHEDULE = {
+    'backup-all-daily': {
+        'task': 'core.tasks.backup_all',
+        # Пример из документации: crontab(minute='*/10',hour='3,17,22', day_of_week='thu,fri') 
+        # То есть: Execute every ten minutes, but only between 3-4 am, 5-6 pm, and 10-11 pm on Thursdays or Fridays.
+        # У нас по умолчанию в 3:00 по МСК
+        'schedule': crontab(hour=int(os.getenv('SCHEDULE_HOUR', 3)), minute=int(os.getenv('SCHEDULE_MINUTE', 0))), 
+    },
+}
 
 
 # Static files (CSS, JavaScript, Images)
