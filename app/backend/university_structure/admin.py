@@ -64,7 +64,7 @@ class StaffAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 Staff.objects.update_or_create(
                     user=user,
                     defaults={
-                        "email": row.get('email', row['username']),
+                        "email": row.get('email', '-'),
                         "department": department,
                         "faculty": faculty,
                         "phone": row.get('phone', '-'),
