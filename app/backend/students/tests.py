@@ -78,7 +78,7 @@ class AchievementDeleteTests(APITestCase):
         self.assertFalse(Document.objects.filter(pk=doc.pk).exists())
 
     def test_delete_other_users_doc_returns_404(self):
-        """IDOR: чужую заявку не видно (404), удалить нельзя."""
+        """Чужую заявку не видно и удалить нельзя."""
         other = User.objects.create_user(username="other@uni.ru", password="pass12345")
         doc = self._make_doc(self.pending, user=other)
         self.client.force_authenticate(self.user)

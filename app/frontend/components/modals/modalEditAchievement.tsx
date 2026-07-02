@@ -3,8 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { studentApi } from '@/lib/apiRequests';
 import type { ModalEditAchievementProps } from '@/interfaces/ModalInterfaces';
-
-const MAX_SIZE = 20 * 1024 * 1024;
+import FileDropZone from '@/components/upload/FileDropZone';
 
 export default function ModalEditAchievement({
   isOpen,
@@ -55,21 +54,6 @@ export default function ModalEditAchievement({
   if ((!isOpen && !closing) || !doc) return null;
 
   const isRejected = doc.status_display === 'rejected';
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(e.target.files || []);
-    const oversized = selected.filter(f => f.size > MAX_SIZE);
-    if (oversized.length > 0) {
-      toast.error(`Файл(ы) превышают 20 МБ: ${oversized.map(f => f.name).join(', ')}`);
-      return;
-    }
-    if (selected.length > 3) {
-      toast.error('Максимальное количество файлов — 3');
-      setFiles(selected.slice(0, 3));
-    } else {
-      setFiles(selected);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,22 +155,9 @@ export default function ModalEditAchievement({
               Заменить файлы (необязательно)
             </label>
             <p className="text-[11px] text-slate-400">
-              Если выбрать новые файлы — старые будут заменены. Максимум 3 файла по 20 МБ. Формат: .doc, .docx, .pdf, .png, .jpg, .jpeg, .webp, .gif, .bmp.
+              Если выбрать новые файлы — старые будут заменены. Перетащите или выберите до 3 файлов, общий размер до 20 МБ.
             </p>
-            <label className="mt-1 inline-flex w-full cursor-pointer flex-col rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-left text-xs text-slate-500 transition hover:border-sky-600 hover:bg-slate-100">
-              <input
-                type="file"
-                multiple
-                accept=".doc,.docx,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,image/png,image/jpeg,image/webp,image/gif,image/bmp"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <span className="text-[11px] font-medium text-slate-700">
-                {files.length
-                  ? `Новые файл(ы): ${files.map((f, i) => `${i + 1}. ${f.name}`).join(', ')}`
-                  : 'Оставить текущие файлы или нажать для замены'}
-              </span>
-            </label>
+            <FileDropZone files={files} setFiles={setFiles} />
           </div>
 
           <div className="mt-2 flex gap-2">

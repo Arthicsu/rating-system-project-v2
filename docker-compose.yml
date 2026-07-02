@@ -25,6 +25,35 @@ services:
         condition: service_healthy
       seaweedfs:
         condition: service_healthy
+      gotenberg:
+        condition: service_started
+    restart: unless-stopped
+  celery:
+    image: arthicsu/bgitu-rating-backend:1.0.9
+    container_name: app_celery
+    command: celery -A backend worker --beat --pool=solo --loglevel=info --schedule=/tmp/celerybeat-schedule --without-gossip --without-mingle --without-heartbeat
+    volumes:
+      - ./app/backend:/app
+      - ${SHARED_HOST_DIR:-./shared}:/shared
+    env_file:
+      - .env
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      gotenberg:
+        condition: service_started
     restart: unless-stopped
   celery:
     image: arthicsu/bgitu-rating-backend:1.0.9
@@ -65,7 +94,7 @@ services:
           memory: 1536M
         reservations:
           cpus: '0.25'
-          memory: 256M
+          memory: 512M
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NEXT_TELEMETRY_DISABLED=1
@@ -100,7 +129,7 @@ services:
       timeout: 10s
     restart: unless-stopped
   redis:
-    image: redis:8.6.3-alpine
+    image: redis:8.8.0-alpine
     container_name: app_redis
     environment:
       REDIS_USER: ${REDIS_USER}
@@ -123,7 +152,7 @@ services:
       retries: 3
       timeout: 5s
   seaweedfs:
-    image: chrislusf/seaweedfs:4.25
+    image: chrislusf/seaweedfs:4.35
     container_name: app_seaweedfs
     environment:
       AWS_ACCESS_KEY_ID: ${SEAWEEDFS_ACCESS_KEY}
@@ -148,6 +177,21 @@ services:
       retries: 3
       start_period: 20s
       timeout: 10s
+  gotenberg:
+    image: gotenberg/gotenberg:8.34.0-libreoffice
+    container_name: app_gotenberg
+    command:
+      - gotenberg
+      - --api-timeout=90s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    restart: unless-stopped
   nginx:
     build: ./app/nginx
     container_name: app_nginx

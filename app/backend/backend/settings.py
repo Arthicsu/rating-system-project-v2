@@ -137,6 +137,7 @@ REST_FRAMEWORK = {
         'register': os.getenv('THROTTLE_REGISTER', '60/hour'),
         'upload': os.getenv('THROTTLE_UPLOAD', '60/hour'),
         'forgot_password': os.getenv('THROTTLE_FORGOT_PASSWORD', '5/hour'),
+        'preview': os.getenv('THROTTLE_PREVIEW', '120/hour'),
     },
 }
 
@@ -332,3 +333,14 @@ EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'           
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'your-email@gmail.com')     
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-app-password')    # Пароль приложения
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)         # Стандартный адрес отправителя
+
+
+# Предпросмотр документов (конвертация офисных файлов в PDF)
+# Gotenberg — sidecar над LibreOffice; конвертация изолирована от backend.
+GOTENBERG_URL = os.getenv('GOTENBERG_URL', 'http://gotenberg:3000')
+GOTENBERG_TIMEOUT = int(os.getenv('GOTENBERG_TIMEOUT', 100))
+# Префикс в основном бакете под кэш конвертированных PDF (TTL через lifecycle).
+PREVIEW_CACHE_PREFIX = os.getenv('PREVIEW_CACHE_PREFIX', 'preview-cache')
+PREVIEW_CACHE_TTL_DAYS = int(os.getenv('PREVIEW_CACHE_TTL_DAYS', 7))
+# Потолок одновременных конвертаций на стороне backend (Redis-семафор).
+PREVIEW_MAX_CONCURRENCY = int(os.getenv('PREVIEW_MAX_CONCURRENCY', 2))

@@ -51,6 +51,18 @@ class ScopePermissionMixin:
 
         return False
     
+    def can_access_document_file(self, user, file_obj) -> bool:
+        """
+        Проверяет доступ к конкретному файлу документа (скачивание/предпросмотр).
+
+        Владелец файла всегда имеет доступ; сотрудник — только в пределах своей
+        области видимости (а не к любому файлу вуза).
+        """
+        if user.id == file_obj.document.user_id:
+            return True
+        student = getattr(file_obj.document.user, 'student_profile', None)
+        return self.check_student_scope(user, student)
+
     def get_document_with_scope_check(self, user, doc_id):
         """
         Получает документ и проверяет scope. Возвращает (документ, ошибка_или_None).

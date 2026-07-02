@@ -44,6 +44,10 @@ fi
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
+# Бакет кэша превью + TTL-экспирация (идемпотентно)
+echo "Initializing preview cache bucket..."
+python manage.py init_preview_cache
+
 # Выбор сервера: USE_GUNICORN=true для prod (с Nginx)
 if [ "${USE_GUNICORN}" = "true" ]; then
     echo "Starting Gunicorn server..."

@@ -27,6 +27,8 @@ services:
         condition: service_healthy
       seaweedfs:
         condition: service_healthy
+      gotenberg:
+        condition: service_started
     restart: unless-stopped
   celery:
     build: ./app/backend
@@ -69,7 +71,7 @@ services:
     #       memory: 1536M
     #     reservations:
     #       cpus: '0.25'
-    #       memory: 256M
+    #       memory: 512M
     ports:
       - "3000:3000"
     environment:
@@ -165,6 +167,23 @@ services:
       retries: 3
       start_period: 20s
       timeout: 10s
+  gotenberg:
+    image: gotenberg/gotenberg:8.34.0-libreoffice
+    container_name: app_gotenberg
+    command:
+      - gotenberg
+      - --api-timeout=90s
+    ports:
+      - "3001:3000"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    restart: unless-stopped
   nginx:
     build: ./app/nginx
     container_name: app_nginx

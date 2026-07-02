@@ -15,6 +15,7 @@ import ExportExcelButton from '@/components/ExportExcelButton';
 import ModalApprove from '@/components/modals/modalApprove';
 import ModalReject from '@/components/modals/modalReject';
 import ModalPreview from '@/components/modals/modalPreview';
+import AchievementInfoPanel from '@/components/modals/modalAchievementInfo';
 
 import { universityApi, userApi } from '@/lib/apiRequests';
 import type { FilterStudentsParams, DashboardStatsParams, ModalState } from '@/interfaces/StaffInterfaces';
@@ -42,6 +43,7 @@ export default function StaffProfilePage() {
   });
 
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [infoDoc, setInfoDoc] = useState<Document | null>(null);
 
   const [selectedGroupId, setSelectedGroupId] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('all');
@@ -863,7 +865,7 @@ export default function StaffProfilePage() {
                         )}
                         <button
                           type="button"
-                          onClick={() => setPreviewDoc(doc)}
+                          onClick={() => setInfoDoc(doc)}
                           className="cursor-pointer ml-auto text-[10px] font-semibold text-sky-700 hover:text-sky-900 sm:text-xs"
                         >
                           Подробнее
@@ -985,7 +987,7 @@ export default function StaffProfilePage() {
                           )}
                           <button
                             type="button"
-                            onClick={() => setPreviewDoc(doc)}
+                            onClick={() => setInfoDoc(doc)}
                             className="cursor-pointer ml-auto text-[10px] font-semibold text-sky-700 hover:text-sky-900 sm:text-xs"
                           >
                             Подробнее
@@ -1181,6 +1183,13 @@ export default function StaffProfilePage() {
         onCustomReasonChange={setCustomReason}
         onClose={closeModal}
         onSubmit={handleReject}
+      />
+
+      <AchievementInfoPanel
+        doc={infoDoc}
+        onClose={() => setInfoDoc(null)}
+        onPreview={() => setPreviewDoc(infoDoc)}
+        onDownload={(fileId, fileName) => downloadFile(fileId, fileName)}
       />
 
       <ModalPreview

@@ -16,16 +16,28 @@
 - `manage.py test` создаёт отдельную тестовую БД, поэтому прод-данные не затрагиваются.
 Пользователь БД должен иметь право CREATE DATABASE  (у стандартного postgres-пользователя из compose оно есть).
 """
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.cache import cache
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
 
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from students.models import Student
+from students.models import (
+    Category,
+    AchievementType,
+    DocType,
+    Document,
+    DocumentFile,
+    DocumentStatus,
+    Student,
+)
 
 User = get_user_model()
 
@@ -38,6 +50,15 @@ TEST_SETTINGS = {
         }
     },
     "PASSWORD_HASHERS": ["django.contrib.auth.hashers.MD5PasswordHasher"],
+}
+
+# храним файлы в памяти.
+FILE_TEST_SETTINGS = {
+    **TEST_SETTINGS,
+    "STORAGES": {
+        "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    },
 }
 
 DEFAULT_PASSWORD = "StrongPass123"
@@ -283,3 +304,109 @@ class RatingListAPIViewTests(UsersAPITestCase):
         for key in ("count", "results"):
             self.assertIn(key, data)
         self.assertIsInstance(data["results"], list)
+
+
+PREVIEW_URL_NAME = "user:api_file_preview"
+
+
+@override_settings(**FILE_TEST_SETTINGS)
+class DocumentPreviewTests(UsersAPITestCase):
+    """GET /user/api/v1/document/preview/<file_id>/"""
+
+    def setUp(self):
+        super().setUp()
+        self.status_obj = DocumentStatus.objects.create(code="pending", label="На рассмотрении")
+        self.category = Category.objects.create(code="academic", label="Учебная")
+        self.sub_type = AchievementType.objects.create(
+            category=self.category, code="olympiad", label="Олимпиада"
+        )
+        self.doc_type = DocType.objects.create(code="other", label="Другое")
+
+        self.user = User.objects.create_user(username="stud@uni.ru", password="pass12345")
+        Student.objects.create(
+            user=self.user, external_id="EXT-1", full_name="Студент", record_book="RB-1"
+        )
+        self.doc = Document.objects.create(
+            user=self.user,
+            category=self.category,
+            sub_type=self.sub_type,
+            doc_type=self.doc_type,
+            status=self.status_obj,
+            achievement="Тестовое достижение",
+        )
+
+    def _make_file(self, name, content, content_type):
+        return DocumentFile.objects.create(
+            document=self.doc,
+            original_file_name=name,
+            file=SimpleUploadedFile(name, content, content_type=content_type),
+        )
+
+    def _body(self, resp):
+        return b"".join(resp.streaming_content)
+
+    def test_pdf_is_served_inline(self):
+        """PDF отдаётся как есть, но inline (для рендера в iframe)."""
+        df = self._make_file("report.pdf", b"%PDF-1.4 fake", "application/pdf")
+        self.client.force_authenticate(self.user)
+
+        resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.id]))
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp["Content-Type"], "application/pdf")
+        self.assertTrue(resp["Content-Disposition"].startswith("inline;"))
+        self.assertEqual(self._body(resp), b"%PDF-1.4 fake")
+
+    def test_office_file_is_converted_to_pdf(self):
+        """Офисный документ уходит в конвертер и отдаётся как inline-PDF."""
+        df = self._make_file(
+            "report.docx",
+            b"PK\x03\x04 fake docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+        self.client.force_authenticate(self.user)
+
+        with patch("users.views.render_office_pdf", return_value=ContentFile(b"%PDF converted")) as mock_convert:
+            resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.id]))
+
+        mock_convert.assert_called_once()
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp["Content-Type"], "application/pdf")
+        self.assertIn("inline;", resp["Content-Disposition"])
+        # Оригинальное имя для показа, но с расширением ".pdf".
+        self.assertIn("report.pdf", resp["Content-Disposition"])
+        self.assertEqual(self._body(resp), b"%PDF converted")
+
+    def test_cache_hit_does_not_call_converter(self):
+        """При попадании в кэш конвертер (Gotenberg) не дёргается."""
+        from core import preview
+
+        fake_file_obj = type("F", (), {"id": 123})()
+        with patch.object(preview, "cached_pdf_exists", return_value=True), \
+             patch.object(preview, "open_cached_pdf", return_value=ContentFile(b"%PDF cached")) as mock_open, \
+             patch.object(preview, "convert_office_to_pdf") as mock_convert:
+            result = preview.render_office_pdf(fake_file_obj)
+
+        mock_open.assert_called_once_with(123)
+        mock_convert.assert_not_called()
+        self.assertEqual(result.read(), b"%PDF cached")
+
+    def test_other_users_file_is_forbidden(self):
+        """Чужой файл вне области видимости - получаем 403."""
+        other = User.objects.create_user(username="other@uni.ru", password="pass12345")
+        df = self._make_file("report.pdf", b"%PDF-1.4 fake", "application/pdf")
+        self.client.force_authenticate(other)
+
+        resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.id]))
+
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_preview_requires_auth(self):
+        df = self._make_file("report.pdf", b"%PDF-1.4 fake", "application/pdf")
+
+        resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.id]))
+
+        self.assertIn(
+            resp.status_code,
+            (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
+        )

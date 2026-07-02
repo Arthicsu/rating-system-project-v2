@@ -4,19 +4,17 @@ from rest_framework.decorators import api_view
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import authentication_classes, permission_classes
-from rest_framework.views import APIView, PermissionDenied
+from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.throttling import ScopedRateThrottle
 
 from drf_spectacular.utils import extend_schema
-from drf_spectacular.types import OpenApiTypes
 
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 from django.shortcuts import get_object_or_404
-from django.http import StreamingHttpResponse
 
 from .serializers import DocumentSerializer, StudentProfileSerializer, CategorySerializer, AchievementConfigSerializer, AchievementUploadSerializer, AchievementUpdateSerializer
 from .models import Document, Student, Level, AchievementResult, DocType, Category, AchievementType, DocumentStatus, DocumentFile
@@ -24,8 +22,7 @@ from .scoring import calculate_achievement_score
 from core.students_query_set_mixin import StudentFilterMixin
 from core.scope_permission_mixin import ScopePermissionMixin
 
-from urllib.parse import quote
-import json, uuid, requests, logging
+import json, uuid, logging
 
 logger = logging.getLogger(__name__)
 
