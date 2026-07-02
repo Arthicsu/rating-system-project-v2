@@ -15,6 +15,9 @@ export const authApi = {
   
   logout: () => api.post('/user/api/v1/logout/'),
 
+  forgotPassword: (data: { email: string }) =>
+    api.post<{ message: string }>('/user/api/v1/forgot-password/', data),
+
   getPendingCount: () =>
     api.get<{ pending_docs_count: number }>('/api/v1/notifications/pending-count/', {
       skipErrorRedirect: true,

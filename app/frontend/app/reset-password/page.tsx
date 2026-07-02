@@ -1,15 +1,22 @@
 'use client';
 
+import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
 import { useMySession } from '@/context/AuthContext';
+import { authApi } from '@/lib/apiRequests';
+import type ApiError from '@/interfaces/GeneralInterfaces';
 
 export default function ResetPasswordPage() {
   const { user } = useMySession();
   const router = useRouter();
+
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSent, setIsSent] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -19,6 +26,32 @@ export default function ResetPasswordPage() {
 
   if (user) return null;
 
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { data } = await authApi.forgotPassword({ email });
+      setIsSent(true);
+      toast.success(data?.message ?? 'Новый пароль отправлен на почту');
+    } catch (err) {
+      const error = err as Error | ApiError;
+      const errorData = (error as ApiError).response?.data;
+
+      if (errorData?.message) {
+        toast.error(String(errorData.message));
+      } else {
+        toast.error('Не удалось отправить письмо. Повторите попытку позже.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <section className="min-h-screen bg-slate-100 px-4 pt-35 pb-10">
       <div className="mx-auto flex max-w-275 flex-col gap-8">
@@ -27,30 +60,50 @@ export default function ResetPasswordPage() {
             Восстановление пароля
           </h1>
 
-          <div className="rounded-lg bg-amber-50 p-4 text-sm text-amber-800">
-            <div className="mb-2 flex items-center gap-2 font-semibold">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-                <path d="M12 9v4" />
-                <path d="M12 17h.01" />
-              </svg>
-              Временно недоступно
+          {isSent ? (
+            <div className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">
+              <p>
+                Если аккаунт с почтой <span className="font-semibold">{email}</span> существует,
+                на него отправлено письмо с новый пароль. Проверьте почту (в том числе
+                папку «Спам») и войдите с новым паролем.
+              </p>
             </div>
-            <p>
-              Функция восстановления пароля на данный момент недоступна.<br></br> Для решения проблем со входом обратитесь в отдел информатизации:{' '}
-              <Link
-                href="mailto:oi@bgitu.ru"
-                className="font-semibold text-[#0050CF] underline underline-offset-2 hover:text-[#002D6E]"
+          ) : (
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <p className="text-sm text-slate-600">
+                Укажите email, привязанный к вашему аккаунту. Мы отправим на него новый временный пароль.
+              </p>
+
+              <div className="space-y-1">
+                <label htmlFor="email" className="text-sm font-medium text-slate-600">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={email}
+                  onChange={handleChange}
+                  required
+                  placeholder="you@bgitu.ru"
+                  className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#0069a8] focus:ring-1 focus:ring-[#0069a8]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="cursor-pointer mt-2 w-full rounded-md bg-sky-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
-                oi@bgitu.ru
-              </Link>
-            </p>
-          </div>
+                {isLoading ? 'Отправка...' : 'Отправить новый пароль'}
+              </button>
+            </form>
+          )}
 
           <div className="mt-6 flex justify-center">
             <Link
               href="/login"
-              className="rounded-md bg-sky-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-900"
+              className="cursor-pointer mt-1 text-center text-xs text-sky-700 underline underline-offset-2 hover:text-sky-800"
             >
               Вернуться ко входу
             </Link>

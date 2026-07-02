@@ -30,7 +30,8 @@ from students.serializers import DocumentSerializer, PendingDocumentSerializer, 
 from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RatingFiltersResponseSerializer
 from core.pagination import StandardResultsSetPagination
 from core.students_query_set_mixin import StudentWithAccessMixin, StudentRatingQuerySetMixin
-from .services import send_recovery_password
+from .services import reset_user_password
+from .tasks import send_recovery_password_email
 
 User = get_user_model()
 pagination_class = StandardResultsSetPagination
@@ -225,15 +226,16 @@ class RatingListAPIView(StudentRatingQuerySetMixin, ListAPIView):
     def get_queryset(self):
         return self.get_base_rating_queryset()
 
-# TODO: Нужно переходить на Celery для асинхронной работы, не только этой вьюхи касается
 class ForgotPasswordAPIView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
     parser_classes = [JSONParser]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'forgot_password'
 
     @extend_schema(
         request=ForgotPasswordRequestSerializer,
-        responses={200: {"message": "Пароль успешно отправлен"}, 404: {"error": "Пользователь не найден"}}
+        responses={200: {"message": "Пароль успешно отправлен"}}
     )
     def post(self, request):
         serializer = ForgotPasswordRequestSerializer(data=request.data)
@@ -241,12 +243,8 @@ class ForgotPasswordAPIView(APIView):
         email = serializer.validated_data.get('email')
 
         user = User.objects.filter(email__iexact=email).first()
-
         if not user:
-            return Response(
-                {"message": f"Пароль успешно отправлен на почту {email}"}, 
-                status=status.HTTP_200_OK
-            )
+            return Response({"message": f"Если аккаунт с почтой {email} существует, на него отправлен новый пароль"},status=status.HTTP_200_OK,)
 
         try:
             if hasattr(user, 'get_user_display_name'):
@@ -257,13 +255,13 @@ class ForgotPasswordAPIView(APIView):
             # Если внутри get_user_display_name что-то упало (например, нет данных в staff_profile)
             # мы просто логируем это и используем дефолтное имя, чтобы не было 500 ошибки
             print(f"Logging Name Error: {e}") 
-            user_name = "Пользователь"
-
+            user_name = "Пользователь"         
         # Отправка письма
         try:
-            send_recovery_password(user, user_name)
+            new_password = reset_user_password(user)
+            send_recovery_password_email.delay(user.email, user_name, new_password)
             return Response(
-                {"message": f"Пароль успешно отправлен на почту {email}"}, 
+                {"message": f"Если аккаунт с почтой {email} существует, на него отправлен новый пароль"}, 
                 status=status.HTTP_200_OK
             )
         except Exception as e:
@@ -271,3 +269,4 @@ class ForgotPasswordAPIView(APIView):
                 {"error": f"Ошибка сервера при отправке письма: {str(e)}"}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        return Response({"message": f"Если аккаунт с почтой {email} существует, на него отправлен новый пароль"},status=status.HTTP_200_OK,)

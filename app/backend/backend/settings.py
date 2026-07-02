@@ -136,6 +136,7 @@ REST_FRAMEWORK = {
         'login': os.getenv('THROTTLE_LOGIN', '5/min'),
         'register': os.getenv('THROTTLE_REGISTER', '60/hour'),
         'upload': os.getenv('THROTTLE_UPLOAD', '60/hour'),
+        'forgot_password': os.getenv('THROTTLE_FORGOT_PASSWORD', '5/hour'),
     },
 }
 
@@ -324,10 +325,10 @@ AWS_QUERYSTRING_EXPIRE = int(os.getenv('SEAWEEDFS_QUERYSTRING_EXPIRE', 300))
 
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend') # Временно консольный бэкенд для тестирования
 # EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'  # Правильный бэкенд для прода
-EMAIL_HOST = os.getenv('EMAIL_BACKEND', 'temp')
-EMAIL_PORT = os.getenv('EMAIL_PORT', 111)                             # 587 для TLS, 465 для SSL
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', True)                         # True если используем порт 587
-EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', False)                        # True если используем порт 465
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))                                    # 587 для TLS, 465 для SSL
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'              # True если используем порт 587
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'             # True если используем порт 465
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'your-email@gmail.com')     
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-app-password')    # Пароль приложения
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)         # Стандартный адрес отправителя
