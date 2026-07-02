@@ -308,12 +308,12 @@ AWS_QUERYSTRING_EXPIRE = int(os.getenv('SEAWEEDFS_QUERYSTRING_EXPIRE', 300))
 # Email settings
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # Временно консольный бэкенд для тестирования
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Правильный бэкенд для прода
-EMAIL_HOST = 'temp'
-EMAIL_PORT = 111                             # 587 для TLS, 465 для SSL
-EMAIL_USE_TLS = True                         # True если используем порт 587
-EMAIL_USE_SSL = False                        # True если используем порт 465
-EMAIL_HOST_USER = 'your-email@gmail.com'     
-EMAIL_HOST_PASSWORD = 'your-app-password'    # Пароль приложения
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER         # Стандартный адрес отправителя
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend') # Временно консольный бэкенд для тестирования
+# EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'  # Правильный бэкенд для прода
+EMAIL_HOST = os.getenv('EMAIL_BACKEND', 'temp')
+EMAIL_PORT = os.getenv('EMAIL_PORT', 111)                             # 587 для TLS, 465 для SSL
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', True)                         # True если используем порт 587
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', False)                        # True если используем порт 465
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'your-email@gmail.com')     
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-app-password')    # Пароль приложения
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)         # Стандартный адрес отправителя
