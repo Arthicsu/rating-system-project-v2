@@ -42,8 +42,8 @@ class CustomUserAdmin(UserAdmin):
     @admin.display(description='Сотрудник')
     def get_staff_profile(self, obj):
         try:
-            attr = {k: str(v) for k, v in obj.__dict__.items()}
-            print(attr)
+            # attr = {k: str(v) for k, v in obj.__dict__.items()}
+            # print(attr)
             staff = obj if obj.is_staff else None
             if staff:
                 if staff.first_name in ["Кафедра", "Ректорат", ""]:
