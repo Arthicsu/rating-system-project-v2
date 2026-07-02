@@ -200,7 +200,7 @@ export default function UploadAchievement() {
           <div className="mb-5 flex items-start justify-between gap-4 sm:items-stretch sm:gap-6">
             <div className="min-w-0 flex-1">
               <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl md:text-3xl">
-                Загрузка достижения для именной стипендии
+                Загрузка достижения для ПГАС
               </h2>
               <p className="mt-2 text-sm text-slate-500">
                 Опишите достижение: укажите параметры достижения и прикрепите

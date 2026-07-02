@@ -34,29 +34,10 @@ class Department(models.Model):
         verbose_name= "Кафедра"
         verbose_name_plural = "Кафедры"
 
-class Specialty(models.Model):
-    external_id = models.CharField("Код специальности", max_length=50, unique=True, help_text="Код специальности из БД вуза")
-    code_fgos = models.CharField("Код по ФГОС", max_length=20)
-    name = models.CharField("Название специальности", max_length=255)
-    short_name = models.CharField("Краткое название", max_length=100, blank=True, null=True)
-    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, verbose_name="Факультет")
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, verbose_name="Кафедра")
-    qualification = models.CharField("Квалификация", max_length=100, blank=True, null=True)
-    specialty_type = models.CharField("Специальность", max_length=255, blank=True, null=True)
-    prefix = models.CharField("Префикс", max_length=20, blank=True, null=True)
-    parent_code = models.CharField("КодРодителя", max_length=50, blank=True, null=True)
-    
-    def __str__(self):
-        return self.name or f"Специальность {self.code_fgos or 'Без названия'}"
-
-    class Meta:
-        verbose_name = "Специальность"
-        verbose_name_plural = "Специальности"
-
-class Group(models.Model):    
+class Group(models.Model):
     external_id = models.CharField("Код группы", max_length=50, unique=True, help_text="Код группы из БД вуза")
     name = models.CharField("Название группы", max_length=50)
-    specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Специальность")
+    faculty = models.ForeignKey(Faculty, on_delete=models.SET_NULL, related_name='groups', null=True, blank=True, verbose_name="Факультет")
     course = models.PositiveSmallIntegerField("Курс")
     academic_year = models.CharField("Учебный год", max_length=20)
     education_duration = models.CharField("Срок обучения", max_length=50, blank=True, null=True)

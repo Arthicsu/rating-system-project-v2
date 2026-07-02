@@ -15,8 +15,8 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
 from .serializers import (
-    FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, 
-    StaffSerializer, RejectionReasonSerializer, AcademicYearSerializer, 
+    FacultySerializer, DepartmentSerializer, GroupSerializer,
+    StaffSerializer, RejectionReasonSerializer, AcademicYearSerializer,
     ReviewDocumentRequestSerializer, StaffProfileResponseSerializer,
     ReviewDocumentResponseSerializer, ReviewDocumentErrorSerializer
 )
@@ -280,23 +280,24 @@ class FilteredGroupListAPIView(StudentFilterMixin, ListAPIView):
         has_students_subquery = Student.objects.filter(group=OuterRef('pk'))
         
         # Основной запрос без join таблицы студентов
-        queryset = Group.objects.select_related('specialty__faculty').annotate(
+        queryset = Group.objects.select_related('faculty').annotate(
             has_students=Exists(has_students_subquery)
         ).filter(has_students=True).order_by('course', 'name')
 
         # Фильтрация по параметрам (course, faculty_id)
         if params.get('faculty_id') and params.get('faculty_id') != 'all':
-            queryset = queryset.filter(specialty__faculty_id=params.get('faculty_id'))
+            queryset = queryset.filter(faculty_id=params.get('faculty_id'))
         if params.get('course') and params.get('course') != 'all':
             queryset = queryset.filter(course=params.get('course'))
         if params.get('group_id') and params.get('group_id') != 'all':
             queryset = queryset.filter(id=params.get('group_id'))
 
+        # Кафедра видит группы, в которых есть её студенты (у группы нет прямой кафедры).
         return self.scope_filters_queryset(
-            user, queryset, 
-            faculty_field='specialty__faculty', 
-            dept_field='specialty__department'
-        )
+            user, queryset,
+            faculty_field='faculty',
+            dept_field='students__department'
+        ).distinct()
 
 class FilteredStudentListAPIView(StudentWithAccessMixin, ListAPIView):
     permission_classes = [IsStaffProfile]

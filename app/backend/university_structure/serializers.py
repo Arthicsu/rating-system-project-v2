@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Faculty, Department, Specialty, Group, Staff, RejectionReason, AcademicYear
+from .models import Faculty, Department, Group, Staff, RejectionReason, AcademicYear
 
 class FacultySerializer(serializers.ModelSerializer):
     """
@@ -19,34 +19,17 @@ class DepartmentSerializer(serializers.ModelSerializer):
         model = Department
         fields = ['id', 'external_id', 'name', 'short_name', 'faculty', 'faculty_name', 'head_name']
 
-class SpecialtySerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для специальности.
-    """
-    faculty_name = serializers.CharField(source='faculty.short_name', read_only=True)
-    department_name = serializers.CharField(source='department.short_name', read_only=True)
-
-    class Meta:
-        model = Specialty
-        fields = [
-            'id', 'code_fgos', 'name', 'short_name', 
-            'faculty_name', 'department_name', 'qualification'
-        ]
-
 class GroupSerializer(serializers.ModelSerializer):
     """
     Сериализатор для групп.
     """
-    faculty_name = serializers.CharField(source='specialty.faculty.short_name', read_only=True)    
-    specialty_name = serializers.CharField(source='specialty.name', read_only=True)
-    specialty_code = serializers.CharField(source='specialty.code_fgos', read_only=True)
+    faculty_name = serializers.CharField(source='faculty.short_name', read_only=True, default="—")
 
     class Meta:
         model = Group
         fields = [
             'id', 'name', 'course', 'faculty_name',
-            'academic_year', 'education_level', 'education_form', 
-            'specialty_name', 'specialty_code'
+            'academic_year', 'education_level', 'education_form',
         ]
 
 class StaffSerializer(serializers.ModelSerializer):
@@ -96,8 +79,8 @@ class GroupFilterSerializer(serializers.ModelSerializer):
     """
     Сериализатор для фильтрации групп.
     """
-    faculty_id = serializers.IntegerField(source='specialty.faculty.id', read_only=True)
-    faculty_name = serializers.CharField(source='specialty.faculty.short_name', read_only=True)
+    faculty_id = serializers.IntegerField(source='faculty.id', read_only=True)
+    faculty_name = serializers.CharField(source='faculty.short_name', read_only=True)
     
     class Meta:
         model = Group

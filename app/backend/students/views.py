@@ -144,7 +144,7 @@ class StudentProfileAPIView(ScopePermissionMixin, StudentFilterMixin, GenericAPI
 
         # Запрос профиля по явно указанному student_id
         student = Student.objects.select_related(
-            'user', 'faculty', 'group__specialty'
+            'user', 'faculty', 'department', 'group'
         ).filter(id=student_id).first()
 
         if not student:
@@ -216,7 +216,7 @@ class DocumentDownloadApiView(ScopePermissionMixin, APIView):
         file_obj = get_object_or_404(
             DocumentFile.objects.select_related(
                 'document__user__student_profile__faculty',
-                'document__user__student_profile__group__specialty',
+                'document__user__student_profile__department',
             ),
             id=file_id,
         )

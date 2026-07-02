@@ -7,6 +7,8 @@ from core.admin_password_generator import generate_password
 from core.admin_save_generated_password_for_user import log_generated_passwords
 from core.admin_import_csv import CsvImport
 from core.admin_import_json import JsonImport
+from core.eos.admin_mixin import EosSyncActionsMixin
+from core.eos.syncers import StudentSyncer
 from university_structure.models import Faculty, Department, Group, Staff
 from users.models import User
 
@@ -18,17 +20,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 @admin.register(Student)
-class StudentAdmin(admin.ModelAdmin, CsvImport):
+class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
     list_display = ('full_name', 'record_book', 'group', 'admission_year', 'status', 'total_score')
-    list_filter = ('group__specialty__faculty', 'admission_year', 'group__course', 'status')
+    list_filter = ('faculty', 'admission_year', 'group__course', 'status')
     search_fields = ('full_name', 'record_book', 'email')
     readonly_fields = ('created_at', 'total_score')
     raw_id_fields = ('user', 'group', 'faculty', 'department')
+    actions = ['import_csv_action', 'sync_eos_students_action']
     change_list_template = "admin/csv_import.html"
+    no_selection_actions = ("import_csv_action", "sync_eos_students_action")
 
     def get_urls(self):
         urls = super().get_urls()
         return self.get_import_urls() + urls
+
+    @admin.action(description="Обновить студентов из ЭОС (пока 401)")
+    def sync_eos_students_action(self, request, queryset):
+        try:
+            self._report(request, [StudentSyncer().run()])
+        except Exception as e:
+            self.message_user(request, f"Ошибка синхронизации студентов с ЭОС: {e}", messages.ERROR)
 
     def process_import_csv(self, request, data):
         new_credentials = []
@@ -38,15 +49,18 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
         with transaction.atomic():
             g_student, _ = DjangoGroup.objects.get_or_create(name='Student')
 
-            # select_related тянет сразу и специальность, и кафедру за 1 запрос
             groups_map = {
-                g.external_id: g 
-                for g in Group.objects.select_related('specialty__department').all()
+                g.external_id: g
+                for g in Group.objects.all()
             }
-            # кешируем все факультеты
+            # кешируем факультеты и кафедры: берём по прямым кодам из csv
             faculties_map = {
-                f.external_id: f 
+                f.external_id: f
                 for f in Faculty.objects.all()
+            }
+            departments_map = {
+                d.external_id: d
+                for d in Department.objects.all()
             }
             
             # кешируем существующих студентов по external_id
@@ -83,8 +97,8 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                 faculty_code = clean_val('КодФакультета')
                 faculty = faculties_map.get(faculty_code)
                 
-                # Кафедра подтянется без запроса к БД, так как мы использовали select_related выше
-                department = group.specialty.department if group and hasattr(group, 'specialty') else None
+                dept_code = clean_val('Код_Кафедры') or clean_val('КодКафедры')
+                department = departments_map.get(dept_code) if dept_code else None
 
                 is_monitor = clean_val('Староста') == '1'
                 admission_year_raw = clean_val('Год_Поступления')
@@ -99,7 +113,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport):
                     user.first_name = first_name
                     user.last_name = last_name
                     user.patronymic = patronymic
-                    user.save()
+                    user.save(update_fields=['first_name', 'last_name', 'patronymic'])
                 else:
                     # Если студента нет, создаем/обновляем юзера по username
                     username = email if email else f"student_{external_id}@bgitu.ru"
@@ -367,6 +381,6 @@ class DocumentAdmin(admin.ModelAdmin):
     @admin.display(description='Факультет')
     def get_faculty(self, obj):
         try:
-            return obj.user.student_profile.group.specialty.faculty
+            return obj.user.student_profile.faculty
         except Exception:
             return '-'

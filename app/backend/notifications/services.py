@@ -27,7 +27,7 @@ def get_pending_docs_count(user) -> int:
 
     if getattr(user, 'is_dept_staff', False) and staff.department_id:
         return Document.objects.filter(
-            user__student_profile__group__specialty__department_id=staff.department_id,
+            user__student_profile__department_id=staff.department_id,
             status__code='pending',
         ).count()
 

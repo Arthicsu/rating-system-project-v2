@@ -80,7 +80,7 @@ class StudentFilterMixin:
 
         return queryset
 
-    def scope_filters_queryset(self, user, queryset, faculty_field='faculty', dept_field='group__specialty__department'):
+    def scope_filters_queryset(self, user, queryset, faculty_field='faculty', dept_field='department'):
         """
         Универсальный метод фильтрации по роли.
         Позволяет переопределять поля (kwargs), чтобы работать и со Student, и с Group.
@@ -116,7 +116,7 @@ class StudentWithAccessMixin(StudentFilterMixin):
     """
     def get_allowed_students(self, user):
         queryset = Student.objects.select_related(
-            'group__specialty__faculty', 'faculty', 'user'
+            'group', 'faculty', 'department', 'user'
         ).order_by('user__last_name', 'user__first_name')
 
         if not hasattr(user, 'staff_profile'):

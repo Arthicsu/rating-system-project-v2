@@ -23,8 +23,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# libpq5 - рантайм для psycopg; postgresql-client-17 - pg_dump для бэкапов
+# В bookworm по умолчанию клиент только v15, а pg_dump обязан быть >= версии сервера (17), поэтому ставим клиент 17
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
+    libpq5 curl ca-certificates \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+        -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] http://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
+        > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update && apt-get install -y --no-install-recommends postgresql-client-17 \
+    && apt-get purge -y --auto-remove curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
@@ -33,8 +42,9 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY requirements.txt .
 COPY . .
 
-RUN mkdir -p /app/logs && chown 777 /app/logs
+RUN mkdir -p /backups && chmod 777 /backups
 RUN mkdir -p /dumps && chmod 777 /dumps
+RUN mkdir -p /app/logs && chown 777 /app/logs
 RUN chmod +x entrypoint.sh
 
 EXPOSE 8000
