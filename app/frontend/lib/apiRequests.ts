@@ -2,7 +2,7 @@ import api from './axios';
 import type { AuthUser, LoginFormData, RegisterFormData } from '@/interfaces/AuthInterfaces';
 import type { Profile } from '@/interfaces/ProfileInterfaces';
 import type { AchievementConfigResponse, AchievementUploadResponse } from '@/interfaces/AchievementInterfaces';
-import type { RejectionReason, Semester, Group, FilterStudentsParams, DashboardStatsParams, DashboardStatsResponse, ReviewDocumentData } from '@/interfaces/StaffInterfaces';
+import type { RejectionReason, Semester, Group, FilterStudentsParams, DashboardStatsParams, DashboardStatsResponse, ReviewDocumentData, Document } from '@/interfaces/StaffInterfaces';
 import type { FilterOptions, RatingParams, FilterParams, ExportExcelParams, CategoryAchievement } from '@/interfaces/RatingInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
 
@@ -28,7 +28,10 @@ export const studentApi = {
   getProfile: () => api.get<Profile>('/student/api/v1/profile/'),
   
   getProfileById: (id: string) => api.get<Profile>(`/student/api/v1/profile/${id}/`),
-  
+
+  getAchievementDetail: (id: string | number) =>
+    api.get<Document>(`/student/api/v1/achievement/${id}/`, { skipErrorRedirect: true }),
+
   getAchievementConfig: () => api.get<AchievementConfigResponse>('/student/api/v1/achievement-config/'),
   
   uploadAchievement: (formData: FormData) =>

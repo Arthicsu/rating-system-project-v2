@@ -112,7 +112,7 @@ export default function FileViewer({ previewUrl, previewKind, fileName, onDownlo
           className="cursor-pointer flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-slate-800"
         >
           <i className="fa-solid fa-download" />
-          <span className="hidden sm:inline">Скачать оригинал</span>
+          <span className="hidden sm:inline">Скачать</span>
         </button>
       </div>
 

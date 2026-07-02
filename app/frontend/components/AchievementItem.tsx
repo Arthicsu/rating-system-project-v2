@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
 import type { AchievementItemProps } from '@/interfaces/AchievementInterfaces';
 import { Skeleton } from 'boneyard-js/react';
@@ -84,6 +85,13 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
                 </button>
               ))}
           </div>
+
+          <Link
+            href={`/achievement/${doc.id}`}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 hover:text-sky-900"
+          >
+            Подробнее
+          </Link>
         </div>
       </div>
 

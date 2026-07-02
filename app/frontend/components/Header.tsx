@@ -26,7 +26,7 @@ export default function Header() {
       ? [
           { href: '/rating', label: 'Рейтинг', icon: 'fa-solid fa-trophy', isActive: (p) => p === '/rating' },
           {
-            href: '/staff-profile',
+            href: '/staff-profile?tab=pending-requests',
             label: 'Заявки',
             icon: 'fa-solid fa-inbox',
             isActive: (p) => p.startsWith('/staff-profile'),
@@ -130,7 +130,7 @@ export default function Header() {
                   </Link>
                   <button
                     onClick={logoutUser}
-                    className="cursor-pointer whitespace-nowrap border-0 bg-transparent px-1 text-xs text-slate-500 hover:text-sky-700 sm:text-sm"
+                    className="cursor-pointer inline-flex items-center whitespace-nowrap border-0 bg-transparent px-1 text-xs text-sky-600 hover:text-sky-700 sm:text-sm"
                   >
                     Выйти
                   </button>

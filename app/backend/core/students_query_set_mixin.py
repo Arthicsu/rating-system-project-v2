@@ -1,4 +1,4 @@
-from django.db.models import Prefetch, Avg, Count, Q
+from django.db.models import Prefetch, Avg, Count, Max, Min, Sum, Q
 from django.utils import timezone
 from datetime import datetime, time
 
@@ -59,7 +59,7 @@ class StudentFilterMixin:
         """
         Парсинг параметров и фильтрация по факультету, курсу, группе или поиску.
 
-        `prefix` позволяет применять те же фильтры к связанным моделям — например
+        `prefix` позволяет применять те же фильтры к связанным моделям - например
         'student__' для строк SemesterScore при историческом рейтинге.
         """
         params = self.request.query_params
@@ -103,7 +103,7 @@ class StudentRatingQuerySetMixin(StudentFilterMixin):
     """
     Выборка для обшего рейтинга студентов.
     Применяются фильтры apply_filters и дополнительно по категории достижения.
-    Текущий семестр читается из кэша на Student; прошлый — из истории SemesterScore.
+    Текущий семестр читается из кэша на Student; прошлый - из истории SemesterScore.
     """
     def get_requested_past_semester_id(self):
         """
@@ -169,38 +169,102 @@ class DashboardStatsQuerySetMixin(StudentWithAccessMixin):
         base_queryset = self.get_base_students_queryset(user)
         return self.apply_filters(base_queryset)
 
+    def get_requested_semester(self):
+        """
+        (semester_id, is_past) для статистики/топа дашборда.
+
+        Основной параметр - `academic_year` (как у списков заявок), но поддерживаем и
+        `semester` (как у рейтинга). Если параметр не задан - берём текущий семестр
+        (is_past=False). is_past=True только когда запрошен НЕ текущий семестр - тогда
+        читаем историю из SemesterScore, иначе живой кэш Student.
+        """
+        semester_id = self.request.query_params.get('academic_year') or self.request.query_params.get('semester')
+        current = AcademicYear.get_current()
+        if not semester_id:
+            return (current.id if current else None), False
+        is_past = not (current is not None and str(current.id) == str(semester_id))
+        return semester_id, is_past
+
+    def _stats_aggregates(self):
+        """Набор агрегатов статистики; per-category суммы хранятся под ключом '<code>_sum'."""
+        aggregates = {
+            'total_students': Count('id'),
+            'avg_score': Avg('total_score'),
+            'max_score': Max('total_score'),
+            'min_score': Min('total_score'),
+        }
+        for code in Category.objects.values_list('code', flat=True):
+            aggregates[f'{code}_sum'] = Sum(f'{code}_score')
+        return aggregates
+
     def get_stats_data(self, user):
         """
-        Получить статистику по отфильтрованным студентам.
+        Статистика по отфильтрованным студентам за выбранный семестр.
+
+        Текущий семестр - из живого кэша Student; прошлый - из истории SemesterScore
+        (аналогично рейтингу). Помимо количества и среднего балла возвращает min/max и
+        суммы баллов по каждой категории (ключ - код категории), чтобы фронт не считал
+        распределение из одной страницы студентов.
         """
         filtered_queryset = self.get_filtered_students_queryset(user)
-        
-        # Считаем статистику по отфильтрованным студентам
-        stats_data = filtered_queryset.aggregate(
-            total_students=Count('id'),
-            avg_score=Avg('total_score')
-        )
-        
+        semester_id, is_past = self.get_requested_semester()
+        category_codes = list(Category.objects.values_list('code', flat=True))
+        aggregates = self._stats_aggregates()
+
+        if is_past and semester_id:
+            source = SemesterScore.objects.filter(
+                semester_id=semester_id,
+                student__in=filtered_queryset,
+            )
+        else:
+            source = filtered_queryset
+
+        stats_data = source.aggregate(**aggregates)
+
         return {
             'total_students': stats_data['total_students'] or 0,
-            'avg_score': round(stats_data['avg_score'] or 0, 2)
+            'avg_score': round(stats_data['avg_score'] or 0, 2),
+            'max_score': stats_data['max_score'] or 0,
+            'min_score': stats_data['min_score'] or 0,
+            'categories': {code: (stats_data[f'{code}_sum'] or 0) for code in category_codes},
         }
 
     def get_top5_students(self, user):
         """
-        Получить топ-5 студентов.
+        Топ-5 студентов за выбранный семестр (по сумме баллов).
+
+        Текущий семестр - из живого кэша Student; прошлый - из истории SemesterScore.
+        Возвращает список словарей {id, full_name, total_score} (совпадает с контрактом
+        StudentSimple на фронте).
         """
         group_id = self.request.query_params.get('group_id')
-        
+        semester_id, is_past = self.get_requested_semester()
+
         # Топ-5 студентов
         if group_id and group_id != 'all':
             # Если выбрана конкретная группа - топ5 из этой группы
-            top5_queryset = self.get_filtered_students_queryset(user)
+            students = self.get_filtered_students_queryset(user)
         else:
             # Если "Все" - топ5 из всех студентов в scope (без фильтра course/faculty)
-            top5_queryset = self.get_base_students_queryset(user)
-        
-        return top5_queryset.order_by('-total_score')[:5]
+            students = self.get_base_students_queryset(user)
+
+        if is_past and semester_id:
+            rows = (
+                SemesterScore.objects
+                .filter(semester_id=semester_id, student__in=students)
+                .select_related('student')
+                .order_by('-total_score', 'student__full_name')[:5]
+            )
+            return [
+                {'id': r.student_id, 'full_name': r.student.full_name, 'total_score': r.total_score}
+                for r in rows
+            ]
+
+        top = students.order_by('-total_score')[:5]
+        return [
+            {'id': s.id, 'full_name': s.full_name, 'total_score': s.total_score}
+            for s in top
+        ]
 
     def get_pending_documents_queryset(self, user):
         """
@@ -208,7 +272,7 @@ class DashboardStatsQuerySetMixin(StudentWithAccessMixin):
         """
         filtered_queryset = self.get_filtered_students_queryset(user)
 
-        # Фильтрация по семестру (по умолчанию — текущий). Поддерживаем оба имени параметра.
+        # Фильтрация по семестру (по умолчанию - текущий). Поддерживаем оба имени параметра.
         semester_id = self.request.query_params.get('semester') or self.request.query_params.get('academic_year')
         if not semester_id:
             current = AcademicYear.get_current()

@@ -43,6 +43,9 @@ export interface Document {
   student_id: number;
   student_name: string;
   record_book: string;
+  course: number;
+  faculty: string;
+  group: string;
   achievement: string;
   category_display: string;
   doc_type_display: string;
@@ -97,12 +100,18 @@ export interface DashboardStatsParams {
   list_type?: 'pending' | 'reviewed';
 }
 
+export interface DashboardStats {
+  total_students: number;
+  avg_score: number;
+  max_score: number;
+  min_score: number;
+  /** Суммы баллов по каждой категории, ключ — код категории (academic, sport, ...). */
+  categories: Record<string, number>;
+}
+
 export interface DashboardStatsResponse {
   count: number;
-  stats: {
-    total_students: number;
-    avg_score: number;
-  };
+  stats: DashboardStats;
   results: Document[];
   top5: StudentSimple[];
 }

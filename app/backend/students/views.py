@@ -17,7 +17,7 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 from django.shortcuts import get_object_or_404
 
-from .serializers import DocumentSerializer, StudentProfileSerializer, CategorySerializer, AchievementConfigSerializer, AchievementUploadSerializer, AchievementUpdateSerializer
+from .serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, CategorySerializer, AchievementConfigSerializer, AchievementUploadSerializer, AchievementUpdateSerializer
 from .models import Document, Student, Level, AchievementResult, DocType, Category, AchievementType, DocumentStatus, DocumentFile
 from .scoring import calculate_achievement_score
 from core.students_query_set_mixin import StudentFilterMixin
@@ -336,6 +336,38 @@ class AchievementDetailAPIView(ScopePermissionMixin, APIView):
             pk=pk,
             user=request.user,
         )
+
+    @extend_schema(
+        operation_id="student_api_v1_achievement_detail",
+        summary="Получить полную информацию о достижении",
+        responses={200: PendingDocumentSerializer},
+    )
+    def get(self, request, pk):
+        """
+        Полная карточка достижения для страницы «Подробнее».
+
+        Доступ: владелец заявки ИЛИ сотрудник в пределах своей области видимости
+        (кафедра/факультет/ректорат). Для чужих заявок вне scope — 403.
+        """
+        doc = get_object_or_404(
+            Document.objects.select_related(
+                'status', 'category', 'sub_type', 'level', 'result', 'doc_type',
+                'user__student_profile',
+                'user__student_profile__group',
+                'user__student_profile__group__specialty__department',
+                'user__student_profile__faculty',
+            ).prefetch_related('files'),
+            pk=pk,
+        )
+
+        is_owner = doc.user_id == request.user.id
+        if not is_owner and not self.check_staff_scope(request.user, doc):
+            return Response(
+                {"detail": "Доступ запрещён"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return Response(PendingDocumentSerializer(doc).data, status=status.HTTP_200_OK)
 
     @extend_schema(
         request=AchievementUpdateSerializer,

@@ -7,32 +7,52 @@ import { useRouter } from 'next/navigation';
 import { Skeleton } from 'boneyard-js/react';
 
 import { useMySession } from '@/context/AuthContext';
-import { useDownloadFile } from '@/hooks/useDownloadFile';
 import SearchInput from '@/components/SearchInput';
 import CustomSelect from '@/components/CustomSelect';
 import Pagination from '@/components/Pagination';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import ModalApprove from '@/components/modals/modalApprove';
 import ModalReject from '@/components/modals/modalReject';
-import ModalPreview from '@/components/modals/modalPreview';
-import AchievementInfoPanel from '@/components/modals/modalAchievementInfo';
 
 import { universityApi, userApi } from '@/lib/apiRequests';
-import type { FilterStudentsParams, DashboardStatsParams, ModalState } from '@/interfaces/StaffInterfaces';
+import type { FilterStudentsParams, DashboardStatsParams, DashboardStats, ModalState } from '@/interfaces/StaffInterfaces';
 import type { RejectionReason, Semester, Group, Document, FacultySimple, StudentSimple, Category as CategoryRating } from '@/interfaces/StaffInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
+
+const EMPTY_STATS: DashboardStats = { total_students: 0, avg_score: 0, max_score: 0, min_score: 0, categories: {} };
+
+/** Плейсхолдер карточек-заявок на время первой загрузки списка (без резкого пустого блока). */
+function RequestCardsSkeleton() {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_4px_12px_rgba(15,23,42,0.08)]"
+        >
+          <div className="h-4 w-2/3 animate-pulse rounded bg-slate-100" />
+          <div className="h-3 w-1/3 animate-pulse rounded bg-slate-100" />
+          <div className="h-3 w-full animate-pulse rounded bg-slate-100" />
+          <div className="mt-2 flex gap-2">
+            <div className="h-8 flex-1 animate-pulse rounded-lg bg-slate-100" />
+            <div className="h-8 flex-1 animate-pulse rounded-lg bg-slate-100" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function StaffProfilePage() {
   const { user, refreshUser } = useMySession();
   const router = useRouter();
   const isRectorate = user?.roles?.includes('Rectorate');
-  const { downloadFile } = useDownloadFile();
   const [activeTab, setActiveTab] = useState('my-group');
   const [groupsList, setGroupsList] = useState<Group[]>([]);
   const [studentsData, setStudentsData] = useState<Student[]>([]);
   const [pendingDocsData, setPendingDocsData] = useState<Document[]>([]);
   const [reviewedDocsData, setReviewedDocsData] = useState<Document[]>([]);
-  const [stats, setStats] = useState({ total_students: 0, avg_score: 0 });
+  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
   const [top5Students, setTop5Students] = useState<StudentSimple[]>([]);
 
   const [modalState, setModalState] = useState<ModalState>({
@@ -41,9 +61,6 @@ export default function StaffProfilePage() {
     targetScore: 0,
     targetStudentId: null,
   });
-
-  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
-  const [infoDoc, setInfoDoc] = useState<Document | null>(null);
 
   const [selectedGroupId, setSelectedGroupId] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('all');
@@ -83,6 +100,13 @@ export default function StaffProfilePage() {
       router.replace('/profile');
     }
   }, [user, router]);
+
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab && ['my-group', 'pending-requests', 'reviewed-requests', 'statistics'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, []);
   
   const openModal = (type: string, doc: Document, source: 'pending' | 'reviewed' = 'pending') => {
     setModalSourceTab(source);
@@ -197,7 +221,6 @@ export default function StaffProfilePage() {
     const fetchDashboard = async () => {
       if (!selectedGroupId || !selectedSemesterId) return;
       setLoading(true);
-      setStudentsData([]);
 
       try {
         const filterParams = {
@@ -231,7 +254,7 @@ export default function StaffProfilePage() {
         setTotalStudents(studentsRes.data.count || 0);
         setPendingDocsData(statsRes.data.results || []);
         setTotalRequests(statsRes.data.count || 0);
-        setStats(statsRes.data.stats || { total_students: 0, avg_score: 0 });
+        setStats(statsRes.data.stats || EMPTY_STATS);
         setTop5Students(statsRes.data.top5 || []);
         
       } catch (error) {
@@ -298,7 +321,7 @@ export default function StaffProfilePage() {
 
       setPendingDocsData(statsRes.data.results || []);
       setTotalRequests(statsRes.data.count || 0);
-      setStats(statsRes.data.stats || { total_students: 0, avg_score: 0 });
+      setStats(statsRes.data.stats || EMPTY_STATS);
       setTop5Students(statsRes.data.top5 || []);
     } catch (error) {
       console.error("Ошибка обновления списка заявок: ", error);
@@ -340,37 +363,23 @@ export default function StaffProfilePage() {
   }, [pollPendingRequests]);
 
   const dynamicStats = useMemo(() => {
-    const students = studentsData || [];
-    const defaults = {
-      total_students: stats.total_students,
-      avg_score: stats.avg_score,
-      max_score: 0,
-      min_score: 0,
-      active_requests: (pendingDocsData || []).length,
-      top5: top5Students,
-      categories: {} as Record<string, number>,
-    };
-
-    if (students.length === 0) return defaults;
-
-    const scores = students.map(s => s.total_score);
-    
+    // Распределение по категориям и min/max приходят с бэка уже посчитанными за выбранный
+    // семестр (по всем отфильтрованным студентам, а не по одной странице таблицы).
     const catStats: Record<string, number> = {};
     categories.forEach(cat => {
-      const fieldName = `${cat.code}_score`;
-      catStats[cat.label] = students.reduce((acc, s) => acc + ((s[fieldName] as number) || 0), 0);
+      catStats[cat.label] = stats.categories?.[cat.code] ?? 0;
     });
 
     return {
-      total_students: stats.total_students, 
+      total_students: stats.total_students,
       avg_score: stats.avg_score,
-      max_score: Math.max(...scores),
-      min_score: Math.min(...scores),
+      max_score: stats.max_score,
+      min_score: stats.min_score,
       active_requests: (pendingDocsData || []).length,
       top5: top5Students,
-      categories: catStats
+      categories: catStats,
     };
-  }, [studentsData, pendingDocsData, categories, stats, top5Students]);
+  }, [pendingDocsData, categories, stats, top5Students]);
 
   const handleApprove = async () => {
     if (!modalState.targetId) return;
@@ -628,7 +637,7 @@ export default function StaffProfilePage() {
           <div className="flex overflow-x-auto border-b border-slate-200 pb-1.5 text-xs sm:text-sm">
             <button
               type="button"
-              onClick={() => setActiveTab('my-group')}
+              onClick={() => { setActiveTab('my-group'); router.replace('/staff-profile?tab=my-group'); }}
               className={`cursor-pointer inline-flex items-center whitespace-nowrap rounded-l-md px-4 py-2 font-medium transition ${
                 activeTab === 'my-group'
                   ? 'bg-sky-700 text-white shadow-sm'
@@ -639,7 +648,7 @@ export default function StaffProfilePage() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('pending-requests')}
+              onClick={() => { setActiveTab('pending-requests'); router.replace('/staff-profile?tab=pending-requests'); }}
               className={`cursor-pointer inline-flex items-center whitespace-nowrap px-4 py-2 font-medium transition ${
                 activeTab === 'pending-requests'
                   ? 'bg-sky-700 text-white shadow-sm'
@@ -655,7 +664,7 @@ export default function StaffProfilePage() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('reviewed-requests')}
+              onClick={() => { setActiveTab('reviewed-requests'); router.replace('/staff-profile?tab=reviewed-requests'); }}
               className={`cursor-pointer inline-flex items-center whitespace-nowrap px-4 py-2 font-medium transition ${
                 activeTab === 'reviewed-requests'
                   ? 'bg-sky-700 text-white shadow-sm'
@@ -666,7 +675,7 @@ export default function StaffProfilePage() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('statistics')}
+              onClick={() => { setActiveTab('statistics'); router.replace('/staff-profile?tab=statistics'); }}
               className={`cursor-pointer inline-flex items-center whitespace-nowrap rounded-r-md px-4 py-2 font-medium transition ${
                 activeTab === 'statistics'
                   ? 'bg-sky-700 text-white shadow-sm'
@@ -678,7 +687,7 @@ export default function StaffProfilePage() {
           </div>
 
           {activeTab === 'my-group' && (
-            <div className="mt-5">
+            <div className="mt-5 animate-fade-in">
               <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.10)] sm:p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
@@ -701,7 +710,7 @@ export default function StaffProfilePage() {
 
                 <div className="mt-4 rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
                   <div className="w-full overflow-x-auto">
-                    <Skeleton name="staff-students-table" loading={loading}>
+                    <Skeleton name="staff-students-table" loading={false}>
                       <table className="min-w-full border-collapse text-xs sm:text-sm" style={{ tableLayout: 'fixed' }}>
                         <thead>
                           <tr className="bg-sky-700 text-white">
@@ -732,8 +741,8 @@ export default function StaffProfilePage() {
                             </th>
                           </tr>
                         </thead>
-                        <tbody>
-                          {!loading && studentsData.length > 0 ? (
+                        <tbody className={`transition-opacity duration-300 ${loading && studentsData.length > 0 ? 'opacity-40' : 'opacity-100'}`}>
+                          {studentsData.length > 0 ? (
                             studentsData.map((student, idx) => (
                               <tr
                                 key={student.id}
@@ -777,7 +786,15 @@ export default function StaffProfilePage() {
                               </td>
                             </tr>
                           ))
-                        ) : !loading ? (
+                        ) : loading ? (
+                          Array.from({ length: 8 }).map((_, i) => (
+                            <tr key={`sk-${i}`} className="border-b border-[#f0f0f0] last:border-b-0">
+                              <td colSpan={isRectorate ? 8 : 7} className="p-2 md:px-4 md:py-3">
+                                <div className="h-5 w-full animate-pulse rounded bg-slate-100" />
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
                           <tr>
                             <td
                               colSpan={isRectorate ? 8 : 7}
@@ -786,7 +803,7 @@ export default function StaffProfilePage() {
                               Студенты не найдены
                             </td>
                           </tr>
-                        ) : null}
+                        )}
                         </tbody>
                       </table>
                     </Skeleton>
@@ -807,7 +824,7 @@ export default function StaffProfilePage() {
           )}
 
           {activeTab === 'pending-requests' && (
-            <div className="mt-5 space-y-4">
+            <div className="mt-5 space-y-4 animate-fade-in">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
                   Заявки: {currentGroupName}, {selectedSemesterLabel}
@@ -817,8 +834,10 @@ export default function StaffProfilePage() {
                 </div>
               </div>
 
-              {pendingDocsData && pendingDocsData.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {loading && pendingDocsData.length === 0 ? (
+                <RequestCardsSkeleton />
+              ) : pendingDocsData && pendingDocsData.length > 0 ? (
+                <div className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-300 ${loading ? 'opacity-40' : 'opacity-100'}`}>
                   {pendingDocsData.map((doc) => (
                     <div
                       key={doc.id}
@@ -863,14 +882,12 @@ export default function StaffProfilePage() {
                             Была отклонена
                           </span>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => setInfoDoc(doc)}
+                        <Link
+                          href={`/achievement/${doc.id}`}
                           className="cursor-pointer ml-auto text-[10px] font-semibold text-sky-700 hover:text-sky-900 sm:text-xs"
                         >
                           Подробнее
-                          {/* <i className="fa-solid fa-arrow-right ml-1" /> */}
-                        </button>
+                        </Link>
                       </div>
 
                       <div className="mt-3 flex gap-2">
@@ -913,7 +930,7 @@ export default function StaffProfilePage() {
           )}
 
           {activeTab === 'reviewed-requests' && (
-            <div className="mt-5 space-y-4">
+            <div className="mt-5 space-y-4 animate-fade-in">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
                   Рассмотренные: {currentGroupName}, {selectedSemesterLabel}
@@ -923,12 +940,10 @@ export default function StaffProfilePage() {
                 </div>
               </div>
 
-              {reviewedLoading ? (
-                <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-                  <p className="text-sm text-sky-700">Загрузка заявок...</p>
-                </div>
+              {reviewedLoading && reviewedDocsData.length === 0 ? (
+                <RequestCardsSkeleton />
               ) : reviewedDocsData.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-300 ${reviewedLoading ? 'opacity-40' : 'opacity-100'}`}>
                   {reviewedDocsData.map((doc) => {
                     const isApproved = doc.status_display === 'approved';
 
@@ -985,13 +1000,12 @@ export default function StaffProfilePage() {
                               Файлов: {doc.files.length}
                             </span>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => setInfoDoc(doc)}
+                          <Link
+                            href={`/achievement/${doc.id}`}
                             className="cursor-pointer ml-auto text-[10px] font-semibold text-sky-700 hover:text-sky-900 sm:text-xs"
                           >
                             Подробнее
-                          </button>
+                          </Link>
                         </div>
 
                         <div className="mt-3 flex gap-2">
@@ -1037,7 +1051,7 @@ export default function StaffProfilePage() {
           )}
 
           {activeTab === 'statistics' && (
-            <div className="mt-5">
+            <div className="mt-5 animate-fade-in">
               <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.10)] sm:p-5">
                 <h2 className="mb-5 text-sm font-semibold text-slate-900 sm:text-base">
                   Аналитика: {currentGroupName}{' '}
@@ -1183,20 +1197,6 @@ export default function StaffProfilePage() {
         onCustomReasonChange={setCustomReason}
         onClose={closeModal}
         onSubmit={handleReject}
-      />
-
-      <AchievementInfoPanel
-        doc={infoDoc}
-        onClose={() => setInfoDoc(null)}
-        onPreview={() => setPreviewDoc(infoDoc)}
-        onDownload={(fileId, fileName) => downloadFile(fileId, fileName)}
-      />
-
-      <ModalPreview
-        isOpen={!!previewDoc}
-        doc={previewDoc}
-        onClose={() => setPreviewDoc(null)}
-        onDownload={(fileId, fileName) => downloadFile(fileId, fileName)}
       />
     </>
   );

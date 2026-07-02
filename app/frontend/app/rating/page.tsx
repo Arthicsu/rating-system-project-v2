@@ -68,7 +68,6 @@ export default function RatingPage() {
   useEffect(() => {
     const fetchRating = async () => {
       setLoading(true);
-      setStudents([]);
       try {
         const params: RatingParams = {
           category: activeTab,
@@ -257,7 +256,7 @@ export default function RatingPage() {
           )}
 
           <div className="rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
-            <div className="w-full overflow-x-auto">
+            <div key={activeTab} className="animate-fade-in w-full overflow-x-auto">
               <table className="min-w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead>
                   <tr className="bg-sky-700 text-white">
@@ -330,8 +329,8 @@ export default function RatingPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody>
-                  {!loading && students.length > 0 ? (
+                <tbody className={`transition-opacity duration-300 ${loading && students.length > 0 ? 'opacity-40' : 'opacity-100'}`}>
+                  {students.length > 0 ? (
                     students.map((student, index) => (
                       <tr key={student.user_id} className="border-b border-[#0068a825] text-xs sm:text-xs md:text-sm last:border-b-0 hover:bg-slate-50 divide-x divide-[#0069a825]">
                         <td className="p-1 sm:p-2 md:px-4  md:py-3 text-center align-middle">
@@ -353,7 +352,15 @@ export default function RatingPage() {
                         <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">{student.group}</td>
                       </tr>
                     ))
-                  ) : !loading ? (
+                  ) : loading ? (
+                    Array.from({ length: 8 }).map((_, i) => (
+                      <tr key={`sk-${i}`} className="border-b border-[#0068a825] last:border-b-0">
+                        <td colSpan={6} className="p-2 md:px-4 md:py-3">
+                          <div className="h-5 w-full animate-pulse rounded bg-slate-100" />
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
                     <tr>
                       <td
                         colSpan={6}
@@ -362,7 +369,7 @@ export default function RatingPage() {
                         Студенты не найдены
                       </td>
                     </tr>
-                  ) : null}
+                  )}
                 </tbody>
               </table>
               

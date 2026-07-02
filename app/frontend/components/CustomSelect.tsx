@@ -91,7 +91,7 @@ export default function CustomSelect({
         <span className={`truncate ${!selectedOption ? 'text-slate-400' : ''}`}>
           {displayLabel}
         </span>
-        <span className="ml-2 shrink-0 text-xs text-slate-400"><i className="fas fa-chevron-circle-down"></i></span>
+        <span className="ml-2 shrink-0 text-xs text-sky-700"><i className="fas fa-chevron-circle-down"></i></span>
       </button>
       {isOpen && !disabled && (
         <div className="absolute left-0 top-full z-30 mt-1 max-h-60 w-full min-w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 text-sm shadow-xl">

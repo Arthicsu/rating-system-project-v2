@@ -1,102 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
 import type { ModalPreviewProps } from '@/interfaces/ModalInterfaces';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
-import { useFilePreview, getFilePreviewKind } from '@/hooks/useFilePreview';
-
-// pdf.js (внутри FileViewer) не должен исполняться на сервере — грузим только на клиенте.
-const FileViewer = dynamic(() => import('@/components/preview/FileViewer'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-full flex-1 items-center justify-center p-6 text-sm text-slate-500">
-      <i className="fa-solid fa-spinner fa-spin mr-2" />
-      Загрузка просмотрщика…
-    </div>
-  ),
-});
-
-function FilePreviewPanel({
-  fileId,
-  fileName,
-  isOpen,
-  onDownload,
-}: {
-  fileId: number;
-  fileName: string;
-  isOpen: boolean;
-  onDownload: () => void;
-}) {
-  const { previewUrl, loading, error } = useFilePreview(fileId, isOpen);
-  const previewKind = getFilePreviewKind(fileName);
-
-  // Состояние для масштаба (1 = 100%, 1.2 = 120%, и т.д.)
-  const [zoom, setZoom] = useState<number>(1);
-
-  // Сбрасываем масштаб при открытии нового файла (корректировка состояния во время рендера).
-  const zoomResetKey = `${fileId}-${isOpen}`;
-  const [prevZoomResetKey, setPrevZoomResetKey] = useState(zoomResetKey);
-  if (prevZoomResetKey !== zoomResetKey) {
-    setPrevZoomResetKey(zoomResetKey);
-    if (isOpen) setZoom(1);
-  }
-
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.1, 2)); // Макс 200%
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.1, 0.5)); // Мин 50%
-  const handleResetZoom = () => setZoom(1);
-
-  if (loading) {
-    return (
-      <div className="flex h-full flex-1 items-center justify-center p-6 text-sm text-slate-500">
-        <i className="fa-solid fa-spinner fa-spin mr-2" />
-        Загрузка предпросмотра...
-      </div>
-    );
-  }
-
-  if (error || !previewUrl) {
-    return (
-      <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-        {previewKind === 'unsupported' ? (
-          <>
-            <i className="fa-solid fa-file text-4xl text-slate-400" />
-            <p className="max-w-xs text-sm text-slate-600">Предпросмотр недоступен для этого типа файла</p>
-          </>
-        ) : (
-          <p className="text-sm text-rose-600">{error ?? 'Не удалось загрузить файл для предпросмотра'}</p>
-        )}
-        <button
-          type="button"
-          onClick={onDownload}
-          className="cursor-pointer rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700"
-        >
-          Скачать файл
-        </button>
-      </div>
-    );
-  }
-
-  if (previewKind === 'unsupported') {
-    return (
-      <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-        <i className="fa-solid fa-file text-4xl text-slate-400" />
-        <p className="max-w-xs text-sm text-slate-600">Предпросмотр недоступен для этого типа файла</p>
-        <button
-          type="button"
-          onClick={onDownload}
-          className="cursor-pointer rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700"
-        >
-          Скачать файл
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <FileViewer previewUrl={previewUrl} previewKind={previewKind} fileName={fileName} onDownload={onDownload} />
-  );
-}
+import FilePreviewPanel from '@/components/preview/FilePreviewPanel';
 
 export default function ModalPreview({ isOpen, doc, onClose }: ModalPreviewProps) {
   const { downloadFile } = useDownloadFile();
@@ -220,13 +127,13 @@ export default function ModalPreview({ isOpen, doc, onClose }: ModalPreviewProps
                 type="button"
                 onClick={() => handleSelectFile(index)}
                 title={file.original_file_name || `Файл ${index + 1}`}
-                className={`cursor-pointer max-w-40 shrink-0 truncate rounded-lg px-3 py-1.5 text-xs font-medium transition sm:max-w-60 ${
+                className={`cursor-pointer max-w-40 min-w-0 shrink-0 overflow-hidden rounded-lg px-3 py-1.5 text-xs font-medium transition sm:max-w-60 ${
                   index === selectedFileIndex
                     ? 'bg-sky-600 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                {file.original_file_name || `Файл ${index + 1}`}
+                <span className="block truncate">{file.original_file_name || `Файл ${index + 1}`}</span>
               </button>
             ))}
           </div>

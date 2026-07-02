@@ -264,11 +264,14 @@ class PendingDocumentSerializer(DocumentSerializer):
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     student_id = serializers.IntegerField(source='user.student_profile.id', read_only=True)
     student_name = serializers.CharField(source='user.student_profile.full_name', read_only=True)
+    course = serializers.IntegerField(source='user.student_profile.group.course', read_only=True)
+    faculty = serializers.CharField(source='user.student_profile.faculty.short_name', read_only=True, default="—")
+    group = serializers.CharField(source='user.student_profile.group.name', read_only=True, default="Без группы")
     group_id = serializers.IntegerField(source='user.student_profile.group.id', read_only=True)
     record_book = serializers.CharField(source='user.student_profile.record_book', read_only=True, default="—")
 
     class Meta(DocumentSerializer.Meta):
-        fields = DocumentSerializer.Meta.fields + ['user_id', 'student_id', 'student_name', 'group_id', 'record_book']
+        fields = DocumentSerializer.Meta.fields + ['user_id', 'student_id', 'student_name', 'group', 'group_id', 'course', 'faculty', 'record_book']
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     group = serializers.CharField(source='group.name', read_only=True, default="Без группы")

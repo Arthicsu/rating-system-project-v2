@@ -341,12 +341,8 @@ class FilteredDashboardStatsAPIView(DashboardStatsQuerySetMixin, ListAPIView):
             
             # Добавляем статистику в ответ пагинатора
             response.data['stats'] = self.get_stats_data(request.user)
-            response.data['top5'] = StudentProfileSerializer(
-                self.get_top5_students(request.user), 
-                many=True, 
-                context={'request': request}
-            ).data
-            
+            response.data['top5'] = self.get_top5_students(request.user)
+
             return response
 
         # Если пагинатор отключен - Fallback
@@ -354,9 +350,5 @@ class FilteredDashboardStatsAPIView(DashboardStatsQuerySetMixin, ListAPIView):
         return Response({
             'results': serializer.data,
             'stats': self.get_stats_data(request.user),
-            'top5': StudentProfileSerializer(
-                self.get_top5_students(request.user), 
-                many=True, 
-                context={'request': request}
-            ).data
+            'top5': self.get_top5_students(request.user),
         })
