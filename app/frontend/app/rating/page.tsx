@@ -3,9 +3,8 @@ import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import Pagination from '@/components/Pagination';
 import CustomSelect from '@/components/CustomSelect';
-import { userApi, universityApi } from '@/lib/apiRequests';
+import { userApi } from '@/lib/apiRequests';
 import type { FilterOptions, Tab, RatingParams } from '@/interfaces/RatingInterfaces';
-import type { Semester } from '@/interfaces/StaffInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
 
 export default function RatingPage() {
@@ -16,8 +15,6 @@ export default function RatingPage() {
   const [selectedFaculty, setSelectedFaculty] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [selectedGroup, setSelectedGroup] = useState('all');
-  const [selectedSemester, setSelectedSemester] = useState('');
-  const [semesters, setSemesters] = useState<Semester[]>([]);
   const [activeTab, setActiveTab] = useState('common');
   const [tabs, setTabs] = useState<Tab[]>([{ id: 'common', label: 'Общий рейтинг' }]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -54,18 +51,6 @@ export default function RatingPage() {
   }, []);
 
   useEffect(() => {
-    const fetchSemesters = async () => {
-      try {
-        const res = await universityApi.getAcademicYears();
-        setSemesters(res.data);
-      } catch (error) {
-        console.error('Ошибка: ', error);
-      }
-    };
-    fetchSemesters();
-  }, []);
-
-  useEffect(() => {
     const fetchRating = async () => {
       setLoading(true);
       try {
@@ -78,7 +63,6 @@ export default function RatingPage() {
         if (selectedFaculty !== 'all') params.faculty_id = selectedFaculty;
         if (selectedCourse !== 'all') params.course = selectedCourse;
         if (selectedGroup !== 'all') params.group_id = selectedGroup;
-        if (selectedSemester !== '') params.semester = selectedSemester;
 
         const response = await userApi.getRating(params);
 
@@ -93,7 +77,7 @@ export default function RatingPage() {
       }
     };
     fetchRating();
-  }, [activeTab, selectedFaculty, selectedCourse, selectedGroup, selectedSemester, currentPage]);
+  }, [activeTab, selectedFaculty, selectedCourse, selectedGroup, currentPage]);
 
   const availableGroups = useMemo(() => {
     return filterOptions.groups.filter(g => {
@@ -104,13 +88,6 @@ export default function RatingPage() {
   }, [filterOptions.groups, selectedFaculty, selectedCourse]);
   
   const scoreKey = activeTab === 'common' ? 'total_score' : `${activeTab}_score`;
-
-  const currentSemesterLabel = useMemo(() => {
-    const current = semesters.find(s => s.is_current);
-    return current ? `Текущий: ${current.label}` : 'Текущий семестр';
-  }, [semesters]);
-
-  const pastSemesters = useMemo(() => semesters.filter(s => !s.is_current), [semesters]);
 
   const handleTabChange = (id: string) => {
     setActiveTab(id);
@@ -158,25 +135,6 @@ export default function RatingPage() {
 
       <section className="w-full pb-6">
         <div className="mx-auto max-w-350 px-5">
-          {/* {semesters.length > 0 && (
-            <div className="mb-3 flex items-center justify-end gap-2">
-              <label htmlFor="semester-select" className="text-[11px] sm:text-xs font-medium text-slate-600">
-                Семестр
-              </label>
-              <select
-                id="semester-select"
-                value={selectedSemester}
-                onChange={(e) => handleFilterChange(setSelectedSemester, e.target.value)}
-                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] sm:text-xs text-[#333] shadow-sm outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
-              >
-                <option value="">{currentSemesterLabel}</option>
-                {pastSemesters.map(s => (
-                  <option key={s.id} value={String(s.id)}>{s.label}</option>
-                ))}
-              </select>
-            </div>
-          )} */}
-
           <div className="mb-2 hidden max-[411px]:flex items-center">
             <button
               type="button"

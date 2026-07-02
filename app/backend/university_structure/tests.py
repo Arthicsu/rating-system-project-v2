@@ -7,7 +7,7 @@ JSON-ответами публичных ручек /faculties, /Kafs, /GroupsLi
 from django.test import TestCase
 
 from core.eos.syncers import FacultySyncer, DepartmentSyncer, GroupSyncer, run_all
-from university_structure.models import Faculty, Department, Group
+from university_structure.models import Faculty, Department, Group, Specialty
 
 
 class FakeEOSClient:
@@ -52,13 +52,25 @@ class EosSyncTests(TestCase):
         self.assertEqual(d.head_name, "Иванов И.И.")
         self.assertEqual(d.faculty.external_id, "25")
 
-    def test_group_links_faculty_and_decodes_form(self):
+    def test_group_links_specialty_and_decodes_form(self):
         client = FakeEOSClient()
         FacultySyncer(client).run()
+        faculty = Faculty.objects.get(external_id="25")
+        department = Department.objects.create(
+            external_id="4", name="Информационные технологии", short_name="ИТ", faculty=faculty,
+        )
+        # Специальность синхронизатором не создаётся (в ЭОС нет ручки) — заводим заранее,
+        # чтобы GroupSyncer связал группу с ней по code_fgos == specialityShifr.
+        Specialty.objects.create(
+            external_id="SP-1", code_fgos="09.03.01",
+            name="Информатика и вычислительная техника", faculty=faculty, department=department,
+        )
+
         stats = GroupSyncer(client).run()
         self.assertEqual((stats.created, stats.errors), (1, []))
         g = Group.objects.get(external_id="1739")
-        self.assertEqual(g.faculty.external_id, "25")
+        self.assertEqual(g.specialty.code_fgos, "09.03.01")
+        self.assertEqual(g.specialty.faculty.external_id, "25")
         self.assertEqual(g.education_form, "1")
         self.assertEqual(g.education_form_decode, "Очная форма")
         self.assertEqual(g.academic_year, "2025-2026")
@@ -71,7 +83,18 @@ class EosSyncTests(TestCase):
         self.assertEqual(Faculty.objects.filter(external_id="25").count(), 1)
 
     def test_run_all_order(self):
+        # Специальность нужна заранее (GroupSyncer только связывает группу с существующей).
+        # Её факультет должен быть тем же факультетом "25", который затем обновит FacultySyncer.
+        faculty = Faculty.objects.create(external_id="25", name="ИЭИ (временно)", short_name="ИЭИ")
+        department = Department.objects.create(
+            external_id="4", name="Информационные технологии", short_name="ИТ", faculty=faculty,
+        )
+        Specialty.objects.create(
+            external_id="SP-1", code_fgos="09.03.01",
+            name="Информатика и вычислительная техника", faculty=faculty, department=department,
+        )
+
         results = run_all(FakeEOSClient())
         self.assertEqual([s.entity for s in results], ["Факультеты", "Кафедры", "Группы"])
         self.assertTrue(all(s.ok for s in results))
-        self.assertEqual(Group.objects.get(external_id="1739").faculty.short_name, "ИЭИ")
+        self.assertEqual(Group.objects.get(external_id="1739").specialty.faculty.short_name, "ИЭИ")

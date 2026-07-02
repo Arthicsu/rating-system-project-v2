@@ -113,7 +113,7 @@ class DashboardStatsSemesterTests(APITestCase):
         self.assertEqual(stats["categories"]["academic"], 3)
         self.assertEqual(stats["categories"]["sport"], 2)
 
-    def test_past_semester_counts_only_history_rows(self):
+    def test_past_semester_counts_all_filtered_students(self):
         # Новый студент с живыми баллами, но без строки истории за прошлый семестр.
         Student.objects.create(
             external_id="EXT-C", full_name="Викторов Виктор", record_book="RB-C",
@@ -124,7 +124,13 @@ class DashboardStatsSemesterTests(APITestCase):
         self.assertEqual(current["total_students"], 3)  # живой кэш видит всех
 
         past = self._get({"academic_year": self.past.id}).data["stats"]
-        self.assertEqual(past["total_students"], 2)  # история — только у A и B
+        # Прошлый семестр показывает ВСЕХ отфильтрованных студентов; у C нет истории → 0.
+        self.assertEqual(past["total_students"], 3)
+        self.assertEqual(past["min_score"], 0)   # C без истории
+        self.assertEqual(past["max_score"], 4)   # A = 4
+        # Суммы по категориям не меняются (C добавляет 0).
+        self.assertEqual(past["categories"]["academic"], 3)
+        self.assertEqual(past["categories"]["sport"], 2)
 
     def test_top5_shape_and_semester_ordering(self):
         current_top = self._get({"academic_year": self.current.id}).data["top5"]

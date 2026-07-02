@@ -72,6 +72,15 @@ class SemesterScoringTests(APITestCase):
             achievement="Олимпиада", semester=semester,
         )
 
+    def _make_current(self, semester):
+        """Сделать семестр текущим через save() (как в админке) — триггерит сигнал синхронизации."""
+        for ay in AcademicYear.objects.filter(is_current=True).exclude(pk=semester.pk):
+            ay.is_current = False
+            ay.save(update_fields=["is_current"])
+        semester.is_current = True
+        semester.save(update_fields=["is_current"])
+        semester.refresh_from_db()
+
     def test_credit_updates_semester_row_and_student_cache(self):
         doc = self._doc(self.fall)
         self.assertEqual(doc.score, 10)  # посчитано из ScoringRule в save()
@@ -140,22 +149,17 @@ class SemesterScoringTests(APITestCase):
         me = next(r for r in resp.data["results"] if r["id"] == self.student.id)
         self.assertEqual(me["total_score"], 10)
 
-    def test_rating_api_past_semester_reads_history(self):
+    def test_rating_api_always_current_ignores_semester_param(self):
         credit_document(self._doc(self.fall))
         rollover_semester()  # осень -> история, весна текущая, кэш обнулён
         cache.clear()
         self.client.force_authenticate(self.user)
 
-        # Текущий (весна): баллов нет.
-        resp_current = self.client.get(reverse("user:api_v2_student_rating"))
-        me_current = next(r for r in resp_current.data["results"] if r["id"] == self.student.id)
-        self.assertEqual(me_current["total_score"], 0)
-
-        # Прошлый (осень): читается из истории SemesterScore.
-        resp_past = self.client.get(reverse("user:api_v2_student_rating"), {"semester": self.fall.id})
-        self.assertEqual(resp_past.status_code, status.HTTP_200_OK)
-        me_past = next(r for r in resp_past.data["results"] if r["id"] == self.student.id)
-        self.assertEqual(me_past["total_score"], 10)
+        # Рейтинг всегда за текущий семестр (весна) — параметр semester игнорируется.
+        resp = self.client.get(reverse("user:api_v2_student_rating"), {"semester": self.fall.id})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        me = next(r for r in resp.data["results"] if r["id"] == self.student.id)
+        self.assertEqual(me["total_score"], 0)
 
     def test_upload_stamps_current_semester(self):
         self.client.force_authenticate(self.user)
@@ -177,3 +181,41 @@ class SemesterScoringTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
         doc = Document.objects.get(user=self.user)
         self.assertEqual(doc.semester_id, self.fall.id)  # текущий семестр на момент загрузки
+
+    def test_switching_current_semester_resets_cache_and_no_accumulation(self):
+        # В осеннем (текущем) семестре начислены баллы.
+        credit_document(self._doc(self.fall))
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.total_score, 10)
+
+        # Смена текущего семестра на весенний (как ручное переключение в админке) —
+        # сигнал пересобирает кэш из SemesterScore нового текущего (строк нет → 0).
+        self._make_current(self.spring)
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.total_score, 0)
+        # История осени сохранена.
+        self.assertEqual(
+            SemesterScore.objects.get(student=self.student, semester=self.fall).total_score, 10
+        )
+
+        # Подтверждение в новом семестре НЕ суммируется со старым (регресс бага «Рощина»).
+        credit_document(self._doc(self.spring))
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.total_score, 10)
+        self.assertEqual(
+            SemesterScore.objects.get(student=self.student, semester=self.spring).total_score, 10
+        )
+
+    def test_switching_back_restores_previous_semester_scores(self):
+        credit_document(self._doc(self.fall))    # осень = 10
+        self._make_current(self.spring)
+        credit_document(self._doc(self.spring))  # весна = 10
+
+        # Возврат на осень восстанавливает её баллы в живом кэше.
+        self._make_current(self.fall)
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.total_score, 10)
+        # Весенняя история сохранена.
+        self.assertEqual(
+            SemesterScore.objects.get(student=self.student, semester=self.spring).total_score, 10
+        )

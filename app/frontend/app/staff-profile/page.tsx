@@ -233,6 +233,7 @@ export default function StaffProfilePage() {
           page: currentPage,
           page_size: pageSize,
           search: groupSearchValue || undefined,
+          academic_year: String(selectedSemesterId),
           ...filterParams,
         };
 

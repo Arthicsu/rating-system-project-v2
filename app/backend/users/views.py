@@ -28,7 +28,7 @@ from core.throttling import LoginRateThrottle
 from university_structure.models import Faculty, Group
 from students.models import Category, DocumentFile
 from .serializers import StudentRegistrationSerializer, LoginRequestSerializer, UserResponseSerializer, DocumentFileAccessSerializer, ForgotPasswordRequestSerializer
-from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, SemesterRatingSerializer, CategorySerializer
+from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
 from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RatingFiltersResponseSerializer
 from core.pagination import StandardResultsSetPagination
 from core.students_query_set_mixin import StudentWithAccessMixin, StudentRatingQuerySetMixin
@@ -224,21 +224,16 @@ class CategoryAchievementAPIView(ListAPIView):
 @method_decorator(cache_page(60 * 5), name='dispatch')
 @method_decorator(vary_on_headers('Cookie'), name='dispatch')
 class RatingListAPIView(StudentRatingQuerySetMixin, ListAPIView):
+    # Публичный рейтинг всегда за ТЕКУЩИЙ семестр; просмотр прошлых семестров - в /staff-profile.
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     serializer_class = StudentRatingSerializer
-
-    def get_serializer_class(self):
-        # Прошлый семестр отдаём из истории (SemesterScore) тем же форматом, что и текущий.
-        if self.get_requested_past_semester_id():
-            return SemesterRatingSerializer
-        return StudentRatingSerializer
 
     @extend_schema(
         responses={200: StudentRatingSerializer(many=True)}
     )
     def get_queryset(self):
-        return self.get_base_rating_queryset()
+        return self.get_base_rating_queryset(allow_history=False)
 
 class ForgotPasswordAPIView(APIView):
     permission_classes = [AllowAny]

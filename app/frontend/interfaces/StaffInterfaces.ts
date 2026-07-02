@@ -87,6 +87,7 @@ export interface FilterStudentsParams {
   search?: string;
   faculty_id?: string;
   course?: string;
+  academic_year?: string;
 }
 
 export interface DashboardStatsParams {

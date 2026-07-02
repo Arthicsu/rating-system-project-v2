@@ -22,7 +22,7 @@ from .serializers import (
 )
 from .models import Faculty, Group, RejectionReason, AcademicYear
 from students.models import Document, Student, DocumentStatus
-from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
+from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, SemesterStudentListSerializer, CategorySerializer
 
 from core.pagination import StandardResultsSetPagination
 from core.export_rating_excel import generate_rating_excel_pandas
@@ -236,9 +236,9 @@ class RejectionReasonListView(ListAPIView):
 @method_decorator(cache_page(60 * 60 * 2), name='dispatch')
 class AcademicYearListView(ListAPIView):
     """
-    Список учебных периoдов для селектора семестра в рейтинге/профиле
+    Список учебных периoдов для селектора семестра в профиле сотрудника.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsStaffProfile]
     authentication_classes = [SessionAuthentication]
     serializer_class = AcademicYearSerializer
     queryset = AcademicYear.objects.all()
@@ -291,15 +291,31 @@ class FilteredGroupListAPIView(StudentFilterMixin, ListAPIView):
         )
 
 class FilteredStudentListAPIView(StudentWithAccessMixin, ListAPIView):
+    """
+    Список студентов сотрудника с учётом выбранного семестра.
+
+    Текущий семестр - живой кэш Student (StudentProfileSerializer). Прошлый - те же студенты
+    (ВСЕ отфильтрованные), но баллы из аннотаций выбранного семестра (0 при отсутствии истории),
+    сериализуются SemesterStudentListSerializer.
+    """
     permission_classes = [IsStaffProfile]
     authentication_classes = [SessionAuthentication]
     serializer_class = StudentProfileSerializer
+
+    def get_serializer_class(self):
+        _, is_past = self.get_requested_semester()
+        return SemesterStudentListSerializer if is_past else StudentProfileSerializer
 
     @extend_schema(
         responses={200: StudentProfileSerializer(many=True)}
     )
     def get_queryset(self):
-        return self.get_allowed_students(self.request.user)
+        user = self.request.user
+        queryset = self.get_allowed_students(user)
+        semester_id, is_past = self.get_requested_semester()
+        if is_past and semester_id:
+            queryset = queryset.annotate(**self.semester_score_annotations(semester_id))
+        return queryset
 
 class FilteredDashboardStatsAPIView(DashboardStatsQuerySetMixin, ListAPIView):
     """

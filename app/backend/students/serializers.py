@@ -223,6 +223,42 @@ class SemesterRatingSerializer(serializers.ModelSerializer):
             return obj.student.user.get_user_display_short_name()
         return obj.student.full_name
 
+class SemesterStudentListSerializer(serializers.ModelSerializer):
+    """
+    Строка таблицы студентов в /staff-profile за ПРОШЛЫЙ семестр.
+
+    Обычный Student (показываем ВСЕХ отфильтрованных студентов), но баллы берутся из аннотаций
+    выбранного семестра (`sem_*`, 0 при отсутствии строки SemesterScore). По форме совпадает с
+    тем, что таблица читает из StudentProfileSerializer.
+    """
+    group = serializers.CharField(source='group.name', read_only=True, default="Без группы")
+    group_id = serializers.IntegerField(source='group.id', read_only=True)
+    course = serializers.IntegerField(source='group.course', read_only=True, default=0)
+    faculty = serializers.CharField(source='faculty.short_name', read_only=True, default="—")
+    short_name = serializers.SerializerMethodField()
+    total_score = serializers.IntegerField(source='sem_total_score', read_only=True)
+    academic_score = serializers.IntegerField(source='sem_academic_score', read_only=True)
+    research_score = serializers.IntegerField(source='sem_research_score', read_only=True)
+    sport_score = serializers.IntegerField(source='sem_sport_score', read_only=True)
+    social_score = serializers.IntegerField(source='sem_social_score', read_only=True)
+    cultural_score = serializers.IntegerField(source='sem_cultural_score', read_only=True)
+
+    class Meta:
+        model = Student
+        fields = [
+            'id', 'user_id',
+            'full_name', 'short_name',
+            'record_book',
+            'group', 'group_id', 'course', 'faculty',
+            'total_score', 'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score',
+        ]
+
+    @extend_schema_field(serializers.CharField())
+    def get_short_name(self, obj):
+        if obj.user:
+            return obj.user.get_user_display_short_name()
+        return obj.full_name
+
 class DocumentFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentFile
