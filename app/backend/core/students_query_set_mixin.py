@@ -1,4 +1,6 @@
 from django.db.models import Prefetch, Avg, Count, Q
+from django.utils import timezone
+from datetime import datetime, time
 
 from students.models import Student, Category, Document, SemesterScore
 from university_structure.models import AcademicYear

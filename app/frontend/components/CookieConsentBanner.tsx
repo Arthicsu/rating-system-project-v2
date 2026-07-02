@@ -1,11 +1,17 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import CookieConsent from 'react-cookie-consent';
+
+const emptySubscribe = () => () => {};
 
 export default function CookieConsentBanner() {
   const [showDetails, setShowDetails] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // Рендерим только на клиенте, чтобы избежать несовпадения гидрации.
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
   if (!mounted) return null;
 
   return (

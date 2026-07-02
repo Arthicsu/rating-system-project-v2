@@ -36,6 +36,7 @@ export interface RatingParams {
   category: string;
   page: number;
   page_size: number;
+  semester?: string;
 }
 
 export interface FilterParams {

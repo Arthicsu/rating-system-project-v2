@@ -28,6 +28,21 @@ export interface Profile {
     rejection_reason: string | null;
     files: Array<{ id: number; original_file_name: string }>;
   }>;
+  semester_history?: SemesterScoreHistory[];
+}
+
+export interface SemesterScoreHistory {
+  semester_id: number;
+  semester_label: string;
+  is_current: boolean;
+  start_date: string;
+  end_date: string;
+  total_score: number;
+  academic_score: number;
+  research_score: number;
+  sport_score: number;
+  social_score: number;
+  cultural_score: number;
 }
 
 export interface StudentProfileProps {

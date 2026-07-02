@@ -23,12 +23,13 @@ export function FilePreviewPanel({
   // Состояние для масштаба (1 = 100%, 1.2 = 120%, и т.д.)
   const [zoom, setZoom] = useState<number>(1);
 
-  // Сбрасываем масштаб при открытии нового файла
-  useEffect(() => {
-    if (isOpen) {
-      setZoom(1);
-    }
-  }, [fileId, isOpen]);
+  // Сбрасываем масштаб при открытии нового файла (корректировка состояния во время рендера).
+  const zoomResetKey = `${fileId}-${isOpen}`;
+  const [prevZoomResetKey, setPrevZoomResetKey] = useState(zoomResetKey);
+  if (prevZoomResetKey !== zoomResetKey) {
+    setPrevZoomResetKey(zoomResetKey);
+    if (isOpen) setZoom(1);
+  }
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.1, 2)); // Макс 200%
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.1, 0.5)); // Мин 50%
@@ -217,11 +218,13 @@ export default function ModalPreview({ isOpen, doc, onClose }: ModalPreviewProps
     previewSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
-  useEffect(() => {
-    if (isOpen && doc) {
-      setSelectedFileIndex(0);
-    }
-  }, [isOpen, doc?.id]);
+  // Сбрасываем выбранный файл при открытии новой заявки (корректировка состояния во время рендера).
+  const fileIndexResetKey = `${isOpen}-${doc?.id}`;
+  const [prevFileIndexResetKey, setPrevFileIndexResetKey] = useState(fileIndexResetKey);
+  if (prevFileIndexResetKey !== fileIndexResetKey) {
+    setPrevFileIndexResetKey(fileIndexResetKey);
+    if (isOpen && doc) setSelectedFileIndex(0);
+  }
 
   useEffect(() => {
     if (isOpen && !closing) {
