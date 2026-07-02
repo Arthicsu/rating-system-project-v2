@@ -38,8 +38,9 @@ class CsvImport:
                     delimiter = ';' if ';' in csv_lines[0] else ','
                     data = list(csv.DictReader(csv_lines, delimiter=delimiter))
                     
-                    self.process_import_csv(request, data)
-                    self.message_user(request, f"Успешно обработано {len(data)} строк.", messages.SUCCESS)
+                    count = self.process_import_csv(request, data)
+                    imported = count if isinstance(count, int) else len(data)
+                    self.message_user(request, f"Импортировано {imported} из {len(data)} строк.", messages.SUCCESS)
                 except Exception as e:
                     self.message_user(request, f"Ошибка при импорте: {e}", messages.ERROR)
                 return redirect("..")

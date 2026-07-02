@@ -144,7 +144,7 @@ class StudentProfileAPIView(ScopePermissionMixin, StudentFilterMixin, GenericAPI
 
         # Запрос профиля по явно указанному student_id
         student = Student.objects.select_related(
-            'user', 'faculty', 'department', 'group'
+            'user', 'faculty', 'department', 'department'
         ).filter(id=student_id).first()
 
         if not student:

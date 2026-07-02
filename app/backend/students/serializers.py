@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
-from university_structure.models import Faculty
+from university_structure.models import Faculty, AcademicYear
 from django.db import transaction
 from django.core.cache import cache
-from .models import Student, Document, Category, DocumentFile, Level, AchievementResult, DocType, AchievementType, DocumentStatus, ScoringRule
+from .models import Student, Document, Category, DocumentFile, Level, AchievementResult, DocType, AchievementType, DocumentStatus, ScoringRule, SemesterScore
 from .scoring import calculate_achievement_score
 
 import os
@@ -176,6 +176,53 @@ class StudentRatingSerializer(serializers.ModelSerializer):
             return obj.user.get_user_display_short_name()
         return obj.full_name
 
+class SemesterScoreSerializer(serializers.ModelSerializer):
+    """Строка истории баллов студента за один семестр."""
+    semester_id = serializers.IntegerField(source='semester.id', read_only=True)
+    semester_label = serializers.CharField(source='semester.label', read_only=True)
+    is_current = serializers.BooleanField(source='semester.is_current', read_only=True)
+    start_date = serializers.DateField(source='semester.start_date', read_only=True)
+    end_date = serializers.DateField(source='semester.end_date', read_only=True)
+
+    class Meta:
+        model = SemesterScore
+        fields = [
+            'semester_id', 'semester_label', 'is_current', 'start_date', 'end_date',
+            'total_score', 'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score',
+        ]
+
+class SemesterRatingSerializer(serializers.ModelSerializer):
+    """
+    Рейтинг за прошлый семестр: сериализует строки SemesterScore в тот же формат, что и
+    StudentRatingSerializer, чтобы фронтенд обрабатывал текущий и исторический рейтинг одинаково.
+    """
+    id = serializers.IntegerField(source='student.id', read_only=True)
+    user_id = serializers.IntegerField(source='student.user_id', read_only=True)
+    full_name = serializers.CharField(source='student.full_name', read_only=True)
+    short_name = serializers.SerializerMethodField()
+    group_id = serializers.IntegerField(source='student.group.id', read_only=True, default=0)
+    group = serializers.CharField(source='student.group.name', read_only=True, default="Без группы")
+    course = serializers.IntegerField(source='student.group.course', read_only=True, default=0)
+    faculty = serializers.CharField(source='student.faculty.short_name', read_only=True, default="—")
+    faculty_id = serializers.IntegerField(source='student.faculty.id', read_only=True, default=0)
+
+    class Meta:
+        model = SemesterScore
+        fields = [
+            'id', 'user_id',
+            'full_name', 'short_name',
+            'group', 'group_id',
+            'course',
+            'faculty', 'faculty_id',
+            'total_score', 'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score',
+        ]
+
+    @extend_schema_field(serializers.CharField())
+    def get_short_name(self, obj):
+        if obj.student.user:
+            return obj.student.user.get_user_display_short_name()
+        return obj.student.full_name
+
 class DocumentFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentFile
@@ -231,6 +278,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     documents = DocumentSerializer(many=True, read_only=True, source='user.documents')
     total_score = serializers.ReadOnlyField()
     short_name = serializers.SerializerMethodField()
+    semester_history = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
@@ -241,6 +289,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'group', 'group_id', 'course', 'faculty',
             'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score', 'total_score',
             'documents',
+            'semester_history',
         ]
 
     @extend_schema_field(serializers.CharField())
@@ -248,6 +297,15 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         if obj.user:
             return obj.user.get_user_display_short_name()
         return obj.full_name
+
+    @extend_schema_field(SemesterScoreSerializer(many=True))
+    def get_semester_history(self, obj):
+        rows = (
+            obj.semester_scores
+            .select_related('semester')
+            .order_by('-semester__start_date')
+        )
+        return SemesterScoreSerializer(rows, many=True).data
 
 class AchievementUploadSerializer(serializers.Serializer):
     record_book = serializers.CharField(required=True)
@@ -304,6 +362,7 @@ class AchievementUploadSerializer(serializers.Serializer):
                 user=user,
                 status=status_obj,
                 score=score,
+                semester=AcademicYear.get_current(),
                 **validated_data
             )
 

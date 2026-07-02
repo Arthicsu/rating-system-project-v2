@@ -12,7 +12,7 @@ from core.eos.syncers import StudentSyncer
 from university_structure.models import Faculty, Department, Group, Staff
 from users.models import User
 
-from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus, DocumentFile
+from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus, DocumentFile, SemesterScore
 
 import logging
 
@@ -22,45 +22,37 @@ logger = logging.getLogger(__name__)
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
     list_display = ('full_name', 'record_book', 'group', 'admission_year', 'status', 'total_score')
-    list_filter = ('faculty', 'admission_year', 'group__course', 'status')
+    list_filter = ('group__specialty__faculty', 'admission_year', 'group__course', 'status')
     search_fields = ('full_name', 'record_book', 'email')
     readonly_fields = ('created_at', 'total_score')
     raw_id_fields = ('user', 'group', 'faculty', 'department')
-    actions = ['import_csv_action', 'sync_eos_students_action']
-    change_list_template = "admin/csv_import.html"
-    no_selection_actions = ("import_csv_action", "sync_eos_students_action")
+    actions = []
+    change_list_template = "admin/import_actions.html"
+    eos_syncer_class = StudentSyncer
+    eos_sync_label = "Обновить студентов из ЭОС (не работает)"
 
     def get_urls(self):
         urls = super().get_urls()
-        return self.get_import_urls() + urls
-
-    @admin.action(description="Обновить студентов из ЭОС (пока 401)")
-    def sync_eos_students_action(self, request, queryset):
-        try:
-            self._report(request, [StudentSyncer().run()])
-        except Exception as e:
-            self.message_user(request, f"Ошибка синхронизации студентов с ЭОС: {e}", messages.ERROR)
+        return self.get_import_urls() + self.get_eos_urls() + urls
 
     def process_import_csv(self, request, data):
         new_credentials = []
+        skipped_no_group = []
         total_rows = len(data)
         logger.info(f"Начало обработки: {total_rows} строк.")
 
         with transaction.atomic():
             g_student, _ = DjangoGroup.objects.get_or_create(name='Student')
-
+            
+            # select_related тянет сразу и специальность, и кафедру за 1 запрос
             groups_map = {
                 g.external_id: g
-                for g in Group.objects.all()
+                for g in Group.objects.select_related('specialty__department').all()
             }
-            # кешируем факультеты и кафедры: берём по прямым кодам из csv
+            # кешируем все факультеты
             faculties_map = {
                 f.external_id: f
                 for f in Faculty.objects.all()
-            }
-            departments_map = {
-                d.external_id: d
-                for d in Department.objects.all()
             }
             
             # кешируем существующих студентов по external_id
@@ -92,13 +84,25 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 group = groups_map.get(group_code)
 
                 if not group:
+                    # Группа ещё не заведена в БД (например, ИВТ-401 нового учебного года
+                    # не синхронизирована). Не создаём/не трогаем студента, но фиксируем пропуск,
+                    # чтобы работник увидел, что нужно сначала синхронизировать структуру.
+                    full_name = f"{last_name} {first_name} {patronymic}".strip()
+                    skipped_no_group.append({
+                        'external_id': external_id,
+                        'group_code': group_code,
+                        'full_name': full_name,
+                    })
+                    logger.warning(
+                        f"Импорт: студент {external_id} ({full_name}) пропущен - группа с кодом '{group_code}' не найдена в БД. Сначала синхронизируйте структуру (факультеты/кафедры/группы)."
+                    )
                     continue
 
                 faculty_code = clean_val('КодФакультета')
                 faculty = faculties_map.get(faculty_code)
                 
-                dept_code = clean_val('Код_Кафедры') or clean_val('КодКафедры')
-                department = departments_map.get(dept_code) if dept_code else None
+                # Кафедра подтянется без запроса к БД, так как мы использовали select_related выше
+                department = group.specialty.department if group and group.specialty else None
 
                 is_monitor = clean_val('Староста') == '1'
                 admission_year_raw = clean_val('Год_Поступления')
@@ -126,33 +130,44 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                         patronymic=patronymic,
                     )
                     user.groups.add(g_student)
-                    # Это для списка логирования ФИО, группы, логина и пароля,
                     new_credentials.append({
                         'full_name': f"{last_name} {first_name} {patronymic}".strip(),
                         'email': email,
+                        'faculty': faculty.short_name if faculty else '-',
+                        'department': department.short_name if department else '-',
+                        'course': group.course,
+                        'group': group.name,
                         'group_code': group_code,
-                        'group': group,
+                        'record_book': record_book or '-',
                         'admission_year': admission_year,
                         'login': username,
                         'password': password
                     })
 
-                # 2. Теперь сохраняем студента через update_or_create
+                # сохраняем студента через update_or_create
+                defaults = {
+                    "user": user,
+                    "full_name": user.get_full_username(),
+                    "group": group,
+                    "email": email,
+                    "record_book": record_book,
+                    "status": str(status),
+                    "status_decoding": status_decoding,
+                    "admission_year": admission_year,
+                    "is_monitor": is_monitor,
+                }
+                if faculty is not None:
+                    defaults["faculty"] = faculty
+                elif faculty_code:
+                    logger.warning(
+                        f"Импорт: студент {external_id} — факультет с кодом '{faculty_code}' не найден в БД, прежняя привязка к факультету сохранена."
+                    )
+                if department is not None:
+                    defaults["department"] = department
+
                 Student.objects.update_or_create(
                     external_id=external_id,
-                    defaults={
-                        "user": user,
-                        "full_name": user.get_full_username(),
-                        "group": group,
-                        "department": department,
-                        "email": email,
-                        "faculty": faculty,
-                        "record_book": record_book,
-                        "status": str(status),
-                        "status_decoding": status_decoding,
-                        "admission_year": admission_year,
-                        "is_monitor": is_monitor,
-                    }
+                    defaults=defaults,
                 )
 
                 if index % 50 == 0 or index == total_rows:
@@ -161,11 +176,20 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                     logger.info(f"Progress: {index}/{total_rows}")
         
         print("Обработка завершена успешно.\n")
+        if skipped_no_group:
+            logger.warning(
+                f"Импорт: пропущено студентов из-за отсутствующих в БД групп: {len(skipped_no_group)}."
+            )
+            self.message_user(
+                request,
+                f"Пропущено {len(skipped_no_group)} строк(и): группа не найдена в БД. Синхронизируйте структуру (факультеты/кафедры/группы) и повторите импорт. Подробности - в логах бэкенда.",
+                messages.WARNING,
+            )
         if new_credentials:
             filename, _ = log_generated_passwords(new_credentials, prefix="students")
             self.message_user(
                 request,
-                f"Файл с паролями: config-files/import_passwords/{filename}",
+                f"Файл с паролями для новых студентов: {filename} (в shared/import_passwords).",
                 messages.SUCCESS
             )
         else:
@@ -358,10 +382,10 @@ class DocumentFileInline(admin.TabularInline):
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = ('get_student', 'get_group', 'get_faculty', 'achievement', 'category', 'score', 'status', 'date_received')
-    list_filter = ('status', 'category', 'sub_type', 'date_received')
+    list_display = ('get_student', 'get_group', 'get_faculty', 'achievement', 'category', 'score', 'status', 'semester', 'date_received')
+    list_filter = ('status', 'category', 'sub_type', 'semester', 'date_received')
     search_fields = ('user__student_profile__full_name', 'user__student_profile__record_book', 'achievement')
-    raw_id_fields = ('user', 'verified_by', 'category', 'sub_type', 'level', 'result', 'doc_type', 'status')
+    raw_id_fields = ('user', 'verified_by', 'category', 'sub_type', 'level', 'result', 'doc_type', 'status', 'semester')
     inlines = [DocumentFileInline]
 
     @admin.display(description='Студент')
@@ -381,6 +405,16 @@ class DocumentAdmin(admin.ModelAdmin):
     @admin.display(description='Факультет')
     def get_faculty(self, obj):
         try:
-            return obj.user.student_profile.faculty
+            return obj.user.student_profile.group.specialty.faculty
         except Exception:
             return '-'
+
+
+@admin.register(SemesterScore)
+class SemesterScoreAdmin(admin.ModelAdmin):
+    """История баллов по семестрам. Только для просмотра — правится через модерацию/ролловер."""
+    list_display = ('student', 'semester', 'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score', 'total_score')
+    list_filter = ('semester',)
+    search_fields = ('student__full_name', 'student__record_book')
+    raw_id_fields = ('student', 'semester')
+    readonly_fields = ('total_score',)

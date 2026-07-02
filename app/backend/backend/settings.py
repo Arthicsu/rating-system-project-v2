@@ -20,6 +20,10 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Единый каталог для данных, которые нужно расшаривать с ПК работника ОИ
+# (логи, бэкапы, дампы, пароли импорта студентов). В контейнерах монтируется как /shared.
+SHARED_DIR = Path(os.getenv('SHARED_DIR', '/shared'))
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -225,6 +229,9 @@ STORAGES = {
     },
 }
 
+# logging.FileHandler не создаёт директорию сам — гарантируем её наличие.
+(SHARED_DIR / 'logs').mkdir(parents=True, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -232,7 +239,7 @@ LOGGING = {
         'file': {
             'level': os.getenv("DJANGO_LOG_LEVEL", "INFO"),
             'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs/django.log',
+            'filename': SHARED_DIR / 'logs' / 'django.log',
         },
     },
     'root': {
@@ -267,16 +274,21 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_SOFT_TIME_LIMIT = 60 * 25
 CELERY_TASK_TIME_LIMIT = 60 * 30
 
-BACKUPS_DIR = os.getenv('BACKUPS_DIR', '/backups')
+BACKUPS_DIR = os.getenv('BACKUPS_DIR', str(SHARED_DIR / 'backups'))
 BACKUP_KEEP = int(os.getenv('BACKUP_KEEP', 3))
 
 CELERY_BEAT_SCHEDULE = {
     'backup-all-daily': {
         'task': 'core.tasks.backup_all',
-        # Пример из документации: crontab(minute='*/10',hour='3,17,22', day_of_week='thu,fri') 
+        # Пример из документации: crontab(minute='*/10',hour='3,17,22', day_of_week='thu,fri')
         # То есть: Execute every ten minutes, but only between 3-4 am, 5-6 pm, and 10-11 pm on Thursdays or Fridays.
         # У нас по умолчанию в 3:00 по МСК
-        'schedule': crontab(hour=int(os.getenv('SCHEDULE_HOUR', 3)), minute=int(os.getenv('SCHEDULE_MINUTE', 0))), 
+        'schedule': crontab(hour=int(os.getenv('SCHEDULE_HOUR', 3)), minute=int(os.getenv('SCHEDULE_MINUTE', 0))),
+    },
+    # Ежедневная проверка: если текущий семестр закончился — авто-ролловер на следующий.
+    'auto-semester-rollover-daily': {
+        'task': 'students.tasks.auto_rollover_semester',
+        'schedule': crontab(hour=int(os.getenv('ROLLOVER_HOUR', 4)), minute=int(os.getenv('ROLLOVER_MINUTE', 30))),
     },
 }
 
@@ -290,6 +302,8 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = 'media/'
 CONFIG_FILE_ROOT = os.path.join(BASE_DIR, 'config-files')
+# Пароли и данные для листочков со студентами пишем в общий каталог /shared/import_passwords.
+IMPORT_PASSWORDS_DIR = os.getenv('IMPORT_PASSWORDS_DIR', str(SHARED_DIR / 'import_passwords'))
 
 AUTH_USER_MODEL = 'users.User'
 

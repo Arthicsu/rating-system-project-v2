@@ -1,28 +1,45 @@
-from django.contrib import admin, messages
-from django.contrib.admin import helpers
+from django.contrib import messages
 from django.shortcuts import redirect
+from django.urls import path
 
 from . import syncers
 
 
 class EosSyncActionsMixin:
     """
-    Действия django-admin (в селекторе "Действие", рядом с "Удалить выбранные):
-        - "Импорт из CSV": редирект на форму выбора файла;
-        - "Обновить из ЭОС": self.eos_syncer_class;
-        - "Обновить ВСЁ из ЭОС": синхронизация всей структуры (facultie's - department's - group's).
+    Кнопки-«object-tools» в правом верхнем углу списка (рядом с «Импорт из CSV»),
+    оформленные тем же стилем addlink (см. admin/import_actions.html):
+        - «Обновить из ЭОС» — синхронизация текущей таблицы (self.eos_syncer_class);
+        - «Обновить ВСЁ из ЭОС» — синхронизация всей структуры
+          (faculties → departments → groups), показывается только при eos_sync_all = True.
+
+    Раньше это были пункты выпадающего списка «Действие» и отличались по стилю от
+    кнопки импорта — теперь это обычные ссылки-кнопки (GET → выполнить → вернуться к списку).
+    Шаблон читает флаги напрямую из ModelAdmin (`cl.model_admin.eos_syncer_class` и т.п.).
     """
     eos_syncer_class = None
-    # действия, которым не нужен выбор строк
-    no_selection_actions = ("import_csv_action", "sync_eos_action", "sync_eos_all_action")
+    # Подпись кнопки синхронизации текущей таблицы (можно переопределить в ModelAdmin).
+    eos_sync_label = "Обновить из ЭОС"
+    # Показывать ли кнопку «Обновить ВСЁ из ЭОС (структура)».
+    eos_sync_all = False
 
-    def changelist_view(self, request, extra_context=None):
-        if request.method == "POST" and request.POST.get("action") in self.no_selection_actions:
-            if not request.POST.getlist(helpers.ACTION_CHECKBOX_NAME):
-                post = request.POST.copy()
-                post.setlist(helpers.ACTION_CHECKBOX_NAME, ["0"])
-                request.POST = post
-        return super().changelist_view(request, extra_context)
+    def get_eos_urls(self):
+        """URL-ы кнопок синхронизации (по образцу CsvImport.get_import_urls)."""
+        model_name = self.model._meta.model_name
+        urls = []
+        if self.eos_syncer_class:
+            urls.append(path(
+                f'sync-eos-{model_name}/',
+                self.admin_site.admin_view(self.sync_eos_view),
+                name=f'sync-eos-{model_name}',
+            ))
+        if self.eos_sync_all:
+            urls.append(path(
+                f'sync-eos-all-{model_name}/',
+                self.admin_site.admin_view(self.sync_eos_all_view),
+                name=f'sync-eos-all-{model_name}',
+            ))
+        return urls
 
     def _report(self, request, stats_list):
         for stats in stats_list:
@@ -31,23 +48,21 @@ class EosSyncActionsMixin:
             for err in stats.errors[:15]:
                 self.message_user(request, f"{stats.entity}: {err}", messages.ERROR)
 
-    @admin.action(description="Импорт из CSV")
-    def import_csv_action(self, request, queryset):
-        return redirect(f"import-{self.model._meta.model_name}/")
-
-    @admin.action(description="Обновить из ЭОС")
-    def sync_eos_action(self, request, queryset):
+    def sync_eos_view(self, request):
+        """Синхронизировать текущую таблицу из ЭОС и вернуться к списку."""
         if not self.eos_syncer_class:
             self.message_user(request, "Синхронизатор не настроен", messages.ERROR)
-            return
+            return redirect("..")
         try:
             self._report(request, [self.eos_syncer_class().run()])
         except Exception as e:
             self.message_user(request, f"Ошибка синхронизации с ЭОС: {e}", messages.ERROR)
+        return redirect("..")
 
-    @admin.action(description="Обновить ВСЁ из ЭОС (структура)")
-    def sync_eos_all_action(self, request, queryset):
+    def sync_eos_all_view(self, request):
+        """Синхронизировать всю структуру (факультеты → кафедры → группы) из ЭОС."""
         try:
             self._report(request, syncers.run_all())
         except Exception as e:
             self.message_user(request, f"Ошибка синхронизации с ЭОС: {e}", messages.ERROR)
+        return redirect("..")

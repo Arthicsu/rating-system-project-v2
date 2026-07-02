@@ -26,8 +26,8 @@ from core.throttling import LoginRateThrottle
 from university_structure.models import Faculty, Group
 from students.models import Category
 from .serializers import StudentRegistrationSerializer, LoginRequestSerializer, UserResponseSerializer, ForgotPasswordRequestSerializer
-from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
-from university_structure.serializers import FacultySerializer, DepartmentSerializer, GroupSerializer, StaffSerializer, RatingFiltersResponseSerializer
+from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, SemesterRatingSerializer, CategorySerializer
+from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RatingFiltersResponseSerializer
 from core.pagination import StandardResultsSetPagination
 from core.students_query_set_mixin import StudentWithAccessMixin, StudentRatingQuerySetMixin
 from .services import send_recovery_password
@@ -183,7 +183,7 @@ class RatingFiltersAPIView(GenericAPIView):
     def get(self, request):
         faculties = Faculty.objects.values('id', 'short_name', 'name')
         courses = Group.objects.values_list('course', flat=True).distinct().order_by('course')
-        groups = Group.objects.filter(students__isnull=False).select_related('faculty').distinct()
+        groups = Group.objects.filter(students__isnull=False).select_related('specialty__faculty').distinct()
         
         serializer = RatingFiltersResponseSerializer({
             'faculties': faculties,
@@ -212,6 +212,12 @@ class RatingListAPIView(StudentRatingQuerySetMixin, ListAPIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     serializer_class = StudentRatingSerializer
+
+    def get_serializer_class(self):
+        # Прошлый семестр отдаём из истории (SemesterScore) тем же форматом, что и текущий.
+        if self.get_requested_past_semester_id():
+            return SemesterRatingSerializer
+        return StudentRatingSerializer
 
     @extend_schema(
         responses={200: StudentRatingSerializer(many=True)}

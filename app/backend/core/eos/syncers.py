@@ -10,7 +10,7 @@ from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group as DjangoGroup
 
-from university_structure.models import Faculty, Department, Group
+from university_structure.models import Faculty, Department, Group, Specialty
 from students.models import Student
 from .client import EOSClient
 
@@ -131,7 +131,6 @@ class GroupSyncer(BaseSyncer):
 
     def __init__(self, client=None):
         super().__init__(client)
-        self._faculties = {f.external_id: f for f in Faculty.objects.all()}
         # "Очная форма" -> "1" (для education_form). Если справочник недоступен — пропускаем код формы.
         self._forms = {}
         try:
@@ -155,12 +154,20 @@ class GroupSyncer(BaseSyncer):
             "course": item.get("course") or 1,
             "academic_year": item.get("year") or "",
             "education_form_decode": form_decode,
-            "faculty": self._faculties.get(str(item.get("facultyID"))),
         }
+        spec_shifr = (item.get("specialityShifr") or "").strip()
+        if spec_shifr:
+            specialty = Specialty.objects.filter(code_fgos=spec_shifr).first()
+            if specialty:
+                defaults["specialty"] = specialty
         form_code = self._forms.get(form_decode)
         if form_code:
             defaults["education_form"] = form_code[:5]
-        # education_level/decode и education_duration GroupsList не отдаёт — не трогаем.
+        # GroupsList не отдаёт education_level/decode и education_duration — ставим fallback.
+        defaults.setdefault("education_level", "-")
+        defaults.setdefault("education_level_decode", "")
+        defaults.setdefault("education_duration", "")
+        defaults.setdefault("education_form", "-")
         _, created = Group.objects.update_or_create(
             external_id=str(ext),
             defaults=defaults,

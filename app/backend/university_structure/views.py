@@ -15,7 +15,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
 from .serializers import (
-    FacultySerializer, DepartmentSerializer, GroupSerializer,
+    FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer,
     StaffSerializer, RejectionReasonSerializer, AcademicYearSerializer,
     ReviewDocumentRequestSerializer, StaffProfileResponseSerializer,
     ReviewDocumentResponseSerializer, ReviewDocumentErrorSerializer
@@ -29,6 +29,7 @@ from core.export_rating_excel import generate_rating_excel_pandas
 from core.students_query_set_mixin import StudentFilterMixin, StudentWithAccessMixin, StudentRatingQuerySetMixin, DashboardStatsQuerySetMixin
 from core.scope_permission_mixin import ScopePermissionMixin
 from core.permissions import IsStaffProfile
+from students.services import credit_document, debit_document
 
 
 pagination_class = StandardResultsSetPagination
@@ -91,7 +92,8 @@ class RatingExportAPIView(StudentRatingQuerySetMixin, GenericAPIView):
         }
     )
     def get(self, request, *args, **kwargs):
-        queryset = self.get_base_rating_queryset()
+        # Экспорт всегда по текущему семестру (генератор ожидает объекты Student).
+        queryset = self.get_base_rating_queryset(allow_history=False)
         excel_bytes = generate_rating_excel_pandas(queryset)
 
         response = HttpResponse(
@@ -158,7 +160,7 @@ class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
             * Статус меняется на 'rejected'.
             * Указанные причины сохраняются в rejection_reason.
         """
-        doc = get_object_or_404(Document.objects.select_related('status', 'category', 'user__student_profile', 'user__student_profile__faculty', 'user__student_profile__department'), id=doc_id)
+        doc = get_object_or_404(Document.objects.select_related('status', 'category', 'semester', 'user__student_profile', 'user__student_profile__faculty', 'user__student_profile__department'), id=doc_id)
         
         if not self.check_staff_scope(request.user, doc):
             return Response({"error": "Документ находится за пределами вашей области модерации"}, status=status.HTTP_403_FORBIDDEN)
@@ -171,64 +173,51 @@ class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
         status_approved = get_object_or_404(DocumentStatus, code='approved')
         status_rejected = get_object_or_404(DocumentStatus, code='rejected')
 
-        student = getattr(doc.user, 'student_profile', None)
-        current_status = doc.status.code
+        # позже заменим ответ
+        if request.user.is_dept_staff:
+            if doc.status.code != 'pending':
+                return Response({"error": "Кафедра может обрабатывать только новые заявки (pending)"}, status=status.HTTP_400_BAD_REQUEST)        
+            
+            if action == 'approve':
+                doc.status = status_approved
+                doc.rejection_reason = ''
+                doc.verified_by = request.user
+                doc.save()
 
-        def adjust_score(add_points: bool):
-            if student is None:
-                return
-            field_name = f"{doc.category.code}_score"
-            if hasattr(student, field_name):
-                delta = doc.score if add_points else -doc.score
-                setattr(student, field_name, max(0, getattr(student, field_name) + delta))
-                student.save()
+                # Баллы начисляются в семестр заявки (текущий — так же обновит кэш Student).
+                credit_document(doc)
 
-        if action == 'approve':
-            if current_status == 'approved':
-                return Response({"error": "Документ уже подтверждён"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": "Документ подтвержден кафедрой, баллы начислены"}, status=status.HTTP_200_OK)
 
-            if current_status == 'pending' and not request.user.is_dept_staff:
-                return Response(
-                    {"error": "Подтверждать новые заявки может только кафедра"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            elif action == 'reject':
+                reasons = request.data.get('reasons', [])
+                reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
+                
+                doc.status= status_rejected
+                doc.rejection_reason = reason_text
+                doc.verified_by = request.user
+                doc.save()
+                
+                return Response({"message": "Документ отклонен кафедрой"}, status=status.HTTP_200_OK)
+            return Response({"error": "Неверное действие для кафедры"}, status=status.HTTP_400_BAD_REQUEST)
+    
+        if request.user.is_dean or request.user.is_rectorate:
+            if action == 'reject':
+                if doc.status.code == 'approved':
+                    # Списываем баллы из семестра заявки (текущий — так же обновит кэш Student).
+                    debit_document(doc)
 
-            doc.status = status_approved
-            doc.rejection_reason = ''
-            doc.verified_by = request.user
-            doc.save()
-            adjust_score(add_points=True)
-
-            return Response({"message": "Документ подтверждён, баллы начислены"}, status=status.HTTP_200_OK)
-
-        reasons = request.data.get('reasons', [])
-        reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
-
-        if current_status == 'rejected':
-            return Response({"error": "Документ уже отклонён"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not reason_text:
-            return Response({"error": "Укажите причину отклонения"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if current_status == 'approved':
-            adjust_score(add_points=False)
-            if request.user.is_dean or request.user.is_rectorate:
-                doc.status = status_pending
-                message = "Решение отменено. Заявка возвращена на рассмотрение, баллы вычтены."
-            else:
-                doc.status = status_rejected
-                message = "Документ отклонён, баллы вычтены."
-        elif current_status == 'pending':
-            doc.status = status_rejected
-            message = "Документ отклонён."
-        else:
-            return Response({"error": "Нельзя отклонить документ в текущем статусе"}, status=status.HTTP_400_BAD_REQUEST)
-
-        doc.rejection_reason = reason_text
-        doc.verified_by = request.user
-        doc.save()
-
-        return Response({"message": message}, status=status.HTTP_200_OK)
+                reasons = request.data.get('reasons', [])
+                reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
+                
+                doc.status = status_pending 
+                doc.rejection_reason = reason_text
+                doc.verified_by = request.user
+                doc.save()
+                
+                return Response({"message": "Решение отменено руководством. Заявка возвращена на рассмотрение, баллы вычтены."}, status=status.HTTP_200_OK)
+            return Response({"error": "Руководство может только отклонять заявки"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Неизвестная ошибка"}, status=status.HTTP_400_BAD_REQUEST)
 
 @method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
 class RejectionReasonListView(ListAPIView):
@@ -244,9 +233,12 @@ class RejectionReasonListView(ListAPIView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-@method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
+@method_decorator(cache_page(60 * 60 * 2), name='dispatch')
 class AcademicYearListView(ListAPIView):
-    permission_classes = [IsStaffProfile]
+    """
+    Список учебных периoдов для селектора семестра в рейтинге/профиле
+    """
+    permission_classes = [IsAuthenticated]
     authentication_classes = [SessionAuthentication]
     serializer_class = AcademicYearSerializer
     queryset = AcademicYear.objects.all()
@@ -280,24 +272,23 @@ class FilteredGroupListAPIView(StudentFilterMixin, ListAPIView):
         has_students_subquery = Student.objects.filter(group=OuterRef('pk'))
         
         # Основной запрос без join таблицы студентов
-        queryset = Group.objects.select_related('faculty').annotate(
+        queryset = Group.objects.select_related('specialty__faculty').annotate(
             has_students=Exists(has_students_subquery)
         ).filter(has_students=True).order_by('course', 'name')
 
         # Фильтрация по параметрам (course, faculty_id)
         if params.get('faculty_id') and params.get('faculty_id') != 'all':
-            queryset = queryset.filter(faculty_id=params.get('faculty_id'))
+            queryset = queryset.filter(specialty__faculty_id=params.get('faculty_id'))
         if params.get('course') and params.get('course') != 'all':
             queryset = queryset.filter(course=params.get('course'))
         if params.get('group_id') and params.get('group_id') != 'all':
             queryset = queryset.filter(id=params.get('group_id'))
 
-        # Кафедра видит группы, в которых есть её студенты (у группы нет прямой кафедры).
         return self.scope_filters_queryset(
             user, queryset,
-            faculty_field='faculty',
-            dept_field='students__department'
-        ).distinct()
+            faculty_field='specialty__faculty',
+            dept_field='specialty__department'
+        )
 
 class FilteredStudentListAPIView(StudentWithAccessMixin, ListAPIView):
     permission_classes = [IsStaffProfile]

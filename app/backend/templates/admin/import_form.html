@@ -1,5 +1,11 @@
 {% extends "admin/base_site.html" %}
 {% block content %}
+<ul class="messagelist">
+    <li class="warning">
+        После нажатия «Начать импорт» страница может долго грузиться из-за добавления/обновления записей.
+        Дополнительная информация о ходе импорта — в логах бэкенда.
+    </li>
+</ul>
 <form action="." method="POST" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}

@@ -1,9 +1,6 @@
-from datetime import datetime, time
-
 from django.db.models import Prefetch, Avg, Count, Q
-from django.utils import timezone
 
-from students.models import Student, Category, Document
+from students.models import Student, Category, Document, SemesterScore
 from university_structure.models import AcademicYear
 from students.serializers import StudentProfileSerializer
 
@@ -56,31 +53,34 @@ class StudentFilterMixin:
             
         return data
 
-    def apply_filters(self, queryset):
+    def apply_filters(self, queryset, prefix=''):
         """
         Парсинг параметров и фильтрация по факультету, курсу, группе или поиску.
+
+        `prefix` позволяет применять те же фильтры к связанным моделям — например
+        'student__' для строк SemesterScore при историческом рейтинге.
         """
         params = self.request.query_params
         filters = {}
-        
+
         if params.get('faculty_id') and params.get('faculty_id') != 'all':
-            filters['faculty__id'] = params.get('faculty_id')
+            filters[f'{prefix}faculty__id'] = params.get('faculty_id')
         if params.get('course') and params.get('course') != 'all':
-            filters['group__course'] = params.get('course')
+            filters[f'{prefix}group__course'] = params.get('course')
         if params.get('group_id') and params.get('group_id') != 'all':
-            filters['group__id'] = params.get('group_id')
-            
+            filters[f'{prefix}group__id'] = params.get('group_id')
+
         queryset = queryset.filter(**filters)
 
         search = params.get('search')
         if search:
             queryset = queryset.filter(
-                Q(full_name__icontains=search) | Q(record_book__icontains=search)
+                Q(**{f'{prefix}full_name__icontains': search}) | Q(**{f'{prefix}record_book__icontains': search})
             )
 
         return queryset
 
-    def scope_filters_queryset(self, user, queryset, faculty_field='faculty', dept_field='department'):
+    def scope_filters_queryset(self, user, queryset, faculty_field='faculty', dept_field='group__specialty__department'):
         """
         Универсальный метод фильтрации по роли.
         Позволяет переопределять поля (kwargs), чтобы работать и со Student, и с Group.
@@ -99,14 +99,36 @@ class StudentFilterMixin:
         
 class StudentRatingQuerySetMixin(StudentFilterMixin):
     """
-    Выборка для обшего рейтинга студентов. 
-    Применяются фильтры apply_filters и дополнительно по категории достижения
+    Выборка для обшего рейтинга студентов.
+    Применяются фильтры apply_filters и дополнительно по категории достижения.
+    Текущий семестр читается из кэша на Student; прошлый — из истории SemesterScore.
     """
-    def get_base_rating_queryset(self):
+    def get_requested_past_semester_id(self):
+        """
+        id запрошенного ПРОШЛОГО семестра (для просмотра истории рейтинга) либо None,
+        если параметр не задан или указывает на текущий семестр.
+        """
+        semester_id = self.request.query_params.get('semester')
+        if not semester_id:
+            return None
+        current = AcademicYear.get_current()
+        if current is not None and str(current.id) == str(semester_id):
+            return None
+        return semester_id
+
+    def get_base_rating_queryset(self, allow_history=True):
         category = self.request.query_params.get('category', 'common')
-        
+
+        past_semester_id = self.get_requested_past_semester_id() if allow_history else None
+        if past_semester_id is not None:
+            # Исторический рейтинг: строки SemesterScore выбранного семестра.
+            queryset = SemesterScore.objects.filter(semester_id=past_semester_id).select_related(
+                'student', 'student__group', 'student__faculty', 'student__user'
+            )
+            queryset = self.apply_filters(queryset, prefix='student__')
+            return queryset.by_category(category)
+
         queryset = Student.objects.select_related('group', 'faculty')
-        
         queryset = self.apply_filters(queryset)
         return queryset.by_category(category)
 
@@ -116,7 +138,7 @@ class StudentWithAccessMixin(StudentFilterMixin):
     """
     def get_allowed_students(self, user):
         queryset = Student.objects.select_related(
-            'group', 'faculty', 'department', 'user'
+            'group__specialty__faculty', 'faculty', 'user'
         ).order_by('user__last_name', 'user__first_name')
 
         if not hasattr(user, 'staff_profile'):
@@ -183,30 +205,23 @@ class DashboardStatsQuerySetMixin(StudentWithAccessMixin):
         Получить queryset документов на модерацию.
         """
         filtered_queryset = self.get_filtered_students_queryset(user)
-        
-        # Фильтрация по академическому году
-        academic_year_id = self.request.query_params.get('academic_year')
-        date_filter = {}
-        
-        if academic_year_id:
-            ay = AcademicYear.objects.filter(id=academic_year_id).first()
-            if ay:
-                # uploaded_at - DateTimeField при USE_TZ=True, поэтому границы переводим в aware-datetime (конец интервала включает весь день)
-                start = timezone.make_aware(datetime.combine(ay.start_date, time.min))
-                end = timezone.make_aware(datetime.combine(ay.end_date, time.max))
-                date_filter = {
-                    'uploaded_at__range': (start, end)
-                }
-        
+
+        # Фильтрация по семестру (по умолчанию — текущий). Поддерживаем оба имени параметра.
+        semester_id = self.request.query_params.get('semester') or self.request.query_params.get('academic_year')
+        if not semester_id:
+            current = AcademicYear.get_current()
+            semester_id = current.id if current else None
+        semester_filter = {'semester_id': semester_id} if semester_id else {}
+
         # Документы - всегда по отфильтрованным
         doc_status = 'pending' if user.is_dept_staff else 'approved'
-        
+
         qs = Document.objects.filter(
             user__student_profile__in=filtered_queryset,
             status__code=doc_status,
-            **date_filter
+            **semester_filter
         ).select_related(
-            'user__student_profile', 
+            'user__student_profile',
             'user__student_profile__group'
         )
 

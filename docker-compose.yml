@@ -5,8 +5,7 @@ services:
     volumes:
       - ./app/backend:/app
       - static_files:/app/staticfiles
-      - backend_logs:/app/logs
-      - ./dumps:/dumps
+      - ${SHARED_HOST_DIR:-./shared}:/shared
     deploy:
       resources:
         limits:
@@ -33,8 +32,7 @@ services:
     command: celery -A backend worker --beat --pool=solo --loglevel=info --schedule=/tmp/celerybeat-schedule --without-gossip --without-mingle --without-heartbeat
     volumes:
       - ./app/backend:/app
-      - backend_logs:/app/logs
-      - ./backups:/backups
+      - ${SHARED_HOST_DIR:-./shared}:/shared
     env_file:
       - .env
     deploy:
@@ -81,7 +79,7 @@ services:
     container_name: postgres_db
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-      - ./dumps/dump_prod.sql:/docker-entrypoint-initdb.d/dump.sql
+      - ${SHARED_HOST_DIR:-./shared}/dumps/dump_prod.sql:/docker-entrypoint-initdb.d/dump.sql
     deploy:
       resources:
         limits:
@@ -185,4 +183,3 @@ volumes:
   static_files:
   nginx_cache:
   next_cache:
-  backend_logs:

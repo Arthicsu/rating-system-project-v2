@@ -5,7 +5,7 @@
 """
 import gzip, tarfile, tempfile
 import os, logging
-import shutil, subprocess,
+import shutil, subprocess
 from datetime import datetime
 from pathlib import Path
 

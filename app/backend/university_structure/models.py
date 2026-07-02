@@ -1,4 +1,5 @@
 ﻿from django.db import models
+from django.db.models import Q
 from django.conf import settings
 
 class Faculty(models.Model):
@@ -34,10 +35,29 @@ class Department(models.Model):
         verbose_name= "Кафедра"
         verbose_name_plural = "Кафедры"
 
+class Specialty(models.Model):
+    external_id = models.CharField("Код специальности", max_length=50, unique=True, help_text="Код специальности из БД вуза")
+    code_fgos = models.CharField("Код по ФГОС", max_length=20)
+    name = models.CharField("Название специальности", max_length=255)
+    short_name = models.CharField("Краткое название", max_length=100, blank=True, null=True)
+    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, verbose_name="Факультет")
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, verbose_name="Кафедра")
+    qualification = models.CharField("Квалификация", max_length=100, blank=True, null=True)
+    specialty_type = models.CharField("Специальность", max_length=255, blank=True, null=True)
+    prefix = models.CharField("Префикс", max_length=20, blank=True, null=True)
+    parent_code = models.CharField("КодРодителя", max_length=50, blank=True, null=True)
+    
+    def __str__(self):
+        return self.name or f"Специальность {self.code_fgos or 'Без названия'}"
+
+    class Meta:
+        verbose_name = "Специальность"
+        verbose_name_plural = "Специальности"
+
 class Group(models.Model):
     external_id = models.CharField("Код группы", max_length=50, unique=True, help_text="Код группы из БД вуза")
     name = models.CharField("Название группы", max_length=50)
-    faculty = models.ForeignKey(Faculty, on_delete=models.SET_NULL, related_name='groups', null=True, blank=True, verbose_name="Факультет")
+    specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Специальность")
     course = models.PositiveSmallIntegerField("Курс")
     academic_year = models.CharField("Учебный год", max_length=20)
     education_duration = models.CharField("Срок обучения", max_length=50, blank=True, null=True)
@@ -90,10 +110,21 @@ class RejectionReason(models.Model):
         verbose_name_plural = "Причины отказа"
 
 class AcademicYear(models.Model):
+    """
+    Учебный период = семестр. Одна строка соответствует одному семестру
+    (например «2025-2026 Осенний», «2025-2026 Весенний»). Флаг is_current
+    помечает активный семестр, к которому привязываются новые заявки и в котором
+    начисляются баллы. Одновременно текущим может быть только один период.
+    """
     label = models.CharField("Название периода", max_length=100)
     start_date = models.DateField("Дата начала")
     end_date = models.DateField("Дата окончания")
     is_current = models.BooleanField("Текущий семестр", default=False)
+
+    @classmethod
+    def get_current(cls):
+        """Активный (текущий) семестр или None, если ни один не помечен."""
+        return cls.objects.filter(is_current=True).first()
 
     def __str__(self):
         return self.label
@@ -102,6 +133,13 @@ class AcademicYear(models.Model):
         verbose_name = "Учебный период"
         verbose_name_plural = "Учебные периоды"
         ordering = ['-start_date']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['is_current'],
+                condition=Q(is_current=True),
+                name='only_one_current_period',
+            ),
+        ]
         indexes = [
             models.Index(fields=['start_date', 'end_date']),
             models.Index(fields=['is_current']),

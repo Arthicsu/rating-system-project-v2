@@ -3,8 +3,8 @@ from django.conf import settings
 from django.utils import timezone
 from django.db.models import F, GeneratedField, IntegerField
 
-from university_structure.models import Group, Faculty, Department
-from core.students_manager import StudentQuerySet
+from university_structure.models import Group, Faculty, Department, AcademicYear
+from core.students_manager import StudentQuerySet, SemesterScoreQuerySet
 import uuid
 
 
@@ -15,6 +15,10 @@ class Student(models.Model):
     Связывает пользователя системы с его академическими и внеучебными данными.
     Хранит информацию о студенте, включая личные данные, учебную группу, кафедру, факультет,
     номер зачётной книжки, контактную информацию и баллы по различным направлениям активности.
+
+    ВАЖНО: поля баллов (`*_score`, `total_score`) — это денормализованный кэш баллов за
+    ТЕКУЩИЙ семестр (AcademicYear.get_current()). Полная история по семестрам хранится в
+    модели SemesterScore; при ролловере семестра эти поля обнуляются, а история сохраняется.
     """
     external_id = models.CharField("Код студента", max_length=50, unique=True, help_text="Код студента из БД вуза")
     # external_id = models.CharField("Код студента", max_length=50, unique=True, null=True, blank=True, help_text="Код студента из БД вуза")
@@ -66,6 +70,50 @@ class Student(models.Model):
     def __str__(self):
         group_name = self.group.name if self.group else "Без группы"
         return f"{self.full_name} ({group_name})"
+
+class SemesterScore(models.Model):
+    """
+    Баллы студента за конкретный семестр (учебный период).
+
+    По строке на каждую пару (студент, семестр). Это историческая запись и одновременно
+    источник рейтинга за прошлые семестры. Живые поля баллов на Student — денормализованный
+    кэш строки ТЕКУЩЕГО семестра; здесь накапливается полная история.
+    """
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='semester_scores', verbose_name="Студент")
+    semester = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name='semester_scores', verbose_name="Семестр")
+
+    academic_score = models.PositiveIntegerField(default=0)
+    research_score = models.PositiveIntegerField(default=0)
+    sport_score = models.PositiveIntegerField(default=0)
+    social_score = models.PositiveIntegerField(default=0)
+    cultural_score = models.PositiveIntegerField(default=0)
+
+    total_score = GeneratedField(
+        expression=(
+            F('academic_score') +
+            F('research_score') +
+            F('sport_score') +
+            F('social_score') +
+            F('cultural_score')
+        ),
+        output_field=IntegerField(),
+        db_persist=True
+    )
+
+    objects = SemesterScoreQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = "Баллы за семестр"
+        verbose_name_plural = "Баллы за семестры"
+        constraints = [
+            models.UniqueConstraint(fields=['student', 'semester'], name='uniq_student_semester'),
+        ]
+        indexes = [
+            models.Index(fields=['semester', '-total_score']),
+        ]
+
+    def __str__(self):
+        return f"{self.student.full_name} — {self.semester} ({self.total_score})"
 
 class MetadataBase(models.Model):
     """
@@ -196,6 +244,11 @@ class Document(models.Model):
     score = models.PositiveIntegerField("Баллы", default=0)
     status = models.ForeignKey(DocumentStatus, on_delete=models.PROTECT, verbose_name="Статус")
     rejection_reason = models.CharField("Причина отказа", blank=True, null=True, max_length=500)
+    semester = models.ForeignKey(
+        AcademicYear, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='documents', verbose_name="Семестр",
+        help_text="Учебный период, к которому относится заявка (проставляется при создании).",
+    )
     
     def __str__(self) -> str:
         """
@@ -244,6 +297,7 @@ class Document(models.Model):
             models.Index(fields=['status', 'user']),
             models.Index(fields=['-uploaded_at']),
             models.Index(fields=['date_received', 'status']),
+            models.Index(fields=['semester', 'status']),
         ]
 
 def achievement_directory_path(instance, filename):

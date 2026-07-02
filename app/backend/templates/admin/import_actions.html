@@ -1,0 +1,19 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+{{ block.super }}
+<li>
+    <a href="import-{{ cl.opts.model_name }}/" class="addlink">{% translate "Импорт из CSV" %}</a>
+</li>
+{% if cl.model_admin.eos_syncer_class %}
+<li>
+    <a href="sync-eos-{{ cl.opts.model_name }}/" class="addlink">{{ cl.model_admin.eos_sync_label }}</a>
+</li>
+{% endif %}
+{% if cl.model_admin.eos_sync_all %}
+<li>
+    <a href="sync-eos-all-{{ cl.opts.model_name }}/" class="addlink">{% translate "Обновить ВСЁ из ЭОС" %}</a>
+</li>
+{% endif %}
+{% endblock %}
