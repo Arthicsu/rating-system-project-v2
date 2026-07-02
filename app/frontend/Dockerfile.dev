@@ -24,4 +24,4 @@ COPY . .
 EXPOSE 3000
 
 # Webpack dev server
-CMD ["pnpm", "exec", "next", "dev", "--webpack", "-H", "0.0.0.0", "-p", "3000"]
+CMD ["pnpm", "exec", "next", "dev", "--turbopack", "-H", "0.0.0.0", "-p", "3000"]
