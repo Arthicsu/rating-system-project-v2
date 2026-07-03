@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
@@ -30,11 +31,15 @@ urlpatterns = [
     path('student/', include('students.urls', namespace='students')),
     path('university/', include('university_structure.urls', namespace='university_structure')),
     path('', include('notifications.urls', namespace='notifications')),
-
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    # Swagger
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    # Optional UI:
-    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
+
+# Схема API, Swagger/Redoc и browsable-auth  регистрируем их только в dev
+if settings.DEBUG:
+    urlpatterns += [
+        path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+        # Swagger
+        path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+        # Optional UI:
+        path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+        path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    ]

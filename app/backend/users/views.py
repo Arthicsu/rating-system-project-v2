@@ -263,8 +263,9 @@ class ForgotPasswordAPIView(APIView):
         except Exception as e:
             # Если внутри get_user_display_name что-то упало (например, нет данных в staff_profile)
             # мы просто логируем это и используем дефолтное имя, чтобы не было 500 ошибки
-            print(f"Logging Name Error: {e}") 
-            user_name = "Пользователь"         
+            # print(f"Logging Name Error: {e}")
+            logger.warning("Не удалось получить отображаемое имя пользователя: %s", e)
+            user_name = "Пользователь"
         # Отправка письма
         try:
             new_password = reset_user_password(user)
@@ -273,12 +274,13 @@ class ForgotPasswordAPIView(APIView):
                 {"message": f"Если аккаунт с почтой {email} существует, на него отправлен новый пароль"}, 
                 status=status.HTTP_200_OK
             )
-        except Exception as e:
+        except Exception:
+            # Деталь ошибки — только в лог: текст исключения может раскрывать внутренности (SMTP, хосты).
+            logger.exception("Ошибка при сбросе пароля и постановке письма в очередь")
             return Response(
-                {"error": f"Ошибка сервера при отправке письма: {str(e)}"}, 
+                {"error": "Ошибка сервера при отправке письма"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        return Response({"message": f"Если аккаунт с почтой {email} существует, на него отправлен новый пароль"},status=status.HTTP_200_OK,)
 
 
 class FileTooLargeError(APIException):

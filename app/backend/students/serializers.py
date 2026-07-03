@@ -24,6 +24,7 @@ ALLOWED_CONTENT_TYPES = {
     'image/bmp',
 }
 MAX_FILE_SIZE = 20 * 1024 * 1024  # Ограничение на размер файла (20 МБ)
+MAX_TOTAL_SIZE = 20 * 1024 * 1024  # Суммарный лимит на все файлы заявки (20 МБ)
 MAX_FILES = 3  # Максимальное количество файлов
 
 # Сигнатуры разрешённых форматов и содержимое сверяется с этим расширением.
@@ -47,6 +48,10 @@ def validate_achievement_files(files):
     """
     if len(files) > MAX_FILES:
         raise serializers.ValidationError(f"Нельзя загрузить более {MAX_FILES} файлов.")
+
+    total_size = sum(file.size for file in files)
+    if total_size > MAX_TOTAL_SIZE:
+        raise serializers.ValidationError("Суммарный размер файлов не должен превышать 20 МБ.")
 
     for file in files:
         if file.size > MAX_FILE_SIZE:

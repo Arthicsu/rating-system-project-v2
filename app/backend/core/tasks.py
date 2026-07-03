@@ -130,7 +130,9 @@ def restore_storage(archive_path=None, base=None) -> int:
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
         with tarfile.open(archive_path, "r:gz") as tar:
-            tar.extractall(tmp_path)
+            # filter='data' отбрасывает абсолютные пути, '..' и спецфайлы — защита от zip-slip,
+            # если архив подменён (скомпрометированное хранилище/бэкап).
+            tar.extractall(tmp_path, filter='data')
         for f in sorted(tmp_path.rglob("*")):
             if f.is_file():
                 key = f.relative_to(tmp_path).as_posix()

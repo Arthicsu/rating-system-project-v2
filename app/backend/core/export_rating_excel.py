@@ -39,8 +39,15 @@ def generate_rating_excel_pandas(queryset) -> bytes:
 
     output = io.BytesIO()
     
-    # Используем движок xlsxwriter
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+    # Используем движок xlsxwriter.
+    # strings_to_formulas/strings_to_urls=False: значения из БД (в т.ч. ФИО, которое студент
+    # задаёт сам при регистрации) всегда пишутся как текст — иначе строка вида "=..."
+    # сохранится как исполняемая формула Excel (formula injection).
+    with pd.ExcelWriter(
+        output,
+        engine='xlsxwriter',
+        engine_kwargs={'options': {'strings_to_formulas': False, 'strings_to_urls': False}},
+    ) as writer:
         df.to_excel(writer, index=False, sheet_name='Рейтинг')
         
         workbook = writer.book
