@@ -29,7 +29,7 @@ services:
         condition: service_started
     restart: unless-stopped
   celery:
-    image: arthicsu/bgitu-rating-backend:1.0.9
+    image: arthicsu/bgitu-rating-backend:1.1.0
     container_name: app_celery
     command: celery -A backend worker --beat --pool=solo --loglevel=info --schedule=/tmp/celerybeat-schedule --without-gossip --without-mingle --without-heartbeat
     volumes:
