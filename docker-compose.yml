@@ -56,12 +56,8 @@ services:
         condition: service_started
     restart: unless-stopped
   frontend:
-    image: arthicsu/bgitu-rating-frontend:1.1.0
+    image: arthicsu/bgitu-rating-frontend:1.1.1
     container_name: app_frontend
-    volumes:
-      - ./app/frontend:/app
-      - /app/node_modules
-      - next_cache:/app/.next
     deploy:
       resources:
         limits:
@@ -201,4 +197,3 @@ volumes:
   seaweedfs_data:
   static_files:
   nginx_cache:
-  next_cache:
