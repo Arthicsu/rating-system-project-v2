@@ -177,9 +177,9 @@ DATABASES = {
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT', '5432'),
         'CONN_MAX_AGE': 60,
-        # 'OPTIONS': {
-        #     'sslmode': os.getenv('SSL_MODE', 'require'),
-        # },
+        'OPTIONS': {
+            'sslmode': os.getenv('SSL_MODE', 'require'),
+        },
     }
 }
 

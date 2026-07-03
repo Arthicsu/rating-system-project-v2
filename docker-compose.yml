@@ -1,6 +1,6 @@
 services:
   backend:
-    image: arthicsu/bgitu-rating-backend:1.0.9
+    image: arthicsu/bgitu-rating-backend:1.1.0
     container_name: app_backend
     volumes:
       - ./app/backend:/app
@@ -56,7 +56,7 @@ services:
         condition: service_started
     restart: unless-stopped
   frontend:
-    image: arthicsu/bgitu-rating-frontend:1.0.9
+    image: arthicsu/bgitu-rating-frontend:1.1.0
     container_name: app_frontend
     volumes:
       - ./app/frontend:/app
@@ -83,7 +83,7 @@ services:
     container_name: postgres_db
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-      - ${SHARED_HOST_DIR:-./shared}/dumps/dump_prod.sql:/docker-entrypoint-initdb.d/dump.sql
+      # - ${SHARED_HOST_DIR:-./shared}/dumps/Project_20260703_031804.sql:/docker-entrypoint-initdb.d/dump.sql
     deploy:
       resources:
         limits:
