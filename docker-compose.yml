@@ -56,7 +56,7 @@ services:
         condition: service_started
     restart: unless-stopped
   frontend:
-    image: arthicsu/bgitu-rating-frontend:1.1.1
+    image: arthicsu/bgitu-rating-frontend:1.1.2
     container_name: app_frontend
     deploy:
       resources:

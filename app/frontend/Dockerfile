@@ -36,7 +36,7 @@ ENV NODE_ENV production
 
 # Copy package.json so that package manager commands can be used.
 
-COPY package.json .npmrc ./
+COPY package.json .npmrc pnpm-workspace.yaml ./
 
 # Copy the production dependencies from the deps stage and also
 # the built application from the build stage into the image.
@@ -48,5 +48,4 @@ COPY --from=build /usr/src/app/styles ./styles
 # Expose the port that the application listens on.
 EXPOSE 3000
 
-# Run the application.
-CMD pnpm start
+CMD ["node_modules/.bin/next", "start"]
