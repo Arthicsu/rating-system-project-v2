@@ -41,7 +41,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 384M
+          memory: 256M
         reservations:
           cpus: '0.10'
           memory: 128M
@@ -69,7 +69,7 @@ services:
           memory: 1536M
         reservations:
           cpus: '0.25'
-          memory: 512M
+          memory: 256M
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NEXT_TELEMETRY_DISABLED=1
@@ -162,7 +162,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 512M
+          memory: 384M
         reservations:
           cpus: '0.25'
           memory: 128M
