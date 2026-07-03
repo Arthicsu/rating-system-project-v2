@@ -16,17 +16,31 @@ class Student(models.Model):
     Хранит информацию о студенте, включая личные данные, учебную группу, кафедру, факультет,
     номер зачётной книжки, контактную информацию и баллы по различным направлениям активности.
 
-    ВАЖНО: поля баллов (`*_score`, `total_score`) — это денормализованный кэш баллов за
+    ВАЖНО: поля баллов (`*_score`, `total_score`) - это денормализованный кэш баллов за
     ТЕКУЩИЙ семестр (AcademicYear.get_current()). Полная история по семестрам хранится в
     модели SemesterScore; при ролловере семестра эти поля обнуляются, а история сохраняется.
+
+    Статус (`status`) хранит код из выгрузки вуза. Терминальные коды (отчислен/окончил/архив)
+    и пропажа студента из полной выгрузки переводят его в архив (`archived_at`) - это soft-delete:
+    запись, история баллов и файлы остаются, но студент исключается из текущих рейтингов/списков.
     """
-    external_id = models.CharField("Код студента", max_length=50, unique=True, help_text="Код студента из БД вуза")
-    # external_id = models.CharField("Код студента", max_length=50, unique=True, null=True, blank=True, help_text="Код студента из БД вуза")
+    # коды "статус" из выгрузки: 1 - Учащийся, -1 - Академ. отпуск, # 3 - Отчислен, 4 - Окончил, 6 - Архив
+    ACTIVE_STATUSES = {'1', '-1'}
+    TERMINAL_STATUSES = {'3', '4', '6'} # переводят в архив
+    STATUS_DECODINGS = {
+        '1': 'Учащийся',
+        '-1': 'В академическом отпуске',
+        '3': 'Отчислен',
+        '4': 'Окончил',
+        '6': 'Архив',
+    }
+
+    external_id = models.CharField("Код студента", max_length=50, unique=True, null=True, blank=True, help_text="Код студента из БД вуза")
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         null=True, blank=True,
         related_name='student_profile')
     full_name = models.CharField("ФИО", max_length=255, help_text="Полное ФИО студента")
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='students', null=True, blank=True)
+    group = models.ForeignKey(Group, on_delete=models.SET_NULL, related_name='students', null=True, blank=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='students', null=True, blank=True)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='students', null=True, blank=True)  
     
@@ -36,7 +50,15 @@ class Student(models.Model):
     status_decoding = models.CharField("Расшифровка Статуса", max_length=255, default=1, help_text="Расшифровка кода статуса")
     admission_year = models.PositiveIntegerField("Год поступления", null=True)
     is_monitor = models.BooleanField("Староста", default=False)
-    
+
+    archived_at = models.DateTimeField(
+        "В архиве с", null=True, blank=True,
+        help_text="Если заполнено - студент архивирован: скрыт из текущего "
+                  "рейтинга/списков/дашборда, но запись, история баллов и файлы сохранены. "
+                  "Проставляется при импорте для статусов отчислен/окончил/архив или для "
+                  "студентов, пропавших из полной выгрузки.",
+    )
+
     academic_score = models.PositiveIntegerField(default=0)
     research_score = models.PositiveIntegerField(default=0)
     sport_score = models.PositiveIntegerField(default=0)
@@ -65,18 +87,49 @@ class Student(models.Model):
         indexes = [
             models.Index(fields=['-total_score']),
             models.Index(fields=['group', 'faculty']),
+            models.Index(fields=['archived_at']),
         ]
 
     def __str__(self):
         group_name = self.group.name if self.group else "Без группы"
         return f"{self.full_name} ({group_name})"
 
+    @property
+    def is_active(self):
+        """True, если студент не в архиве (участвует в текущих рейтингах/списках)."""
+        return self.archived_at is None
+
+    def archive(self, status=None, status_decoding=None, when=None, save=True):
+        """
+        Пометить студента архивным (soft-delete). НЕ трогает пользователя, историю
+        баллов (SemesterScore) и файлы достижений - только скрывает из «живых» списков.
+        Опционально фиксирует итоговый код статуса и его расшифровку.
+        """
+        self.archived_at = when or timezone.now()
+        fields = ['archived_at']
+        if status is not None:
+            self.status = str(status)
+            fields.append('status')
+        if status_decoding is not None:
+            self.status_decoding = status_decoding
+            fields.append('status_decoding')
+        if save:
+            self.save(update_fields=fields)
+
+    def unarchive(self, save=True):
+        """Вернуть студента из архива (вышел из академ. отпуска / восстановлен)."""
+        if self.archived_at is None:
+            return
+        self.archived_at = None
+        if save:
+            self.save(update_fields=['archived_at'])
+
 class SemesterScore(models.Model):
     """
     Баллы студента за конкретный семестр (учебный период).
 
     По строке на каждую пару (студент, семестр). Это историческая запись и одновременно
-    источник рейтинга за прошлые семестры. Живые поля баллов на Student — денормализованный
+    источник рейтинга за прошлые семестры. Живые поля баллов на Student - денормализованный
     кэш строки ТЕКУЩЕГО семестра; здесь накапливается полная история.
     """
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='semester_scores', verbose_name="Студент")
@@ -113,7 +166,7 @@ class SemesterScore(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.student.full_name} — {self.semester} ({self.total_score})"
+        return f"{self.student.full_name} - {self.semester} ({self.total_score})"
 
 class MetadataBase(models.Model):
     """

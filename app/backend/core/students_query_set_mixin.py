@@ -163,7 +163,8 @@ class StudentRatingQuerySetMixin(StudentFilterMixin):
             queryset = self.apply_filters(queryset, prefix='student__')
             return queryset.by_category(category)
 
-        queryset = Student.objects.select_related('group', 'faculty')
+        # Текущий рейтинг — только активные студенты (архивные скрыты).
+        queryset = Student.objects.active().select_related('group', 'faculty')
         queryset = self.apply_filters(queryset)
         return queryset.by_category(category)
 
@@ -172,7 +173,9 @@ class StudentWithAccessMixin(StudentFilterMixin):
     Получение выборки студентов в зависимости от роли
     """
     def get_allowed_students(self, user):
-        queryset = Student.objects.select_related(
+        # Только активные студенты: архивные (отчислен/окончил/архив) не попадают в
+        # списки, дашборд, статистику и очередь модерации сотрудника.
+        queryset = Student.objects.active().select_related(
             'group__specialty__faculty', 'faculty', 'user'
         ).order_by('user__last_name', 'user__first_name')
 

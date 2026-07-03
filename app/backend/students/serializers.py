@@ -318,6 +318,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     total_score = serializers.ReadOnlyField()
     short_name = serializers.SerializerMethodField()
     semester_history = serializers.SerializerMethodField()
+    is_archived = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
@@ -326,6 +327,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'full_name', 'short_name',
             'email', 'record_book',
             'group', 'group_id', 'course', 'faculty',
+            'status', 'status_decoding', 'archived_at', 'is_archived',
             'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score', 'total_score',
             'documents',
             'semester_history',
@@ -336,6 +338,10 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         if obj.user:
             return obj.user.get_user_display_short_name()
         return obj.full_name
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_archived(self, obj):
+        return obj.archived_at is not None
 
     @extend_schema_field(SemesterScoreSerializer(many=True))
     def get_semester_history(self, obj):

@@ -1,6 +1,20 @@
 from django.db import models
 
 class StudentQuerySet(models.QuerySet):
+    def active(self):
+        """
+        Только активные (не архивные) студенты — учащиеся и в академ. отпуске.
+
+        Архивные (отчислен/окончил/архив или пропавшие из последней выгрузки) помечены
+        `archived_at` и исключаются из «живых» представлений: текущего рейтинга, списков
+        групп, дашборда. История баллов (SemesterScore) и файлы при этом сохраняются.
+        """
+        return self.filter(archived_at__isnull=True)
+
+    def archived(self):
+        """Архивные (soft-deleted) студенты — сохранены ради истории баллов и файлов."""
+        return self.filter(archived_at__isnull=False)
+
     def by_category(self, category):
         """Сортировка в зависимости от категории достижения"""
         if not category or category == 'common':

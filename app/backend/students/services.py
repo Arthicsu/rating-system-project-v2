@@ -142,6 +142,9 @@ def rollover_semester(to_semester=None):
     with suspend_cache_sync():
         if current is not None:
             # Страховка от рассинхрона: строки текущего семестра должны совпадать с кэшем Student.
+            # Архивных студентов НЕ исключаем намеренно: если студента заархивировали в середине
+            # семестра (отчислен/окончил), его заработанные баллы всё равно фиксируются в истории
+            # этого семестра. Живой кэш затем пересобирается для всех (архивные и так скрыты из рейтинга).
             snapshots = 0
             for student in Student.objects.filter(total_score__gt=0).iterator():
                 SemesterScore.objects.update_or_create(

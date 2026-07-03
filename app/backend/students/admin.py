@@ -1,11 +1,13 @@
+from django import forms
 from django.contrib import admin
 from django.db import transaction
 from django.contrib.auth.models import Group as DjangoGroup
 from django.contrib import messages
+from django.utils import timezone
 
 from core.admin_password_generator import generate_password
 from core.admin_save_generated_password_for_user import log_generated_passwords
-from core.admin_import_csv import CsvImport
+from core.admin_import_csv import CsvImport, CsvImportForm
 from core.admin_import_json import JsonImport
 from core.eos.admin_mixin import EosSyncActionsMixin
 from core.eos.syncers import StudentSyncer
@@ -19,15 +21,29 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+class StudentCsvImportForm(CsvImportForm):
+    """Форма импорта студентов с опцией архивации отсутствующих в выгрузке."""
+    archive_absent = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Архивировать студентов, отсутствующих в файле",
+        help_text="Отмечайте ТОЛЬКО при загрузке полной выгрузки. Студенты из групп, "
+                  "присутствующих в файле, но без своей строки, будут переведены в архив. "
+                  "Студентов из других групп это не затронет.",
+    )
+
+
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
-    list_display = ('full_name', 'record_book', 'group', 'admission_year', 'status', 'total_score')
-    list_filter = ('group__specialty__faculty', 'admission_year', 'group__course', 'status')
+    list_display = ('full_name', 'record_book', 'group', 'admission_year', 'status', 'is_archived', 'total_score')
+    list_filter = ('group__specialty__faculty', 'admission_year', 'group__course', 'status', ('archived_at', admin.EmptyFieldListFilter))
     search_fields = ('full_name', 'record_book', 'email')
-    readonly_fields = ('created_at', 'total_score')
+    readonly_fields = ('created_at', 'total_score', 'archived_at')
     raw_id_fields = ('user', 'group', 'faculty', 'department')
-    actions = []
+    actions = ['action_archive', 'action_unarchive']
     change_list_template = "admin/import_actions.html"
+    csv_import_form_class = StudentCsvImportForm
     eos_syncer_class = StudentSyncer
     eos_sync_label = "Обновить студентов из ЭОС (не работает)"
 
@@ -35,15 +51,36 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
         urls = super().get_urls()
         return self.get_import_urls() + self.get_eos_urls() + urls
 
+    @admin.display(boolean=True, description='В архиве', ordering='archived_at')
+    def is_archived(self, obj):
+        return obj.archived_at is not None
+
+    @admin.action(description="Архивировать выбранных студентов")
+    def action_archive(self, request, queryset):
+        updated = queryset.filter(archived_at__isnull=True).update(archived_at=timezone.now())
+        self.message_user(request, f"Архивировано студентов: {updated}.", messages.SUCCESS)
+
+    @admin.action(description="Вернуть из архива выбранных студентов")
+    def action_unarchive(self, request, queryset):
+        updated = queryset.filter(archived_at__isnull=False).update(archived_at=None)
+        self.message_user(request, f"Возвращено из архива: {updated}.", messages.SUCCESS)
+
     def process_import_csv(self, request, data):
         new_credentials = []
         skipped_no_group = []
+        archived_terminal = 0          # переведено в архив по статусу 3/4/6
+        active_processed = 0           # создано/обновлено активных студентов
+        seen_external_ids = set()      # все коды студентов, встреченные в файле
+        seen_group_ids = set()         # id групп, реально присутствующих в файле
         total_rows = len(data)
-        logger.info(f"Начало обработки: {total_rows} строк.")
+        # Архивация отсутствующих — только при загрузке ПОЛНОЙ выгрузки (галочка в форме).
+        archive_absent = request.POST.get('archive_absent') in ('on', 'true', 'True', '1')
+        now = timezone.now()
+        logger.info(f"Начало обработки: {total_rows} строк. archive_absent={archive_absent}")
 
         with transaction.atomic():
             g_student, _ = DjangoGroup.objects.get_or_create(name='Student')
-            
+
             # select_related тянет сразу и специальность, и кафедру за 1 запрос
             groups_map = {
                 g.external_id: g
@@ -54,31 +91,59 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 f.external_id: f
                 for f in Faculty.objects.all()
             }
-            
+
             # кешируем существующих студентов по external_id
             existing_students = {
-                s.external_id: s 
+                s.external_id: s
                 for s in Student.objects.select_related('user').all()
             }
-            
+
             for index, row in enumerate(data, 1):
                 def clean_val(key):
                     val = str(row.get(key, '')).strip()
                     return '' if val.upper() == 'NULL' else val
 
-                status_raw = clean_val('Статус')
-                if status_raw not in ['1', '-1']:
-                    continue
-                
-                status = int(status_raw)
-
                 external_id = clean_val('Код')
+                if not external_id:
+                    continue
+                seen_external_ids.add(external_id)
+
+                status_raw = clean_val('Статус')
+                # Расшифровка: из файла, иначе — по справочнику кодов.
+                status_decoding = clean_val('Расшифровка_Статуса') or Student.STATUS_DECODINGS.get(status_raw, '')
+
                 record_book = clean_val('Номер_Зачетной_Книжки')
                 email = clean_val('E_Mail')
                 last_name = clean_val('Фамилия')
                 first_name = clean_val('Имя')
                 patronymic = clean_val('Отчество')
-                status_decoding = clean_val('Расшифровка_Статуса')
+
+                student = existing_students.get(external_id)
+
+                # --- Терминальные статусы (отчислен/окончил/архив) -> в архив ---
+                if status_raw in Student.TERMINAL_STATUSES:
+                    if student is None:
+                        # Студента нет в БД и он уже терминальный — заводить нет смысла.
+                        continue
+                    if student.archived_at is None:
+                        # soft-delete: пользователь, история баллов и файлы не трогаются.
+                        student.status = status_raw
+                        student.status_decoding = status_decoding
+                        student.archived_at = now
+                        student.save(update_fields=['status', 'status_decoding', 'archived_at'])
+                        archived_terminal += 1
+                    elif student.status != status_raw or student.status_decoding != status_decoding:
+                        # Уже в архиве — просто держим код/расшифровку статуса актуальными.
+                        student.status = status_raw
+                        student.status_decoding = status_decoding
+                        student.save(update_fields=['status', 'status_decoding'])
+                    continue
+
+                # --- Активные статусы: только 1 (учащийся) и -1 (академ. отпуск) ---
+                if status_raw not in Student.ACTIVE_STATUSES:
+                    # Неизвестный код статуса — не трогаем запись.
+                    logger.warning(f"Импорт: студент {external_id} — неизвестный статус '{status_raw}', строка пропущена.")
+                    continue
 
                 group_code = clean_val('Код_Группы')
                 group = groups_map.get(group_code)
@@ -98,17 +163,18 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                     )
                     continue
 
+                # Группа реально присутствует в файле — попадает в scope архивации отсутствующих.
+                seen_group_ids.add(group.id)
+
                 faculty_code = clean_val('КодФакультета')
                 faculty = faculties_map.get(faculty_code)
-                
+
                 # Кафедра подтянется без запроса к БД, так как мы использовали select_related выше
                 department = group.specialty.department if group and group.specialty else None
 
                 is_monitor = clean_val('Староста') == '1'
                 admission_year_raw = clean_val('Год_Поступления')
                 admission_year = int(admission_year_raw) if admission_year_raw.isdigit() else None
-
-                student = existing_students.get(external_id)
 
                 if student:
                     # Если студент есть, работаем с его существующим юзером
@@ -146,17 +212,19 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                         'password': password
                     })
 
-                # сохраняем студента через update_or_create
+                # сохраняем студента через update_or_create.
+                # archived_at=None: активный статус разархивирует вернувшегося (академ/восстановление).
                 defaults = {
                     "user": user,
                     "full_name": user.get_full_username(),
                     "group": group,
                     "email": email,
                     "record_book": record_book,
-                    "status": str(status),
+                    "status": status_raw,
                     "status_decoding": status_decoding,
                     "admission_year": admission_year,
                     "is_monitor": is_monitor,
+                    "archived_at": None,
                 }
                 if faculty is not None:
                     defaults["faculty"] = faculty
@@ -171,12 +239,29 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                     external_id=external_id,
                     defaults=defaults,
                 )
+                active_processed += 1
 
                 if index % 50 == 0 or index == total_rows:
                     percent = (index / total_rows) * 100
                     print(f">>> Обработано: {index}/{total_rows} ({percent:.1f}%)")
                     logger.info(f"Progress: {index}/{total_rows}")
-        
+
+            # --- Архивация отсутствующих в файле (только полная выгрузка) ---
+            # Ограничиваемся группами, реально присутствующими в файле, чтобы частичная
+            # выгрузка (например, один факультет) не заархивировала всех остальных.
+            archived_absent = 0
+            if archive_absent and seen_group_ids:
+                archived_absent = (
+                    Student.objects
+                    .filter(group_id__in=seen_group_ids, archived_at__isnull=True)
+                    .exclude(external_id__in=seen_external_ids)
+                    .update(
+                        archived_at=now,
+                        status='6',
+                        status_decoding=Student.STATUS_DECODINGS['6'],
+                    )
+                )
+
         print("Обработка завершена успешно.\n")
         if skipped_no_group:
             logger.warning(
@@ -185,6 +270,19 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
             self.message_user(
                 request,
                 f"Пропущено {len(skipped_no_group)} строк(и): группа не найдена в БД. Синхронизируйте структуру (факультеты/кафедры/группы) и повторите импорт. Подробности - в логах бэкенда.",
+                messages.WARNING,
+            )
+        if archived_terminal:
+            self.message_user(
+                request,
+                f"Переведено в архив по статусу (отчислен/окончил/архив): {archived_terminal}.",
+                messages.WARNING,
+            )
+        if archive_absent:
+            self.message_user(
+                request,
+                f"Переведено в архив как отсутствующие в выгрузке: {archived_absent} "
+                f"(в рамках {len(seen_group_ids)} групп из файла).",
                 messages.WARNING,
             )
         if new_credentials:
@@ -196,6 +294,8 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
             )
         else:
             self.message_user(request, "Данные обновлены. Новых пользователей не создано.", messages.SUCCESS)
+
+        return active_processed
 
 @admin.register(Level)
 class LevelAdmin(admin.ModelAdmin):
