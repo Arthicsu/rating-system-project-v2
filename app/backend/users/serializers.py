@@ -98,31 +98,16 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        email = validated_data.pop('email')
-        record_book = validated_data.pop('record_book')
-        patronymic = validated_data.pop('patronymic', '')
-        
-        user = User.objects.create_user(
-            username=email,
+        from .services import register_student
+
+        return register_student(
+            email=validated_data['email'],
+            password=validated_data['password'],
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
-            patronymic=patronymic,
-            email=email,
-            password=validated_data['password'],
+            patronymic=validated_data.get('patronymic') or '',
+            record_book=validated_data['record_book'],
         )
-        
-        student_group = Group.objects.get(name='Student')
-        user.groups.add(student_group)
-        
-        Student.objects.create(
-            user=user,
-            # external_id=None,
-            group=None,
-            record_book=record_book,
-            full_name=user.get_full_name()
-        )
-        
-        return user
 
 
 class ForgotPasswordRequestSerializer(serializers.Serializer):

@@ -85,9 +85,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [isStaff, username]);
 
   const registerUser = async (formData: RegisterFormData) => {
-    const res = await authApi.register(formData);
-    setUser(res.data); 
-    return res.data;
+    // Саморегистрация отключена (backend-маршрут не подключён); страница
+    // регистрации скрыта из роутинга (app/_register). Код сохранён намеренно.
+    // const res = await authApi.register(formData);
+    // setUser(res.data);
+    // return res.data;
+    void formData;
+    throw new Error('Регистрация отключена');
   };
 
   const loginUser = async (formData: LoginFormData) => {

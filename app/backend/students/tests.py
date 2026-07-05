@@ -27,7 +27,7 @@ TEST_SETTINGS = {
     "PASSWORD_HASHERS": ["django.contrib.auth.hashers.MD5PasswordHasher"],
 }
 
-URL_NAME = "students:api_achievement_detail"
+URL_NAME = "api:achievements-detail"
 
 
 @override_settings(**TEST_SETTINGS)
@@ -65,6 +65,8 @@ class AchievementDeleteTests(APITestCase):
         resp = self.client.delete(reverse(URL_NAME, args=[doc.pk]))
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        # Единый формат ошибок API: {"detail": "..."}
+        self.assertIn("detail", resp.json())
         # Заявка осталась на месте.
         self.assertTrue(Document.objects.filter(pk=doc.pk).exists())
 

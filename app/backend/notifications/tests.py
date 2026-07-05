@@ -29,7 +29,7 @@ TEST_SETTINGS = {
     "PASSWORD_HASHERS": ["django.contrib.auth.hashers.MD5PasswordHasher"],
 }
 
-URL_NAME = "notifications:pending-count"
+URL_NAME = "api:notifications-pending-count"
 
 
 @override_settings(**TEST_SETTINGS)

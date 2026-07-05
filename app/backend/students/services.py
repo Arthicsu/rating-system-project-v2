@@ -10,13 +10,18 @@
 через сигнал на AcademicYear (см. students/signals.py), который зовёт
 rebuild_current_semester_cache().
 """
+import logging
 import threading
 from contextlib import contextmanager
 
 from django.db import transaction
 
+from core.exceptions import InvalidDocumentState
 from university_structure.models import AcademicYear
-from students.models import Student, SemesterScore
+from students.models import Document, DocumentFile, DocumentStatus, Student, SemesterScore
+from students.scoring import calculate_achievement_score
+
+logger = logging.getLogger(__name__)
 
 
 CATEGORY_SCORE_FIELDS = (
@@ -88,6 +93,139 @@ def debit_document(doc):
     if student is None or semester is None:
         return
     apply_score_delta(student, semester, doc.category.code, -doc.score)
+
+
+def create_achievement(*, user, files, **validated):
+    """
+    Создать заявку (Document) с файлами.
+
+    Балл считается по ScoringRule; заявка привязывается к текущему семестру
+    и уходит на рассмотрение (статус 'pending'). Вызывается из
+    AchievementUploadSerializer.create().
+    """
+    status_obj = DocumentStatus.objects.get(code='pending')
+
+    score = calculate_achievement_score(
+        validated['category'].code,
+        validated['sub_type'].code,
+        validated.get('level').code if validated.get('level') else None,
+        validated.get('result').code if validated.get('result') else None,
+    )
+
+    with transaction.atomic():
+        document = Document.objects.create(
+            user=user,
+            status=status_obj,
+            score=score,
+            semester=AcademicYear.get_current(),
+            **validated,
+        )
+
+        for order, file in enumerate(files):
+            DocumentFile.objects.create(
+                document=document,
+                file=file,
+                original_file_name=file.name,
+                order=order,
+            )
+
+    return document
+
+
+def update_achievement(document, validated_data, files=None):
+    """
+    Частичное обновление заявки студентом.
+
+    Отклонённая заявка после правок возвращается на повторное рассмотрение.
+    Если переданы файлы — старые заменяются, а из хранилища удаляются только
+    после коммита транзакции. Вызывается из AchievementUpdateSerializer.update().
+    """
+    for attr, value in validated_data.items():
+        setattr(document, attr, value)
+
+    # Повторная подача: отклонённая заявка снова уходит на рассмотрение.
+    if document.status.code == 'rejected':
+        document.status = DocumentStatus.objects.get(code='pending')
+        document.rejection_reason = ''
+
+    with transaction.atomic():
+        document.save()  # балл пересчитывается в Document.save()
+
+        if files is not None:
+            old_files = list(document.files.all())
+            document.files.all().delete()
+
+            for order, file in enumerate(files):
+                DocumentFile.objects.create(
+                    document=document,
+                    file=file,
+                    original_file_name=file.name,
+                    order=order,
+                )
+
+            def _cleanup_old_files(files_to_remove=old_files):
+                for old_file in files_to_remove:
+                    try:
+                        old_file.file.delete(save=False)
+                    except Exception:
+                        logger.exception("Не удалось удалить старый файл достижения из хранилища")
+
+            transaction.on_commit(_cleanup_old_files)
+
+    return document
+
+
+@transaction.atomic
+def review_document(*, document, reviewer, action, reasons=()):
+    """
+    Модерация заявки сотрудником. Возвращает текст сообщения для ответа.
+
+    Правила:
+    - кафедра обрабатывает только новые заявки (pending): approve — начисляет
+      баллы (credit_document), reject — отклоняет с причинами;
+    - декан/ректорат могут только отклонить: с approved списываются баллы
+      (debit_document), заявка возвращается на рассмотрение (pending).
+
+    Проверка области видимости — забота permission-класса CanReviewDocument.
+    При нарушении правил статусов поднимает InvalidDocumentState (HTTP 400).
+    """
+    reason_text = "; ".join(reasons) if isinstance(reasons, (list, tuple)) else str(reasons)
+
+    if reviewer.is_dept_staff:
+        if document.status.code != 'pending':
+            raise InvalidDocumentState("Кафедра может обрабатывать только новые заявки (pending)")
+
+        if action == 'approve':
+            document.status = DocumentStatus.objects.get(code='approved')
+            document.rejection_reason = ''
+            document.verified_by = reviewer
+            document.save()
+
+            # Баллы начисляются в семестр заявки (текущий — так же обновит кэш Student).
+            credit_document(document)
+            return "Документ подтвержден кафедрой, баллы начислены"
+
+        document.status = DocumentStatus.objects.get(code='rejected')
+        document.rejection_reason = reason_text
+        document.verified_by = reviewer
+        document.save()
+        return "Документ отклонен кафедрой"
+
+    if reviewer.is_dean or reviewer.is_rectorate:
+        if action != 'reject':
+            raise InvalidDocumentState("Руководство может только отклонять заявки")
+
+        if document.status.code == 'approved':
+            # Списываем баллы из семестра заявки (текущий — так же обновит кэш Student).
+            debit_document(document)
+
+        document.status = DocumentStatus.objects.get(code='pending')
+        document.rejection_reason = reason_text
+        document.verified_by = reviewer
+        document.save()
+        return "Решение отменено руководством. Заявка возвращена на рассмотрение, баллы вычтены."
+
+    raise InvalidDocumentState("Неизвестная ошибка")
 
 
 @transaction.atomic

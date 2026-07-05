@@ -31,7 +31,7 @@ TEST_SETTINGS = {
     "PASSWORD_HASHERS": ["django.contrib.auth.hashers.MD5PasswordHasher"],
 }
 
-URL_NAME = "university_structure:api_filtered_dashboard_stats"
+URL_NAME = "api:achievements-list"
 
 
 @override_settings(**TEST_SETTINGS)

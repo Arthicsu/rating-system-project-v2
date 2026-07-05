@@ -47,9 +47,11 @@ api.interceptors.response.use(
     const skipRedirect = error.config?.skipErrorRedirect;
 
     if (status && !skipRedirect && !isOnErrorPage && ERROR_REDIRECT_CODES.includes(status)) {
-      // const message = (error.response?.data as { detail?: string })?.detail || error.message;
-      // window.location.href = `/error/${status}?msg=${encodeURIComponent(message)}`;
-      window.location.href = `/error/${status}`;
+      // Единый формат ошибок API: {"detail": "..."}.
+      const message = (error.response?.data as { detail?: string })?.detail;
+      window.location.href = message
+        ? `/error/${status}?msg=${encodeURIComponent(message)}`
+        : `/error/${status}`;
     }
     return Promise.reject(error);
   }

@@ -42,8 +42,8 @@ export default function ResetPasswordPage() {
       const error = err as Error | ApiError;
       const errorData = (error as ApiError).response?.data;
 
-      if (errorData?.message) {
-        toast.error(String(errorData.message));
+      if (errorData?.detail) {
+        toast.error(String(errorData.detail));
       } else {
         toast.error('Не удалось отправить письмо. Повторите попытку позже.');
       }

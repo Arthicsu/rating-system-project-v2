@@ -1,10 +1,6 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
-from university_structure.models import Faculty, AcademicYear
-from django.db import transaction
-from django.core.cache import cache
-from .models import Student, Document, Category, DocumentFile, Level, AchievementResult, DocType, AchievementType, DocumentStatus, ScoringRule, SemesterScore
-from .scoring import calculate_achievement_score
+from .models import Student, Document, Category, DocumentFile, Level, AchievementResult, DocType, AchievementType, SemesterScore
 
 import os
 import logging
@@ -148,38 +144,46 @@ class AchievementConfigSerializer(serializers.Serializer):
     def get_doc_types(self, obj):
         return DocTypeSerializer(DocType.objects.all(), many=True).data
 
-class StudentRatingSerializer(serializers.ModelSerializer):
+class RatingRowMixin(serializers.Serializer):
     """
-    Сериализатор для модели Student.
+    Общие поля строки рейтинга/списка студентов (модель Student).
 
-    Предназначен для преобразования объектов модели Student в json-формат и обратно.
-    Включает основные поля студента, такие как личные данные, учебная группа, курс и различные баллы,
-    используемые для рейтинговой оценки внеучебной деятельности студента.
+    Единый источник для StudentRatingSerializer (живые баллы текущего семестра)
+    и SemesterStudentListSerializer (аннотации sem_* выбранного семестра) —
+    раньше эти наборы полей были продублированы.
     """
     group_id = serializers.IntegerField(source='group.id', read_only=True)
     group = serializers.CharField(source='group.name', read_only=True, default="Без группы")
     course = serializers.IntegerField(source='group.course', read_only=True, default=0)
     faculty = serializers.CharField(source='faculty.short_name', read_only=True, default="—")
-    faculty_id = serializers.IntegerField(source='faculty.id', read_only=True, default=0)
-    total_score = serializers.ReadOnlyField()
     short_name = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Student
-        fields = [
-            'id', 'user_id',
-            'full_name', 'short_name',
-            'group', 'group_id',
-            'course',
-            'faculty', 'faculty_id',
-            'total_score', 'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score',
-        ]
+    BASE_FIELDS = [
+        'id', 'user_id',
+        'full_name', 'short_name',
+        'group', 'group_id',
+        'course',
+        'faculty',
+        'total_score', 'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score',
+    ]
 
     @extend_schema_field(serializers.CharField())
     def get_short_name(self, obj):
         if obj.user:
             return obj.user.get_user_display_short_name()
         return obj.full_name
+
+
+class StudentRatingSerializer(RatingRowMixin, serializers.ModelSerializer):
+    """
+    Строка публичного рейтинга: живые баллы текущего семестра из кэша Student.
+    """
+    faculty_id = serializers.IntegerField(source='faculty.id', read_only=True, default=0)
+    total_score = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Student
+        fields = RatingRowMixin.BASE_FIELDS + ['faculty_id']
 
 class SemesterScoreSerializer(serializers.ModelSerializer):
     """Строка истории баллов студента за один семестр."""
@@ -198,6 +202,9 @@ class SemesterScoreSerializer(serializers.ModelSerializer):
 
 class SemesterRatingSerializer(serializers.ModelSerializer):
     """
+    НЕ ИСПОЛЬЗУЕТСЯ (проверено: нигде не импортируется). Оставлен намеренно —
+    на случай возвращения исторического рейтинга по строкам SemesterScore.
+
     Рейтинг за прошлый семестр: сериализует строки SemesterScore в тот же формат, что и
     StudentRatingSerializer, чтобы фронтенд обрабатывал текущий и исторический рейтинг одинаково.
     """
@@ -228,7 +235,7 @@ class SemesterRatingSerializer(serializers.ModelSerializer):
             return obj.student.user.get_user_display_short_name()
         return obj.student.full_name
 
-class SemesterStudentListSerializer(serializers.ModelSerializer):
+class SemesterStudentListSerializer(RatingRowMixin, serializers.ModelSerializer):
     """
     Строка таблицы студентов в /staff-profile за ПРОШЛЫЙ семестр.
 
@@ -236,11 +243,6 @@ class SemesterStudentListSerializer(serializers.ModelSerializer):
     выбранного семестра (`sem_*`, 0 при отсутствии строки SemesterScore). По форме совпадает с
     тем, что таблица читает из StudentProfileSerializer.
     """
-    group = serializers.CharField(source='group.name', read_only=True, default="Без группы")
-    group_id = serializers.IntegerField(source='group.id', read_only=True)
-    course = serializers.IntegerField(source='group.course', read_only=True, default=0)
-    faculty = serializers.CharField(source='faculty.short_name', read_only=True, default="—")
-    short_name = serializers.SerializerMethodField()
     total_score = serializers.IntegerField(source='sem_total_score', read_only=True)
     academic_score = serializers.IntegerField(source='sem_academic_score', read_only=True)
     research_score = serializers.IntegerField(source='sem_research_score', read_only=True)
@@ -250,19 +252,7 @@ class SemesterStudentListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = [
-            'id', 'user_id',
-            'full_name', 'short_name',
-            'record_book',
-            'group', 'group_id', 'course', 'faculty',
-            'total_score', 'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score',
-        ]
-
-    @extend_schema_field(serializers.CharField())
-    def get_short_name(self, obj):
-        if obj.user:
-            return obj.user.get_user_display_short_name()
-        return obj.full_name
+        fields = RatingRowMixin.BASE_FIELDS + ['record_book']
 
 class DocumentFileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -393,38 +383,13 @@ class AchievementUploadSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        files_data = validated_data.pop('files')
+        from .services import create_achievement
+
+        files = validated_data.pop('files')
         user = validated_data.pop('user')
-        record_book = validated_data.pop('record_book')
+        validated_data.pop('record_book')
 
-        status_obj = DocumentStatus.objects.get(code='pending')
-
-        # Рассчитываем баллы
-        score = calculate_achievement_score(
-            validated_data['category'].code,
-            validated_data['sub_type'].code,
-            validated_data.get('level').code if validated_data.get('level') else None,
-            validated_data.get('result').code if validated_data.get('result') else None
-        )
-
-        with transaction.atomic():
-            document = Document.objects.create(
-                user=user,
-                status=status_obj,
-                score=score,
-                semester=AcademicYear.get_current(),
-                **validated_data
-            )
-
-            for order, file in enumerate(files_data):
-                DocumentFile.objects.create(
-                    document=document,
-                    file=file,
-                    original_file_name=file.name,
-                    order=order
-                )
-
-        return document
+        return create_achievement(user=user, files=files, **validated_data)
 
 
 class AchievementUpdateSerializer(serializers.Serializer):
@@ -466,39 +431,7 @@ class AchievementUpdateSerializer(serializers.Serializer):
         return data
 
     def update(self, instance, validated_data):
+        from .services import update_achievement
+
         files = validated_data.pop('files', None)
-
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-
-        # Повторная подача: отклонённая заявка снова уходит на рассмотрение.
-        if instance.status.code == 'rejected':
-            instance.status = DocumentStatus.objects.get(code='pending')
-            instance.rejection_reason = ''
-
-        with transaction.atomic():
-            instance.save()  # балл пересчитывается в Document.save()
-
-            if files is not None:
-                old_files = list(instance.files.all())
-                instance.files.all().delete()
-
-                for order, file in enumerate(files):
-                    DocumentFile.objects.create(
-                        document=instance,
-                        file=file,
-                        original_file_name=file.name,
-                        order=order,
-                    )
-
-                # Старые файлы удаляем из хранилища только после коммита
-                def _cleanup_old_files(files_to_remove=old_files):
-                    for old_file in files_to_remove:
-                        try:
-                            old_file.file.delete(save=False)
-                        except Exception:
-                            logger.exception("Не удалось удалить старый файл достижения из хранилища")
-
-                transaction.on_commit(_cleanup_old_files)
-
-        return instance
+        return update_achievement(instance, validated_data, files=files)

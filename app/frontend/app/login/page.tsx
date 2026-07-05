@@ -46,8 +46,8 @@ export default function LoginPage() {
             
       const errorData = (error as ApiError).response?.data;
       
-      if (errorData?.message) {
-        toast.error(String(errorData.message));
+      if (errorData?.detail) {
+        toast.error(String(errorData.detail));
       } else {
         toast.error('Ошибка авторизации. Повторите попытку позже.');
       }

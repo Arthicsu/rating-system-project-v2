@@ -43,7 +43,7 @@ export function useFilePreview(fileId: number | null, enabled: boolean) {
       setError(null);
 
       try {
-        const response = await api.get(`/user/api/v1/document/preview/${fileId}/`, {
+        const response = await api.get(`/api/v1/document-files/${fileId}/preview/`, {
           responseType: 'blob',
           skipErrorRedirect: true,
           timeout: 30000,

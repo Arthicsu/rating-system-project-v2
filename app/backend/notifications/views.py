@@ -1,23 +1,22 @@
-from rest_framework import status
+from drf_spectacular.utils import extend_schema
+
+from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.generics import GenericAPIView
 
-from .services import get_pending_docs_count
 from .serializers import PendingCountSerializer
 
-class PendingCountAPIView(GenericAPIView):
-    """
-    Отдаёт число заявок, ожидающих действия сотрудника.
-    GET — число заявок, ожидающих действия текущего сотрудника.
-    Для не-сотрудников возвращает 0. Доступ — только аутентифицированным.
-    """
+
+@extend_schema(tags=['notifications'])
+class NotificationViewSet(viewsets.ViewSet):
+    """Уведомления сотрудника (счётчик заявок, ожидающих действия)."""
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsAuthenticated]
-    serializer_class = PendingCountSerializer
-    pagination_class = None
-    
-    def get(self, request):
-        serializer = self.get_serializer(request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(responses={200: PendingCountSerializer})
+    @action(detail=False, methods=['get'], url_path='pending-count')
+    def pending_count(self, request):
+        """Число заявок, ожидающих действия текущего сотрудника (0 для не-сотрудников)."""
+        return Response(PendingCountSerializer(request.user).data)

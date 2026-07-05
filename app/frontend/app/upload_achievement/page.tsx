@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import FileDropZone from '@/components/upload/FileDropZone';
 import CustomSelect from '@/components/CustomSelect';
 import { studentApi } from '@/lib/apiRequests';
+import { AxiosError } from 'axios';
 import type { SelectOption, DataStructure } from '@/interfaces/AchievementInterfaces';
 
 export default function UploadAchievement() {
@@ -182,11 +183,14 @@ export default function UploadAchievement() {
       router.push('/profile');
     } catch (error) {
       toast.dismiss(loadingToast);
-      const err = error as { response?: { data?: { files?: string[]; student?: string[] } } };
-      if (err.response?.data?.files) {
-        toast.error('Ошибка: ' + err.response.data.files[0]);
-      } else if (err.response?.data?.student) {
-        toast.error('Ошибка: ' + err.response.data.student);
+      const err = error as AxiosError;
+      if (err.code === 'ECONNABORTED') {
+        toast.error('Время ожидания ответа от сервера истекло. Проверьте размер файлов и попробуйте снова.');
+      } else if (err.response?.data && typeof err.response.data === 'object') {
+        const data = err.response.data as Record<string, string | string[]>;
+        const firstKey = Object.keys(data)[0];
+        const msg = Array.isArray(data[firstKey]) ? (data[firstKey] as string[])[0] : data[firstKey];
+        toast.error('Ошибка: ' + msg);
       } else {
         toast.error('Ошибка при отправке достижения');
       }

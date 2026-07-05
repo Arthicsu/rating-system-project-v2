@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'django_filters',
     'corsheaders',
     'storages',
     'drf_spectacular',
@@ -129,6 +130,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    # Единый формат ошибок: {"detail": ...} (+ Retry-After для PreviewBusy).
+    'EXCEPTION_HANDLER': 'core.exceptions.api_exception_handler',
     'DEFAULT_PAGINATION_CLASS': 'core.pagination.StandardResultsSetPagination',
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
     'PAGE_SIZE': 20,

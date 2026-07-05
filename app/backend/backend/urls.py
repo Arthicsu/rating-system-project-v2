@@ -27,10 +27,8 @@ admin.site.site_title = "Админ-панель"                              #
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', RedirectView.as_view(url='/admin/', permanent=False), name='home_redirect'),
-    path('user/', include('users.urls', namespace='user')),
-    path('student/', include('students.urls', namespace='students')),
-    path('university/', include('university_structure.urls', namespace='university_structure')),
-    path('', include('notifications.urls', namespace='notifications')),
+    # Все ресурсы API — через DRF router (см. backend/api_urls.py).
+    path('api/v1/', include(('backend.api_urls', 'api'))),
 ]
 
 # Схема API, Swagger/Redoc и browsable-auth  регистрируем их только в dev

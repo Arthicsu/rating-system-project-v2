@@ -1,4 +1,4 @@
-"""
+﻿"""
 Тесты API-ручек приложения `users`.
 
 Покрывают публичный контракт эндпоинтов (статус-коды, тело ответа, проверки доступа и сквозной сценарий сессии регистрация → вход → проверка → выход).
@@ -16,6 +16,7 @@
 - `manage.py test` создаёт отдельную тестовую БД, поэтому прод-данные не затрагиваются.
 Пользователь БД должен иметь право CREATE DATABASE  (у стандартного postgres-пользователя из compose оно есть).
 """
+import unittest
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -78,7 +79,7 @@ class UsersAPITestCase(APITestCase):
     def login(self, username, password=DEFAULT_PASSWORD):
         """Реальный вход через ручку логина (ставит сессионную cookie на клиента)."""
         return self.client.post(
-            reverse("user:api_login"),
+            reverse("api:auth-login"),
             {"username": username, "password": password},
         )
 
@@ -93,6 +94,7 @@ class UsersAPITestCase(APITestCase):
         return resp
 
 
+@unittest.skip("Саморегистрация отключена: маршрут закомментирован в users/urls.py, код сохранён намеренно")
 @override_settings(**TEST_SETTINGS)
 class RegistrationAPIViewTests(UsersAPITestCase):
     """POST /user/api/v1/register/student/"""
@@ -129,7 +131,7 @@ class RegistrationAPIViewTests(UsersAPITestCase):
 
     def test_registration_auto_login(self):
         self.client.post(self.url, self.payload)
-        resp = self.client.get(reverse("user:api_check_auth"))
+        resp = self.client.get(reverse("api:auth-session"))
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.json()["username"], "ivanov@uni.ru")
@@ -163,7 +165,7 @@ class LoginAPIViewTests(UsersAPITestCase):
         self.user = self.create_user(
             username="login@uni.ru", first_name="Пётр", last_name="Петров"
         )
-        self.url = reverse("user:api_login")
+        self.url = reverse("api:auth-login")
 
     def test_login_success(self):
         resp = self.login("login@uni.ru")
@@ -173,7 +175,7 @@ class LoginAPIViewTests(UsersAPITestCase):
         self.assertEqual(data["username"], "login@uni.ru")
         self.assertTrue(data["isAuthenticated"])
         self.assertEqual(data["message"], "Успешный вход")
-        check = self.client.get(reverse("user:api_check_auth"))
+        check = self.client.get(reverse("api:auth-session"))
         self.assertEqual(check.status_code, status.HTTP_200_OK)
 
     def test_login_wrong_password(self):
@@ -182,6 +184,8 @@ class LoginAPIViewTests(UsersAPITestCase):
         )
 
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
+        # Единый формат ошибок API: {"detail": "..."}
+        self.assertEqual(resp.json()["detail"], "Неверный логин или пароль")
 
     def test_login_unknown_user(self):
         resp = self.client.post(
@@ -203,7 +207,7 @@ class LogoutAPIViewTests(UsersAPITestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user(username="logout@uni.ru")
-        self.url = reverse("user:api_logout")
+        self.url = reverse("api:auth-logout")
 
     def test_logout_requires_auth(self):
         self.assertRequiresAuth(self.url, method="post")
@@ -214,7 +218,7 @@ class LogoutAPIViewTests(UsersAPITestCase):
         resp = self.client.post(self.url)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
-        check = self.client.get(reverse("user:api_check_auth"))
+        check = self.client.get(reverse("api:auth-session"))
         self.assertEqual(check.status_code, status.HTTP_200_OK)
         self.assertEqual(check.json(), {"isAuthenticated": False})
 
@@ -225,7 +229,7 @@ class CheckAuthAPIViewTests(UsersAPITestCase):
 
     def setUp(self):
         super().setUp()
-        self.url = reverse("user:api_check_auth")
+        self.url = reverse("api:auth-session")
         self.user = self.create_user(
             username="me@uni.ru", first_name="Анна", last_name="Сидорова"
         )
@@ -256,8 +260,8 @@ class ReferenceDataEndpointsTests(UsersAPITestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user(username="viewer@uni.ru")
-        self.filters_url = reverse("user:api_student_rating_filters")
-        self.categories_url = reverse("user:api_category_achievements")
+        self.filters_url = reverse("api:rating-filters")
+        self.categories_url = reverse("api:categories-list")
 
     def test_rating_filters_requires_auth(self):
         self.assertRequiresAuth(self.filters_url)
@@ -290,7 +294,7 @@ class RatingListAPIViewTests(UsersAPITestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user(username="rating@uni.ru")
-        self.url = reverse("user:api_v2_student_rating")
+        self.url = reverse("api:rating-list")
 
     def test_requires_auth(self):
         self.assertRequiresAuth(self.url)
@@ -306,7 +310,7 @@ class RatingListAPIViewTests(UsersAPITestCase):
         self.assertIsInstance(data["results"], list)
 
 
-PREVIEW_URL_NAME = "user:api_file_preview"
+PREVIEW_URL_NAME = "api:document-files-preview"
 
 
 @override_settings(**FILE_TEST_SETTINGS)
@@ -400,6 +404,26 @@ class DocumentPreviewTests(UsersAPITestCase):
         resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.id]))
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        # Единый формат ошибок API: {"detail": "..."}
+        self.assertIn("detail", resp.json())
+
+    def test_busy_converter_returns_503_with_retry_after(self):
+        """Занятый конвертер — 503 c Retry-After и {"detail": ...}."""
+        from core.preview import PreviewBusyError
+
+        df = self._make_file(
+            "report.docx",
+            b"PK\x03\x04 fake docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+        self.client.force_authenticate(self.user)
+
+        with patch("users.views.render_office_pdf", side_effect=PreviewBusyError):
+            resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.id]))
+
+        self.assertEqual(resp.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(resp["Retry-After"], "5")
+        self.assertIn("detail", resp.json())
 
     def test_preview_requires_auth(self):
         df = self._make_file("report.pdf", b"%PDF-1.4 fake", "application/pdf")

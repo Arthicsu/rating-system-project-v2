@@ -45,10 +45,8 @@ config-files/import_passwords/
 dump*.sql
 dumps/*
 backups/
-# Общий каталог с данными для расшаривания (логи, бэкапы, дампы, пароли импорта) — не коммитим
 shared/
 celerybeat-schedule*
-docs/*
 logs/*
 app/backend/config-files
 app/backend/config-files/*

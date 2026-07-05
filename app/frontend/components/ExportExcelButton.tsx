@@ -19,7 +19,7 @@ export default function ExportExcelButton({ filters, category = 'common', page =
       if (category !== 'common') params.append('category', category);
       params.append('page', String(page));
       
-      const response = await api.get('/university/api/v1/export-rating-to-excel/', {
+      const response = await api.get('/api/v1/rating/export/', {
         params,
         responseType: 'blob'
       });

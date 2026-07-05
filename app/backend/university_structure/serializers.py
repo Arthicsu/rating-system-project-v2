@@ -3,7 +3,10 @@ from .models import Faculty, Department, Specialty, Group, Staff, RejectionReaso
 
 class FacultySerializer(serializers.ModelSerializer):
     """
-    Сериализатор для факультета.
+    Сериализатор для факультета (полный набор полей).
+
+    НЕ ИСПОЛЬЗУЕТСЯ во views (проверено: только импортируется). Оставлен
+    намеренно; для фильтров рейтинга используется FacultyFilterSerializer.
     """
     class Meta:
         model = Faculty
@@ -140,10 +143,3 @@ class ReviewDocumentResponseSerializer(serializers.Serializer):
     Сериализатор ответа при модерации документа.
     """
     message = serializers.CharField()
-
-
-class ReviewDocumentErrorSerializer(serializers.Serializer):
-    """
-    Сериализатор ошибки при модерации документа.
-    """
-    error = serializers.CharField()

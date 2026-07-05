@@ -1,370 +1,124 @@
+"""
+ViewSets приложения university_structure (API /api/v1/, router — backend/api_urls.py):
+профиль сотрудника и справочники структуры вуза.
+
+Модерация заявок живёт в AchievementViewSet.review (students/views.py),
+экспорт рейтинга — в RatingViewSet.export (users/views.py).
+"""
 from drf_spectacular.utils import extend_schema
-from drf_spectacular.types import OpenApiTypes
 
+from rest_framework import mixins, viewsets
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.generics import GenericAPIView, ListAPIView
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.viewsets import GenericViewSet
 
-from django.shortcuts import get_object_or_404
-from django.db import transaction
-from django.http import HttpResponse
 from django.db.models import Exists, OuterRef
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 
-from .serializers import (
-    FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer,
-    StaffSerializer, RejectionReasonSerializer, AcademicYearSerializer,
-    ReviewDocumentRequestSerializer, StaffProfileResponseSerializer,
-    ReviewDocumentResponseSerializer, ReviewDocumentErrorSerializer
-)
-from .models import Faculty, Group, RejectionReason, AcademicYear
-from students.models import Document, Student, DocumentStatus
-from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, SemesterStudentListSerializer, CategorySerializer
+from django_filters.rest_framework import DjangoFilterBackend
 
-from core.pagination import StandardResultsSetPagination
-from core.export_rating_excel import generate_rating_excel_pandas
-from core.students_query_set_mixin import StudentFilterMixin, StudentWithAccessMixin, StudentRatingQuerySetMixin, DashboardStatsQuerySetMixin
-from core.scope_permission_mixin import ScopePermissionMixin
+from core import scoping
+from core.filters import GroupFilterSet
 from core.permissions import IsStaffProfile
-from students.services import credit_document, debit_document
+
+from students.models import Student
+
+from .models import AcademicYear, Group, RejectionReason
+from .serializers import (
+    AcademicYearSerializer,
+    GroupSerializer,
+    RejectionReasonSerializer,
+    StaffProfileResponseSerializer,
+    StaffSerializer,
+)
 
 
-pagination_class = StandardResultsSetPagination
-
-class StaffProfileAPIView(ScopePermissionMixin, GenericAPIView):
-    """
-    API для получения профиля сотрудника (деканат, кафедра, ректорат).
-
-    Параметры:
-        - request: Объект HTTP-запроса с аутентифицированным пользователем.
-
-    Возвращает:
-        - JSON-ответ с полями из сериализатора и мета-данные
-    """
+@extend_schema(tags=['staff'])
+class StaffViewSet(viewsets.ViewSet):
+    """Профиль сотрудника (деканат / кафедра / ректорат)."""
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsStaffProfile]
-    serializer_class = StaffSerializer
-    pagination_class = None
 
-    @extend_schema(
-        responses={200: StaffProfileResponseSerializer}
-    )
-    def get(self, request):
-        user = request.user
+    @extend_schema(responses={200: StaffProfileResponseSerializer})
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        staff = request.user.staff_profile  # гарантирован IsStaffProfile
 
-        staff = getattr(user, 'staff_profile', None)
-
-        if not staff:
-            return Response({"message": "Доступ запрещён. Для просмотра необходима учетная запись сотрудника вуза."}, status=status.HTTP_403_FORBIDDEN)
-        
-        is_own_profile = (staff.user_id == user.id)
-
-        # if not is_own_profile and not staff:
-        #     return Response({"message": "Доступ запрещён"}, status=status.HTTP_403_FORBIDDEN)    
-
-
-        # Сериализация данных из модели
-        serializer = self.get_serializer(staff)
-        response_data = serializer.data
-
-        # Мета-данные
-        response_data.update({
+        data = StaffSerializer(staff).data
+        data.update({
             "roles": list(staff.user.groups.values_list('name', flat=True)) if staff.user else [],
-            "is_own_profile": is_own_profile,
+            "is_own_profile": True,
             "is_staff": staff.user.is_staff if staff.user else False,
-            "type": "staff"
+            "type": "staff",
         })
+        return Response(data)
 
-        return Response(response_data, status=status.HTTP_200_OK)
 
-class RatingExportAPIView(StudentRatingQuerySetMixin, GenericAPIView):
-    permission_classes = [IsStaffProfile]
-    authentication_classes = [SessionAuthentication]
-    pagination_class = None
-
-    @extend_schema(
-        summary="Экспорт рейтинга в Excel",
-        responses={
-            200: OpenApiTypes.BINARY
-        }
-    )
-    def get(self, request, *args, **kwargs):
-        # Экспорт всегда по текущему семестру (генератор ожидает объекты Student).
-        queryset = self.get_base_rating_queryset(allow_history=False)
-        excel_bytes = generate_rating_excel_pandas(queryset)
-
-        response = HttpResponse(
-            excel_bytes,
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        response['Content-Disposition'] = 'attachment; filename="student_rating.xlsx"'
-        return response
-
-class ReviewDocumentAPIView(ScopePermissionMixin, GenericAPIView):
+@extend_schema(tags=['groups'])
+class GroupViewSet(mixins.ListModelMixin, GenericViewSet):
     """
-    API-представление для модерации документов студентов преподавателем.
-
-    Позволяет преподавателям подтверждать или отклонять загруженные студентами документы,
-    подтверждающие достижения. 
-    При подтверждении - начисляются баллы в соответствии с категорией.
+    Учебные группы, доступные сотруднику (в его scope, только с студентами).
+    Кэш 5 минут, per-cookie (данные зависят от роли).
     """
-    
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsStaffProfile]
-    serializer_class = ReviewDocumentRequestSerializer
-    pagination_class = None
-    lookup_url_kwarg = 'doc_id'
-        
-    @extend_schema(
-        request=ReviewDocumentRequestSerializer,
-        responses={
-            200: ReviewDocumentResponseSerializer,
-            400: ReviewDocumentErrorSerializer,
-            403: ReviewDocumentErrorSerializer,
-            404: ReviewDocumentErrorSerializer,
-        }
-    )
-    @transaction.atomic
-    def post(self, request, doc_id):
-        """
-        Обрабатывает POST-запрос на модерацию документа (подтверждение или отклонение).
-
-        Только пользователи с ролью преподавателя могут выполнять это действие.
-        В зависимости от переданного действия:
-        - 'approve': документ помечается как подтверждённый, и соответствующие баллы добавляются студенту.
-        - 'reject': документ отклоняется с указанием причин.
-
-        Параметры:
-        request (Request): HTTP-запрос, содержащий:
-            - action (str): Действие - 'approve' или 'reject'.
-            - reasons (list or str, опционально): Причины отклонения (для действия 'reject').
-        doc_id (int): Идентификатор документа, который необходимо проверить.
-
-        Возвращает:
-        Response:
-            - 200 OK: Действие выполнено успешно.
-            - 403 Forbidden: Пользователь не является преподавателем.
-            - 400 Bad Request: Передано неверное или неизвестное действие.
-            - 404 Not Found: Документ с таким ID не найден.
-
-        Логика:
-        - Проверяется, что текущий пользователь - преподаватель.
-        - Находится документ по doc_id.
-        - При подтверждении:
-            * Статус меняется на 'approved'.
-            * Баллы из документа добавляются к соответствующему полю студента (учебные, научные и т.д.).
-        - При отклонении:
-            * Статус меняется на 'rejected'.
-            * Указанные причины сохраняются в rejection_reason.
-        """
-        doc = get_object_or_404(Document.objects.select_related('status', 'category', 'semester', 'user__student_profile', 'user__student_profile__faculty', 'user__student_profile__department'), id=doc_id)
-        
-        if not self.check_staff_scope(request.user, doc):
-            return Response({"error": "Документ находится за пределами вашей области модерации"}, status=status.HTTP_403_FORBIDDEN)
-
-        action = request.data.get('action')
-        if action not in ('approve', 'reject'):
-            return Response({"error": "Неверное действие"}, status=status.HTTP_400_BAD_REQUEST)
-
-        status_pending = get_object_or_404(DocumentStatus, code='pending')
-        status_approved = get_object_or_404(DocumentStatus, code='approved')
-        status_rejected = get_object_or_404(DocumentStatus, code='rejected')
-
-        # позже заменим ответ
-        if request.user.is_dept_staff:
-            if doc.status.code != 'pending':
-                return Response({"error": "Кафедра может обрабатывать только новые заявки (pending)"}, status=status.HTTP_400_BAD_REQUEST)        
-            
-            if action == 'approve':
-                doc.status = status_approved
-                doc.rejection_reason = ''
-                doc.verified_by = request.user
-                doc.save()
-
-                # Баллы начисляются в семестр заявки (текущий — так же обновит кэш Student).
-                credit_document(doc)
-
-                return Response({"message": "Документ подтвержден кафедрой, баллы начислены"}, status=status.HTTP_200_OK)
-
-            elif action == 'reject':
-                reasons = request.data.get('reasons', [])
-                reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
-                
-                doc.status= status_rejected
-                doc.rejection_reason = reason_text
-                doc.verified_by = request.user
-                doc.save()
-                
-                return Response({"message": "Документ отклонен кафедрой"}, status=status.HTTP_200_OK)
-            return Response({"error": "Неверное действие для кафедры"}, status=status.HTTP_400_BAD_REQUEST)
-    
-        if request.user.is_dean or request.user.is_rectorate:
-            if action == 'reject':
-                if doc.status.code == 'approved':
-                    # Списываем баллы из семестра заявки (текущий — так же обновит кэш Student).
-                    debit_document(doc)
-
-                reasons = request.data.get('reasons', [])
-                reason_text = "; ".join(reasons) if isinstance(reasons, list) else str(reasons)
-                
-                doc.status = status_pending 
-                doc.rejection_reason = reason_text
-                doc.verified_by = request.user
-                doc.save()
-                
-                return Response({"message": "Решение отменено руководством. Заявка возвращена на рассмотрение, баллы вычтены."}, status=status.HTTP_200_OK)
-            return Response({"error": "Руководство может только отклонять заявки"}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"error": "Неизвестная ошибка"}, status=status.HTTP_400_BAD_REQUEST)
-
-@method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
-class RejectionReasonListView(ListAPIView):
-    permission_classes = [IsStaffProfile]
-    authentication_classes = [SessionAuthentication]
-    serializer_class = RejectionReasonSerializer
-    queryset = RejectionReason.objects.filter(is_active=True)
-    pagination_class = None
-
-    @extend_schema(
-        responses={200: RejectionReasonSerializer(many=True)}
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-@method_decorator(cache_page(60 * 60 * 2), name='dispatch')
-class AcademicYearListView(ListAPIView):
-    """
-    Список учебных периoдов для селектора семестра в профиле сотрудника.
-    """
-    permission_classes = [IsStaffProfile]
-    authentication_classes = [SessionAuthentication]
-    serializer_class = AcademicYearSerializer
-    queryset = AcademicYear.objects.all()
-    pagination_class = None
-
-    @extend_schema(
-        responses={200: AcademicYearSerializer(many=True)}
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-@method_decorator(cache_page(60 * 5), name='dispatch')  
-class FilteredGroupListAPIView(StudentFilterMixin, ListAPIView):
-    """
-    Список доступных учебных групп.
-    Возвращает список групп, доступных текущему сотруднику (с учетом факультета/кафедры и наличия студентов).
-    """ 
-    permission_classes = [IsStaffProfile]
-    authentication_classes = [SessionAuthentication]
     serializer_class = GroupSerializer
     pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = GroupFilterSet
 
-    @extend_schema(
-        responses={200: GroupSerializer(many=True)}
-    )
     def get_queryset(self):
-        user = self.request.user
-        params = self.request.query_params
-        
-        # Подзапрос на наличие студентов в группе
+        if getattr(self, 'swagger_fake_view', False):
+            return Group.objects.none()
+
+        # Подзапрос вместо join таблицы студентов — без дублей строк.
         has_students_subquery = Student.objects.filter(group=OuterRef('pk'))
-        
-        # Основной запрос без join таблицы студентов
+
         queryset = Group.objects.select_related('specialty__faculty').annotate(
             has_students=Exists(has_students_subquery)
         ).filter(has_students=True).order_by('course', 'name')
 
-        # Фильтрация по параметрам (course, faculty_id)
-        if params.get('faculty_id') and params.get('faculty_id') != 'all':
-            queryset = queryset.filter(specialty__faculty_id=params.get('faculty_id'))
-        if params.get('course') and params.get('course') != 'all':
-            queryset = queryset.filter(course=params.get('course'))
-        if params.get('group_id') and params.get('group_id') != 'all':
-            queryset = queryset.filter(id=params.get('group_id'))
-
-        return self.scope_filters_queryset(
-            user, queryset,
+        return scoping.scope_queryset(
+            self.request.user, queryset,
             faculty_field='specialty__faculty',
-            dept_field='specialty__department'
+            dept_field='specialty__department',
         )
 
-class FilteredStudentListAPIView(StudentWithAccessMixin, ListAPIView):
-    """
-    Список студентов сотрудника с учётом выбранного семестра.
+    @extend_schema(responses={200: GroupSerializer(many=True)})
+    @method_decorator(cache_page(60 * 5, key_prefix='groups'))
+    @method_decorator(vary_on_headers('Cookie'))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
-    Текущий семестр - живой кэш Student (StudentProfileSerializer). Прошлый - те же студенты
-    (ВСЕ отфильтрованные), но баллы из аннотаций выбранного семестра (0 при отсутствии истории),
-    сериализуются SemesterStudentListSerializer.
-    """
-    permission_classes = [IsStaffProfile]
+
+@extend_schema(tags=['rejection-reasons'])
+class RejectionReasonViewSet(mixins.ListModelMixin, GenericViewSet):
+    """Справочник активных причин отклонения заявок (кэш 2 часа)."""
     authentication_classes = [SessionAuthentication]
-    serializer_class = StudentProfileSerializer
-
-    def get_serializer_class(self):
-        _, is_past = self.get_requested_semester()
-        return SemesterStudentListSerializer if is_past else StudentProfileSerializer
-
-    @extend_schema(
-        responses={200: StudentProfileSerializer(many=True)}
-    )
-    def get_queryset(self):
-        user = self.request.user
-        queryset = self.get_allowed_students(user)
-        semester_id, is_past = self.get_requested_semester()
-        if is_past and semester_id:
-            queryset = queryset.annotate(**self.semester_score_annotations(semester_id))
-        return queryset
-
-class FilteredDashboardStatsAPIView(DashboardStatsQuerySetMixin, ListAPIView):
-    """
-    API для получения статистики и списка документов на модерацию.
-    
-    Возвращает агрегированную статистику, топ-5 студентов и документы на модерацию.
-    Поддерживает фильтрацию по faculty_id, course, group_id.
-    Query-параметр list_type:
-      - pending (по умолчанию) — заявки на рассмотрение;
-      - reviewed — уже рассмотренные (approved/rejected).
-    """
     permission_classes = [IsStaffProfile]
+    serializer_class = RejectionReasonSerializer
+    queryset = RejectionReason.objects.filter(is_active=True)
+    pagination_class = None
+
+    @extend_schema(responses={200: RejectionReasonSerializer(many=True)})
+    @method_decorator(cache_page(60 * 60 * 2, key_prefix='rejection-reasons'))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
+@extend_schema(tags=['academic-years'])
+class AcademicYearViewSet(mixins.ListModelMixin, GenericViewSet):
+    """Учебные периоды для селектора семестра (кэш 2 часа)."""
     authentication_classes = [SessionAuthentication]
-    serializer_class = PendingDocumentSerializer
+    permission_classes = [IsStaffProfile]
+    serializer_class = AcademicYearSerializer
+    queryset = AcademicYear.objects.all()
+    pagination_class = None
 
-    def get_queryset(self):
-        user = self.request.user
-        list_type = self.request.query_params.get('list_type', 'pending')
-        if list_type == 'reviewed':
-            return self.get_reviewed_documents_queryset(user)
-        return self.get_pending_documents_queryset(user)
-
-    @extend_schema(
-        responses={200: PendingDocumentSerializer(many=True)}
-    )
-    def get(self, request, *args, **kwargs):
-        # Получаем queryset документов на модерацию
-        queryset = self.get_queryset()
-        
-        # Пропускаем документы через пагинатор
-        page = self.paginate_queryset(queryset)
-        
-        if page is not None:
-            # Если пагинация сработала, сериализуем только текущую страницу
-            serializer = self.get_serializer(page, many=True)
-            
-            # Получаем стандартный ответ пагинатора (с count, next, previous, results)
-            response = self.get_paginated_response(serializer.data)
-            
-            # Добавляем статистику в ответ пагинатора
-            response.data['stats'] = self.get_stats_data(request.user)
-            response.data['top5'] = self.get_top5_students(request.user)
-
-            return response
-
-        # Если пагинатор отключен - Fallback
-        serializer = self.get_serializer(queryset, many=True)
-        return Response({
-            'results': serializer.data,
-            'stats': self.get_stats_data(request.user),
-            'top5': self.get_top5_students(request.user),
-        })
+    @extend_schema(responses={200: AcademicYearSerializer(many=True)})
+    @method_decorator(cache_page(60 * 60 * 2, key_prefix='academic-years'))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)

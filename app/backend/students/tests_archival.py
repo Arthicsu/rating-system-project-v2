@@ -169,7 +169,7 @@ class ArchivedExcludedFromRosterAPITests(APITestCase):
 
     def test_archived_not_in_current_roster(self):
         self.client.force_authenticate(self.staff)
-        resp = self.client.get(reverse("university_structure:api_filtered_students"))
+        resp = self.client.get(reverse("api:students-list"))
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         results = resp.data["results"] if isinstance(resp.data, dict) and "results" in resp.data else resp.data
         ids = {r["id"] for r in results}

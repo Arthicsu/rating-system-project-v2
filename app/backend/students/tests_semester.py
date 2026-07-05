@@ -1,4 +1,4 @@
-"""
+﻿"""
 Тесты посеместрового учёта баллов: начисление/списание в разрезе семестра,
 ролловер (обнуление + сохранение истории), исторический рейтинг и привязка заявки к семестру.
 """
@@ -144,7 +144,7 @@ class SemesterScoringTests(APITestCase):
         credit_document(self._doc(self.fall))
         self.client.force_authenticate(self.user)
 
-        resp = self.client.get(reverse("user:api_v2_student_rating"))
+        resp = self.client.get(reverse("api:rating-list"))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         me = next(r for r in resp.data["results"] if r["id"] == self.student.id)
         self.assertEqual(me["total_score"], 10)
@@ -156,7 +156,7 @@ class SemesterScoringTests(APITestCase):
         self.client.force_authenticate(self.user)
 
         # Рейтинг всегда за текущий семестр (весна) — параметр semester игнорируется.
-        resp = self.client.get(reverse("user:api_v2_student_rating"), {"semester": self.fall.id})
+        resp = self.client.get(reverse("api:rating-list"), {"semester": self.fall.id})
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         me = next(r for r in resp.data["results"] if r["id"] == self.student.id)
         self.assertEqual(me["total_score"], 0)
@@ -166,7 +166,7 @@ class SemesterScoringTests(APITestCase):
         png = SimpleUploadedFile("proof.png", PNG, content_type="image/png")
 
         resp = self.client.post(
-            reverse("students:api_upload_achievement"),
+            reverse("api:achievements-list"),
             data={
                 "record_book": "RB-1",
                 "category": "academic",

@@ -1,66 +1,88 @@
-from typing_extensions import ReadOnly
+"""
+ViewSets приложения users (API /api/v1/, router — backend/api_urls.py):
+аутентификация, публичный рейтинг, справочник категорий и выдача файлов.
 
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, inline_serializer
+RegistrationAPIView сохранён без маршрута — саморегистрация отключена намеренно.
+"""
+import logging
+import mimetypes
+import re
+from urllib.parse import quote
+
+import requests
+
 from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 
-from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
-from django.db.models import Avg, F, Count, Q, ExpressionWrapper, IntegerField
+from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.http import HttpResponse, StreamingHttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.middleware.csrf import get_token
-from django.http import StreamingHttpResponse
 
-from rest_framework.views import APIView, PermissionDenied
-from rest_framework.generics import GenericAPIView, ListAPIView, CreateAPIView, RetrieveAPIView, DestroyAPIView
-from rest_framework.response import Response
-from rest_framework import status, serializers
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import mixins, status, viewsets
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.throttling import ScopedRateThrottle
-from rest_framework.parsers import JSONParser
+from rest_framework.decorators import action
 from rest_framework.exceptions import APIException
+from rest_framework.filters import SearchFilter
+from rest_framework.generics import CreateAPIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.viewsets import GenericViewSet
 
-from core.throttling import LoginRateThrottle
-from university_structure.models import Faculty, Group
-from students.models import Category, DocumentFile
-from .serializers import StudentRegistrationSerializer, LoginRequestSerializer, UserResponseSerializer, DocumentFileAccessSerializer, ForgotPasswordRequestSerializer
-from students.serializers import DocumentSerializer, PendingDocumentSerializer, StudentProfileSerializer, StudentRatingSerializer, CategorySerializer
-from university_structure.serializers import FacultySerializer, DepartmentSerializer, SpecialtySerializer, GroupSerializer, StaffSerializer, RatingFiltersResponseSerializer
-from core.pagination import StandardResultsSetPagination
-from core.students_query_set_mixin import StudentWithAccessMixin, StudentRatingQuerySetMixin
-from .services import reset_user_password
-from .tasks import send_recovery_password_email
-from core.scope_permission_mixin import ScopePermissionMixin
+from django_filters.rest_framework import DjangoFilterBackend
+
+from core import querysets
+from core.exceptions import (
+    FileTooLarge,
+    InvalidCredentials,
+    PreviewBusy,
+    PreviewFailed,
+    StorageUnavailable,
+)
+from core.export_rating_excel import generate_rating_excel_pandas
+from core.filters import StudentFilterSet
+from core.permissions import CanAccessDocumentFile, IsStaffProfile
 from core.preview import (
-    is_office_file,
-    render_office_pdf,
     PreviewBusyError,
     PreviewConversionError,
+    is_office_file,
+    render_office_pdf,
 )
+from core.serializers import ErrorDetailSerializer, MessageSerializer
+from core.throttling import LoginRateThrottle
 
-from urllib.parse import quote
-import logging, re, mimetypes, requests
+from students.models import Category, DocumentFile
+from students.serializers import CategorySerializer, StudentRatingSerializer
+from university_structure.models import Faculty, Group
+from university_structure.serializers import RatingFiltersResponseSerializer
+
+from .serializers import (
+    DocumentFileAccessSerializer,
+    ForgotPasswordRequestSerializer,
+    LoginRequestSerializer,
+    StudentRegistrationSerializer,
+    UserResponseSerializer,
+)
+from .services import reset_user_password
+from .tasks import send_recovery_password_email
 
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
-pagination_class = StandardResultsSetPagination
 
 
 class RegistrationAPIView(CreateAPIView):
     """
-    API-представление для регистрации нового студента.
+    Регистрация нового студента.
 
-    Позволяет анонимным пользователям зарегистрироваться в системе через передачу данных,
-    таких как ФИО, номер зачётной книжки, логин, пароль и другие необходимые поля.
-    После успешной валидации создаёт пользователя и связанный профиль студента,
-    автоматически выполняет вход и возвращает базовую информацию о пользователе.
+    ОТКЛЮЧЕНА НАМЕРЕННО: маршрут не подключён (аккаунты создаются через
+    админку/импорт). Код сохранён; для включения добавьте action `register`
+    в AuthViewSet (POST /api/v1/auth/register/) с вызовом этого же
+    StudentRegistrationSerializer и throttle-scope 'register'.
     """
-    
+
     permission_classes = [AllowAny]
     authentication_classes = []
     throttle_classes = [ScopedRateThrottle]
@@ -69,378 +91,282 @@ class RegistrationAPIView(CreateAPIView):
 
     @extend_schema(
         request=StudentRegistrationSerializer,
-        responses={201: UserResponseSerializer}
+        responses={201: UserResponseSerializer},
     )
     def post(self, request):
-        """
-        Обрабатывает POST-запрос на регистрацию нового студента.
-
-        Использует StudentRegistrationSerializer для валидации входных данных и создания пользователя.
-        При успешной регистрации:
-        - Сохраняет пользователя и профиль студента.
-        - Автоматически авторизует пользователя в текущей сессии (login).
-        - Возвращает JSON-ответ с информацией о новом пользователе.
-
-        Параметры:
-            request (Request): HTTP-запрос с данными пользователя в формате JSON.
-
-        Возвращает:
-            Response:
-                - 201 Created: Если данные валидны и регистрация прошла успешно.
-                    В теле - сообщение и данные пользователя.
-                - 400 Bad Request: Если данные некорректны. В теле - ошибки валидации.
-
-        Особенности:
-            - Доступ разрешён всем (AllowAny), включая неаутентифицированных пользователей.
-            - После регистрации пользователь сразу входит в систему (функция login).
-        """
-
-        
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         login(request, user)
-        
-        response_serializer = UserResponseSerializer(user)
-        response_data = response_serializer.data
+
+        response_data = UserResponseSerializer(user).data
         response_data["message"] = "Регистрация успешна"
-        
         return Response(response_data, status=status.HTTP_201_CREATED)
 
-class LoginAPIView(GenericAPIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
-    throttle_classes = [LoginRateThrottle]
-    serializer_class = LoginRequestSerializer
+
+@extend_schema(tags=['auth'])
+class AuthViewSet(viewsets.ViewSet):
+    """
+    Аутентификация: login / logout / session (ex check-auth) / forgot-password.
+
+    Регистрация отключена намеренно (см. RegistrationAPIView — код сохранён,
+    маршрут не подключён).
+    """
+    authentication_classes = [SessionAuthentication]
+
+    def get_permissions(self):
+        if self.action in ('login', 'session', 'forgot_password'):
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_throttles(self):
+        if self.action == 'login':
+            return [LoginRateThrottle()]
+        if self.action == 'forgot_password':
+            self.throttle_scope = 'forgot_password'
+            return [ScopedRateThrottle()]
+        return []
 
     @extend_schema(
         request=LoginRequestSerializer,
-        responses={200: UserResponseSerializer}
+        responses={200: UserResponseSerializer, 401: ErrorDetailSerializer},
     )
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+    @action(detail=False, methods=['post'])
+    def login(self, request):
+        serializer = LoginRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        username = serializer.validated_data.get('username')
-        password = serializer.validated_data.get('password')
-        
-        user = authenticate(request, username=username, password=password)
-        
-        if user is not None:
-            login(request, user)
-            
-            response_serializer = UserResponseSerializer(user)
-            response_data = response_serializer.data
-            response_data["message"] = "Успешный вход"
 
-            return Response(response_data, status=status.HTTP_200_OK)
-        else:
-            return Response({"message": "Неверный логин или пароль"}, status=status.HTTP_401_UNAUTHORIZED)
+        user = authenticate(
+            request,
+            username=serializer.validated_data['username'],
+            password=serializer.validated_data['password'],
+        )
+        if user is None:
+            raise InvalidCredentials()
 
-# @method_decorator(ensure_csrf_cookie, name='dispatch')
-class CheckAuthAPIView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = [SessionAuthentication]
-    serializer_class = UserResponseSerializer
+        login(request, user)
 
-    @extend_schema(
-        responses={
-            200: UserResponseSerializer,
-        }
-    )
-    def get(self, request):
-        if request.user.is_authenticated:
-            response_data = UserResponseSerializer(request.user).data
-            return Response(response_data, status=status.HTTP_200_OK)
+        response_data = UserResponseSerializer(user).data
+        response_data["message"] = "Успешный вход"
+        return Response(response_data)
 
-        return Response({"isAuthenticated": False}, status=status.HTTP_200_OK)
-
-# @method_decorator(ensure_csrf_cookie, name='dispatch')
-# class CsrfTokenAPIView(APIView):
-#     permission_classes = [AllowAny]
-#     authentication_classes = []
-
-#     @extend_schema(
-#         responses={200: inline_serializer(name='CsrfTokenResponse', fields={'csrfToken': serializers.CharField()})}
-#     )
-#     def get(self, request):
-#         csrf_token = get_token(request)
-#         response = Response({"csrfToken": csrf_token}, status=status.HTTP_200_OK)
-#         response['X-CSRFToken'] = csrf_token
-#         return response
-
-class LogoutAPIView(GenericAPIView):
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [SessionAuthentication]
-    serializer_class = UserResponseSerializer
-
-    @extend_schema(
-        methods=["POST"],
-        responses={200: None}
-    )
-    def post(self, request):
+    @extend_schema(request=None, responses={200: None})
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
         logout(request)
         return Response(status=status.HTTP_200_OK)
 
-@method_decorator(cache_page(60 * 60 * 2), name='dispatch')
-class RatingFiltersAPIView(GenericAPIView):
-    """
-    Данные для фильтров рейтинга.
-    Возвращает списки факультетов, курсов и групп для построения фильтров на клиенте.
-    """
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [SessionAuthentication]
-    serializer_class = RatingFiltersResponseSerializer
-    
+    @extend_schema(responses={200: UserResponseSerializer})
+    @action(detail=False, methods=['get'])
+    def session(self, request):
+        """Текущая сессия: данные пользователя либо {"isAuthenticated": false}."""
+        if request.user.is_authenticated:
+            return Response(UserResponseSerializer(request.user).data)
+        return Response({"isAuthenticated": False})
+
     @extend_schema(
-        responses={200: RatingFiltersResponseSerializer()}
+        request=ForgotPasswordRequestSerializer,
+        responses={200: MessageSerializer, 500: ErrorDetailSerializer},
     )
-    def get(self, request):
+    @action(detail=False, methods=['post'], url_path='forgot-password')
+    def forgot_password(self, request):
+        serializer = ForgotPasswordRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+
+        # Ответ не раскрывает, существует ли аккаунт с такой почтой.
+        neutral_message = f"Если аккаунт с почтой {email} существует, на него отправлен новый пароль"
+
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            return Response({"message": neutral_message})
+
+        try:
+            user_name = user.get_user_display_name()
+        except Exception as e:
+            logger.warning("Не удалось получить отображаемое имя пользователя: %s", e)
+            user_name = "Пользователь"
+
+        try:
+            new_password = reset_user_password(user)
+            send_recovery_password_email.delay(user.email, user_name, new_password)
+        except Exception:
+            # Деталь ошибки — только в лог: текст исключения может раскрывать внутренности (SMTP, хосты).
+            logger.exception("Ошибка при сбросе пароля и постановке письма в очередь")
+            raise APIException("Ошибка сервера при отправке письма")
+
+        return Response({"message": neutral_message})
+
+
+@extend_schema(tags=['rating'])
+class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
+    """
+    Публичный рейтинг студентов (всегда текущий семестр).
+
+    - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
+    - filters — данные для построения фильтров (кэш 2 часа);
+    - export — выгрузка рейтинга в Excel (только сотрудники).
+    """
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = StudentRatingSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = StudentFilterSet
+    search_fields = ['full_name', 'record_book']
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            from students.models import Student
+            return Student.objects.none()
+        return querysets.rating_queryset(self.request)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter('category', OpenApiTypes.STR,
+                             description="Категория сортировки: common (по умолчанию) | academic | research | sport | social | cultural"),
+        ],
+        responses={200: StudentRatingSerializer(many=True)},
+    )
+    @method_decorator(cache_page(60 * 5, key_prefix='rating-list'))
+    @method_decorator(vary_on_headers('Cookie'))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(responses={200: RatingFiltersResponseSerializer})
+    @method_decorator(cache_page(60 * 60 * 2, key_prefix='rating-filters'))
+    @action(detail=False, methods=['get'])
+    def filters(self, request):
         faculties = Faculty.objects.values('id', 'short_name', 'name')
         courses = Group.objects.values_list('course', flat=True).distinct().order_by('course')
         groups = Group.objects.filter(students__isnull=False).select_related('specialty__faculty').distinct()
-        
+
         serializer = RatingFiltersResponseSerializer({
             'faculties': faculties,
             'courses': courses,
             'groups': groups,
         })
-        return Response(serializer.data, status=status.HTTP_200_OK)    
+        return Response(serializer.data)
 
-@method_decorator(cache_page(60 * 60 * 2), name='dispatch')  
-class CategoryAchievementAPIView(ListAPIView):
-    permission_classes = [IsAuthenticated]
+    @extend_schema(summary="Экспорт рейтинга в Excel", responses={200: OpenApiTypes.BINARY})
+    @action(detail=False, methods=['get'], permission_classes=[IsStaffProfile])
+    def export(self, request):
+        # Экспорт всегда по текущему семестру (генератор ожидает объекты Student).
+        queryset = self.filter_queryset(self.get_queryset())
+        excel_bytes = generate_rating_excel_pandas(queryset)
+
+        response = HttpResponse(
+            excel_bytes,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = 'attachment; filename="student_rating.xlsx"'
+        return response
+
+
+@extend_schema(tags=['categories'])
+class CategoryViewSet(mixins.ListModelMixin, GenericViewSet):
+    """Справочник категорий достижений с подтипами (кэш 2 часа)."""
     authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
     serializer_class = CategorySerializer
-    queryset = Category.objects.all()
+    # prefetch до result: get_allowed_results обходит правила каждого подтипа.
+    queryset = Category.objects.prefetch_related('sub_types__rules__result')
     pagination_class = None
 
-    @extend_schema(
-        responses={200: CategorySerializer(many=True)}
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-@method_decorator(cache_page(60 * 5), name='dispatch')
-@method_decorator(vary_on_headers('Cookie'), name='dispatch')
-class RatingListAPIView(StudentRatingQuerySetMixin, ListAPIView):
-    # Публичный рейтинг всегда за ТЕКУЩИЙ семестр; просмотр прошлых семестров - в /staff-profile.
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [SessionAuthentication]
-    serializer_class = StudentRatingSerializer
-
-    @extend_schema(
-        responses={200: StudentRatingSerializer(many=True)}
-    )
-    def get_queryset(self):
-        return self.get_base_rating_queryset(allow_history=False)
-
-class ForgotPasswordAPIView(APIView):
-    permission_classes = [AllowAny]
-    authentication_classes = []
-    parser_classes = [JSONParser]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'forgot_password'
-
-    @extend_schema(
-        request=ForgotPasswordRequestSerializer,
-        responses={200: {"message": "Пароль успешно отправлен"}}
-    )
-    def post(self, request):
-        serializer = ForgotPasswordRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data.get('email')
-
-        user = User.objects.filter(email__iexact=email).first()
-        if not user:
-            return Response({"message": f"Если аккаунт с почтой {email} существует, на него отправлен новый пароль"},status=status.HTTP_200_OK,)
-
-        try:
-            if hasattr(user, 'get_user_display_name'):
-                user_name = user.get_user_display_name()
-            else:
-                user_name = f"{user.last_name} {user.first_name}".strip() or "Пользователь"
-        except Exception as e:
-            # Если внутри get_user_display_name что-то упало (например, нет данных в staff_profile)
-            # мы просто логируем это и используем дефолтное имя, чтобы не было 500 ошибки
-            # print(f"Logging Name Error: {e}")
-            logger.warning("Не удалось получить отображаемое имя пользователя: %s", e)
-            user_name = "Пользователь"
-        # Отправка письма
-        try:
-            new_password = reset_user_password(user)
-            send_recovery_password_email.delay(user.email, user_name, new_password)
-            return Response(
-                {"message": f"Если аккаунт с почтой {email} существует, на него отправлен новый пароль"}, 
-                status=status.HTTP_200_OK
-            )
-        except Exception:
-            # Деталь ошибки — только в лог: текст исключения может раскрывать внутренности (SMTP, хосты).
-            logger.exception("Ошибка при сбросе пароля и постановке письма в очередь")
-            return Response(
-                {"error": "Ошибка сервера при отправке письма"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    @extend_schema(responses={200: CategorySerializer(many=True)})
+    @method_decorator(cache_page(60 * 60 * 2, key_prefix='categories'))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
-class FileTooLargeError(APIException):
-    """Файл превышает допустимый размер для отдачи клиенту (HTTP 400)."""
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = {"error": "Файл слишком большой"}
-    default_code = "file_too_large"
-
-
-class BaseDocumentFileAccessView(ScopePermissionMixin, GenericAPIView):
+@extend_schema(tags=['document-files'])
+class DocumentFileViewSet(GenericViewSet):
     """
-    Базовый класс для эндпоинтов, отдающих файл документа (скачивание/предпросмотр).
+    Файлы документов: скачивание и предпросмотр.
 
-    Инкапсулирует общую для них логику: выборку `DocumentFile` с нужными
-    `select_related`, проверку прав доступа в области видимости пользователя и
-    ограничение размера файла. Наследникам остаётся реализовать только сам способ
-    отдачи файла в `get()` (проксирование на скачивание или inline-предпросмотр).
+    Доступ — владелец файла или сотрудник в своей области видимости
+    (CanAccessDocumentFile); файлы больше 20 МБ не отдаются.
     """
-
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, CanAccessDocumentFile]
     serializer_class = DocumentFileAccessSerializer
     queryset = DocumentFile.objects.select_related(
         'document__user__student_profile__faculty',
         'document__user__student_profile__group__specialty',
     )
-    lookup_field = 'id'
-    lookup_url_kwarg = 'file_id'
     pagination_class = None
+    lookup_value_regex = r'\d+'
 
     # Ограничение на размер файла, отдаваемого клиенту (20 МБ).
     max_file_size = 20 * 1024 * 1024
-    # Сообщение об отказе в доступе — уточняется в наследниках.
-    access_denied_message = "У вас нет прав на доступ к этому файлу"
 
-    def get_accessible_file(self):
-        """
-        Возвращает `DocumentFile` по `file_id` из URL, проверив права и размер.
+    def get_throttles(self):
+        if self.action == 'preview':
+            self.throttle_scope = 'preview'
+            return [ScopedRateThrottle()]
+        return []
 
-        Поднимает:
-            - Http404 — файл не найден;
-            - PermissionDenied (403) — нет доступа в области видимости пользователя;
-            - FileTooLargeError (400) — файл превышает `max_file_size`.
-        """
+    def _get_accessible_file(self):
+        """DocumentFile по pk с проверкой прав (403) и размера (400 FileTooLarge)."""
         file_obj = self.get_object()
-
-        if not self.can_access_document_file(self.request.user, file_obj):
-            raise PermissionDenied(self.access_denied_message)
-
         if file_obj.file.size > self.max_file_size:
-            raise FileTooLargeError()
-
+            raise FileTooLarge()
         return file_obj
-
-
-class DocumentDownloadApiView(BaseDocumentFileAccessView):
-    """
-    API-представление для безопасного скачивания прикреплённых файлов документов.
-
-    Проксирует запрос к хранилищу (`Content-Disposition: attachment`), проверяя
-    права пользователя и ограничивая размер скачиваемого файла. Предотвращает
-    прямой доступ к URL-адресам файлов в хранилище.
-    """
-
-    access_denied_message = "У вас нет прав на скачивание этого файла"
 
     @extend_schema(
         summary="Скачать файл документа",
-        responses={200: OpenApiTypes.BINARY},
+        responses={200: OpenApiTypes.BINARY, 400: ErrorDetailSerializer, 503: ErrorDetailSerializer},
     )
-    def get(self, request, file_id):
-        """
-        Обрабатывает GET-запрос на скачивание файла по его ID.
-
-        Получает объект через `get_accessible_file()` (существование + права +
-        размер ≤ 20 МБ), затем потоково проксирует содержимое из хранилища клиенту
-        с сохранением оригинального имени файла (UTF-8 в Content-Disposition).
-        Таймаут запроса к хранилищу — 5 секунд.
-        """
-        file_obj = self.get_accessible_file()
-
-        aws_url = file_obj.file.url
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        """Потоковое проксирование файла из хранилища (Content-Disposition: attachment)."""
+        file_obj = self._get_accessible_file()
 
         try:
-            response = requests.get(aws_url, stream=True, timeout=5)
-            response.raise_for_status()
-
-            proxy_response = StreamingHttpResponse(
-                response.iter_content(chunk_size=8192),
-                content_type=response.headers.get('Content-Type', 'application/octet-stream')
-            )
-
-            filename = quote(file_obj.original_file_name)
-            proxy_response['Content-Disposition'] = f"attachment; filename*=UTF-8''{filename}"
-
-            return proxy_response
-
+            upstream = requests.get(file_obj.file.url, stream=True, timeout=5)
+            upstream.raise_for_status()
         except requests.exceptions.RequestException:
             logger.exception("Ошибка проксирования файла из хранилища")
-            return Response({"error": "Хранилище временно недоступено"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            raise StorageUnavailable()
 
-
-class DocumentPreviewApiView(BaseDocumentFileAccessView):
-    """
-    API-представление для предпросмотра прикреплённых файлов.
-
-    В отличие от скачивания, отдаёт содержимое с `Content-Disposition: inline`,
-    чтобы клиент рендерил файл (в `<iframe>`/`<img>`), а не сохранял.
-
-    Офисные документы (.doc/.docx) конвертируются в PDF на сервере (Gotenberg)
-    и кэшируются; PDF и изображения отдаются как есть. Скачивание оригинала —
-    по-прежнему через DocumentDownloadApiView.
-    """
-
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = 'preview'
-    access_denied_message = "У вас нет прав на просмотр этого файла"
+        proxy_response = StreamingHttpResponse(
+            upstream.iter_content(chunk_size=8192),
+            content_type=upstream.headers.get('Content-Type', 'application/octet-stream'),
+        )
+        filename = quote(file_obj.original_file_name)
+        proxy_response['Content-Disposition'] = f"attachment; filename*=UTF-8''{filename}"
+        return proxy_response
 
     @extend_schema(
         summary="Предпросмотр файла документа (офисные форматы — в PDF)",
-        responses={200: OpenApiTypes.BINARY},
+        responses={200: OpenApiTypes.BINARY, 400: ErrorDetailSerializer, 503: ErrorDetailSerializer},
     )
-    def get(self, request, file_id):
-        file_obj = self.get_accessible_file()
+    @action(detail=True, methods=['get'])
+    def preview(self, request, pk=None):
+        """Отдаёт файл inline; .doc/.docx конвертируются в PDF (Gotenberg) с кэшем."""
+        file_obj = self._get_accessible_file()
 
         if is_office_file(file_obj.original_file_name):
             return self._office_preview(file_obj)
         return self._passthrough_preview(file_obj)
 
     def _office_preview(self, file_obj):
-        """Отдаёт PDF (из кэша или после конвертации) для офисного документа."""
         try:
             pdf_stream = render_office_pdf(file_obj)
         except PreviewBusyError:
-            response = Response(
-                {"error": "Сервис предпросмотра занят, повторите позже"},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-            response['Retry-After'] = '5'
-            return response
+            raise PreviewBusy()
         except PreviewConversionError:
-            return Response(
-                {"error": "Не удалось сконвертировать документ для предпросмотра"},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            raise PreviewFailed()
 
         pdf_name = re.sub(r'\.[^.]+$', '', file_obj.original_file_name) + '.pdf'
         return self._inline_stream(pdf_stream, 'application/pdf', pdf_name)
 
     def _passthrough_preview(self, file_obj):
-        """PDF и изображения отдаём как есть, но inline (для рендера на клиенте)."""
         content_type = mimetypes.guess_type(file_obj.original_file_name)[0] or 'application/octet-stream'
         try:
             stream = file_obj.file.open('rb')
         except Exception:
             logger.exception("Ошибка чтения файла из хранилища для предпросмотра")
-            return Response(
-                {"error": "Хранилище временно недоступно"},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            raise StorageUnavailable()
         return self._inline_stream(stream, content_type, file_obj.original_file_name)
 
     def _inline_stream(self, file_like, content_type, filename):

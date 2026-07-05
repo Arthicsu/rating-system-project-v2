@@ -1,7 +1,13 @@
 
 export default interface ApiError {
   response?: {
-    data?: Record<string, string[]>;
+    // Единый формат ошибок API: {"detail": "..."}.
+    // Ошибки валидации сериализаторов приходят пофилдово: {"field": ["msg", ...]}.
+    // message остаётся в успешных ответах (login, upload и т.п.).
+    data?: {
+      detail?: string;
+      message?: string;
+    } & Record<string, unknown>;
   };
   message?: string;
 }

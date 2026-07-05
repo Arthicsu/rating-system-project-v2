@@ -1,5 +1,5 @@
 """
-Тесты списка студентов сотрудника (/staff-profile → api_filtered_students) с учётом семестра.
+Тесты списка студентов сотрудника (/staff-profile → GET /api/v1/students/) с учётом семестра.
 
 Текущий семестр — из живого кэша Student; прошлый — ВСЕ отфильтрованные студенты с баллами
 выбранного семестра (0 у тех, у кого нет строки SemesterScore).
@@ -30,7 +30,7 @@ TEST_SETTINGS = {
     "PASSWORD_HASHERS": ["django.contrib.auth.hashers.MD5PasswordHasher"],
 }
 
-URL_NAME = "university_structure:api_filtered_students"
+URL_NAME = "api:students-list"
 
 
 @override_settings(**TEST_SETTINGS)

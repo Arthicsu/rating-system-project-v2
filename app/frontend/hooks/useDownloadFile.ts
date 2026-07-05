@@ -4,7 +4,7 @@ import api from '@/lib/axios';
 export function useDownloadFile() {
   const downloadFile = async (fileId: number, fileName: string) => {
     try {
-      const response = await api.get(`/user/api/v1/document/download/${fileId}/`, {
+      const response = await api.get(`/api/v1/document-files/${fileId}/download/`, {
         responseType: 'blob',
         skipErrorRedirect: true,
       });
