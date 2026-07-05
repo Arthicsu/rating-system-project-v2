@@ -145,9 +145,9 @@ export default function ModalPreview({ isOpen, doc, onClose }: ModalPreviewProps
             <FilePreviewPanel
               key={selectedFile.id}
               fileId={selectedFile.id}
-              fileName={selectedFile.original_file_name}
+              fileName={selectedFile.original_file_name ?? ''}
               isOpen={isOpen && visible}
-              onDownload={() => handleDownload(selectedFile.id, selectedFile.original_file_name)}
+              onDownload={() => handleDownload(selectedFile.id, selectedFile.original_file_name ?? '')}
             />
           ) : (
             <div className="flex flex-1 items-center justify-center p-6 text-sm text-slate-500">

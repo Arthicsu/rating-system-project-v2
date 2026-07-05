@@ -1,43 +1,35 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
-import { studentApi } from '@/lib/apiRequests';
 import StudentProfile from '@/components/StudentProfile';
+import { useMyProfile } from '@/hooks/queries/useProfile';
 import type { Profile } from '@/interfaces/ProfileInterfaces';
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-
-  const fetchProfile = useCallback(() => {
-    return studentApi.getProfile()
-      .then(res => {
-        const profileData = res.data;
-        if (profileData.is_staff) {
-          router.push('/staff-profile');
-          return;
-        }
-        setProfile(profileData);
-      })
-      .catch(error => toast.error('Ошибка: ' + error))
-      .finally(() => setIsLoading(false));
-  }, [router]);
+  const { data: profile, isPending, error, refetch } = useMyProfile();
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (error) toast.error('Ошибка: ' + error);
+  }, [error]);
 
-  if (isLoading) {
+  // Исторический guard: /students/me/ не возвращает is_staff (для сотрудников
+  // ручка отвечает 404) — ветка сохранена на случай смены контракта.
+  const isStaffProfile = !!profile && !!(profile as Profile & { is_staff?: boolean }).is_staff;
+  useEffect(() => {
+    if (isStaffProfile) router.push('/staff-profile');
+  }, [isStaffProfile, router]);
+
+  if (isPending) {
     return <div className="p-10 text-center">Загрузка профиля...</div>;
   }
 
-  if (!profile) {
+  if (!profile || isStaffProfile) {
     return <div className="p-10 text-center">Данный профиль не найден.</div>;
   }
 
-  return <StudentProfile profile={profile} isOwner={profile.is_own_profile} onRefresh={fetchProfile} />;
+  return <StudentProfile profile={profile} isOwner={profile.is_own_profile} onRefresh={() => { refetch(); }} />;
 }

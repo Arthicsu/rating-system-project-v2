@@ -10,17 +10,25 @@ import { useRouter } from 'next/navigation';
 import FileDropZone from '@/components/upload/FileDropZone';
 import CustomSelect from '@/components/CustomSelect';
 import { studentApi } from '@/lib/apiRequests';
+import { useAchievementConfig } from '@/hooks/queries/useAchievementConfig';
 import { AxiosError } from 'axios';
 import type { SelectOption, DataStructure } from '@/interfaces/AchievementInterfaces';
+
+const EMPTY_STRUCTURE: DataStructure = {};
 
 export default function UploadAchievement() {
   const router = useRouter();
   const { user, loading: authLoading } = useMySession();
 
-  const [dataStructure, setDataStructure] = useState<DataStructure>({});
-  const [levelsList, setLevelsList] = useState<SelectOption[]>([]);
-  const [resultsList, setResultsList] = useState<SelectOption[]>([]);
-  const [docTypesList, setDocTypesList] = useState<SelectOption[]>([]);
+  const { data: config, error: configError } = useAchievementConfig();
+  useEffect(() => {
+    if (configError) toast.error("Ошибка: " + configError);
+  }, [configError]);
+
+  const dataStructure = config?.structure ?? EMPTY_STRUCTURE;
+  const levelsList = config?.levels ?? [];
+  const resultsList = config?.results ?? [];
+  const docTypesList = config?.doc_types ?? [];
 
   const [achievementName, setAchievementName] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -30,22 +38,6 @@ export default function UploadAchievement() {
   const [result, setResult] = useState<SelectOption | null>(null);
   const [docType, setDocType] = useState<SelectOption | null>(null);
   const [dateReceived, setDateReceived] = useState('');
-
-  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const response = await studentApi.getAchievementConfig();
-        const { structure, levels, results, doc_types } = response.data;
-        setDataStructure(structure);
-        setLevelsList(levels);
-        setResultsList(results);
-        setDocTypesList(doc_types);
-      } catch (error) {
-        toast.error("Ошибка: " + error);
-      }
-    };
-    fetchConfig();
-  }, []);
 
   if (authLoading) {
     return (

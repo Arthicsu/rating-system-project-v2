@@ -1,49 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
-import { studentApi } from '@/lib/apiRequests';
 import StudentProfile from '@/components/StudentProfile';
+import { useProfileById } from '@/hooks/queries/useProfile';
 import type { Profile } from '@/interfaces/ProfileInterfaces';
 
 export default function ProfilePage() {
   const router = useRouter();
   const params = useParams();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const id = params.id as string;
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await studentApi.getProfileById(id);
-        const profileData = res.data;
-        
-        if (profileData.type === 'staff') {
-          router.push('/staff-profile');
-          return;
-        }
-        
-        setProfile(profileData);
-      } catch (error) {
-        toast.error('Ошибка: ' + error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    if (id) {
-      fetchProfile();
-    }
-  }, [id, router]);
+  const { data: profile, isPending, error } = useProfileById(id);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (error) toast.error('Ошибка: ' + error);
+  }, [error]);
+
+  // Исторический guard: /students/<id>/ не возвращает type (это всегда студент) —
+  // ветка сохранена на случай смены контракта.
+  const isStaffProfile = !!profile && (profile as Profile & { type?: string }).type === 'staff';
+  useEffect(() => {
+    if (isStaffProfile) router.push('/staff-profile');
+  }, [isStaffProfile, router]);
+
+  if (isPending) {
     return <div className="p-10 text-center">Загрузка профиля...</div>;
   }
-  
-  if (!profile) {
+
+  if (!profile || isStaffProfile) {
     return <div className="p-10 text-center">Данный профиль не найден.</div>;
   }
 

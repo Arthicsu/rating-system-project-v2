@@ -5,6 +5,7 @@ import '@/app/globals.css';
 import '@/styles/fontawesome-free-7.2.0-web/css/all.min.css';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
 import Header from '@/components/Header';
+import Providers from '@/app/providers';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'react-hot-toast';
@@ -18,11 +19,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
       </head>
       <body className="bg-slate-100 pb-16 sm:pb-0">
-        <AuthProvider> 
-          <Header />
-          <Toaster />
-          {children}
-        </AuthProvider>
+        <Providers>
+          <AuthProvider>
+            <Header />
+            <Toaster />
+            {children}
+          </AuthProvider>
+        </Providers>
         <CookieConsentBanner />
       </body>
     {/* </ThemeProvider> */}

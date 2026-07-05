@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useMySession } from '@/context/AuthContext';
+import { usePendingCount } from '@/hooks/queries/usePendingCount';
 
 type NavItem = {
   href: string;
@@ -17,6 +18,7 @@ type NavItem = {
 export default function Header() {
   const { logoutUser, user, loading } = useMySession();
   const pathname = usePathname() ?? '';
+  const { data: pendingCount } = usePendingCount(!!user?.is_staff);
 
   const profileHref = user?.is_staff ? '/staff-profile' : '/profile';
 
@@ -30,7 +32,7 @@ export default function Header() {
             label: 'Заявки',
             icon: 'fa-solid fa-inbox',
             isActive: (p) => p.startsWith('/staff-profile'),
-            badge: Number(user.pending_docs_count) || 0,
+            badge: pendingCount ?? 0,
           },
         ]
       : [

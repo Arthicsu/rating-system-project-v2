@@ -77,7 +77,7 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
               doc.files.map((file, index) => (
                 <button
                   key={file.id}
-                  onClick={() => downloadFile(file.id, file.original_file_name)}
+                  onClick={() => downloadFile(file.id, file.original_file_name ?? `Файл ${index + 1}`)}
                   className="cursor-pointer inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900"
                 >
                   <i className="fa-solid fa-file" />

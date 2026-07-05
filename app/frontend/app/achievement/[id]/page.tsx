@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { AxiosError } from 'axios';
 
-import { studentApi } from '@/lib/apiRequests';
+import { useAchievement } from '@/hooks/queries/useAchievement';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
 import FilePreviewPanel from '@/components/preview/FilePreviewPanel';
 import ModalPreview from '@/components/modals/modalPreview';
-import type { Document } from '@/interfaces/StaffInterfaces';
 
 type LoadState = 'loading' | 'ready' | 'forbidden' | 'notfound' | 'error';
 
@@ -30,46 +29,30 @@ export default function AchievementDetailPage() {
   const id = params.id as string;
   const { downloadFile } = useDownloadFile();
 
-  const [doc, setDoc] = useState<Document | null>(null);
-  const [state, setState] = useState<LoadState>('loading');
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // Сброс состояния при переходе между заявками без размонтирования (клиентская навигация
-  // /achievement/1 → /achievement/2). Правкой состояния во время рендера, а не в эффекте.
+  // Сброс UI-состояния при переходе между заявками без размонтирования (клиентская
+  // навигация /achievement/1 → /achievement/2); данные перезагружает query по ключу id.
   const [loadedId, setLoadedId] = useState(id);
   if (id !== loadedId) {
     setLoadedId(id);
-    setState('loading');
-    setDoc(null);
     setSelectedFileIndex(0);
     setPreviewOpen(false);
   }
 
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
+  const { data: doc, isPending, error } = useAchievement(id);
 
-    studentApi
-      .getAchievementDetail(id)
-      .then((res) => {
-        if (cancelled) return;
-        setDoc(res.data);
-        setSelectedFileIndex(0);
-        setState('ready');
-      })
-      .catch((err: AxiosError) => {
-        if (cancelled) return;
-        const status = err.response?.status;
-        if (status === 403) setState('forbidden');
-        else if (status === 404) setState('notfound');
-        else setState('error');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
+  const errorStatus = (error as AxiosError | null)?.response?.status;
+  const state: LoadState = isPending
+    ? 'loading'
+    : error
+      ? errorStatus === 403
+        ? 'forbidden'
+        : errorStatus === 404
+          ? 'notfound'
+          : 'error'
+      : 'ready';
 
   if (state === 'loading') {
     return (
@@ -246,7 +229,7 @@ export default function AchievementDetailPage() {
                         <button
                           key={file.id}
                           type="button"
-                          onClick={() => downloadFile(file.id, file.original_file_name)}
+                          onClick={() => downloadFile(file.id, file.original_file_name ?? `Файл ${index + 1}`)}
                           className="flex cursor-pointer items-center gap-2 text-left text-sm text-sky-700 transition hover:text-sky-800"
                         >
                           <i className="fa-solid fa-download" />
@@ -319,10 +302,10 @@ export default function AchievementDetailPage() {
                       <FilePreviewPanel
                         key={selectedFile.id}
                         fileId={selectedFile.id}
-                        fileName={selectedFile.original_file_name}
+                        fileName={selectedFile.original_file_name ?? ''}
                         isOpen
                         onDownload={() =>
-                          downloadFile(selectedFile.id, selectedFile.original_file_name)
+                          downloadFile(selectedFile.id, selectedFile.original_file_name ?? '')
                         }
                       />
                     ) : (

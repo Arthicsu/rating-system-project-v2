@@ -28,8 +28,12 @@ COPY . .
 
 # Гейт качества: docker build --target check .
 # (запускается отдельно, в цепочку до final не входит)
+# check:api-sync следит, что lib/api-types.ts соответствует schema.yml;
+# сам schema.yml обновляется вручную при изменении API backend:
+#   docker compose exec -T backend python manage.py spectacular --file /shared/schema.yml
+#   cp shared/schema.yml app/frontend/schema.yml && pnpm generate:api
 FROM devdeps AS check
-RUN pnpm run lint && pnpm run typecheck
+RUN pnpm run lint && pnpm run typecheck && pnpm run check:api-sync
 
 FROM devdeps AS build
 

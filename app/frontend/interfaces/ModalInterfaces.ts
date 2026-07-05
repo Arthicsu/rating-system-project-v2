@@ -21,6 +21,7 @@ export interface ModalRejectProps {
   onSubmit: (e: React.FormEvent) => void;
 }
 
+/** Совместим с PendingDocument из OpenAPI-типов (опциональность полей — как в схеме). */
 export interface PreviewDocument {
   id: number;
   student_id: number;
@@ -32,11 +33,11 @@ export interface PreviewDocument {
   sub_type_display: string;
   level_display: string | null;
   result_display: string | null;
-  date_received: string;
+  date_received?: string;
   uploaded_at: string;
-  score: number;
-  files: Array<{ id: number; original_file_name: string }>;
-  rejection_reason: string | null;
+  score?: number;
+  files: Array<{ id: number; original_file_name?: string }>;
+  rejection_reason?: string | null;
 }
 
 export interface ModalPreviewProps {

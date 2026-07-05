@@ -3,81 +3,61 @@ import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import Pagination from '@/components/Pagination';
 import CustomSelect from '@/components/CustomSelect';
-import { userApi } from '@/lib/apiRequests';
+import { useCategories, useRatingFilters } from '@/hooks/queries/useLookups';
+import { useRating } from '@/hooks/queries/useRating';
 import type { FilterOptions, Tab, RatingParams } from '@/interfaces/RatingInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
 
+const EMPTY_FILTER_OPTIONS: FilterOptions = { faculties: [], courses: [], groups: [] };
+
 export default function RatingPage() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>({ faculties: [], courses: [], groups: [] });
-  
   const [selectedFaculty, setSelectedFaculty] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [selectedGroup, setSelectedGroup] = useState('all');
   const [activeTab, setActiveTab] = useState('common');
-  const [tabs, setTabs] = useState<Tab[]>([{ id: 'common', label: 'Общий рейтинг' }]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 20;
 
+  const { data: categoriesData, error: categoriesError } = useCategories();
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await userApi.getCategoryAchievements();
-        const dynamicTabs = res.data.map((cat: { code: string; label: string }) => ({
-          id: cat.code,
-          label: cat.label.endsWith('рейтинг') ? cat.label : `${cat.label} деятельность`
-        }));
-        setTabs([{ id: 'common', label: 'Общий рейтинг' }, ...dynamicTabs]);
-      } catch (error) {
-        toast.error('Ошибка: ' + error);
-      }
-    };
-    fetchCategories();
-  }, []);
+    if (categoriesError) toast.error('Ошибка: ' + categoriesError);
+  }, [categoriesError]);
 
+  const tabs = useMemo<Tab[]>(
+    () => [
+      { id: 'common', label: 'Общий рейтинг' },
+      ...(categoriesData ?? []).map((cat) => ({
+        id: cat.code,
+        label: cat.label.endsWith('рейтинг') ? cat.label : `${cat.label} деятельность`,
+      })),
+    ],
+    [categoriesData]
+  );
+
+  const { data: filterOptions = EMPTY_FILTER_OPTIONS } = useRatingFilters();
+
+  const ratingParams = useMemo<RatingParams>(() => {
+    const params: RatingParams = {
+      category: activeTab,
+      page: currentPage,
+      page_size: pageSize,
+    };
+    if (selectedFaculty !== 'all') params.faculty_id = selectedFaculty;
+    if (selectedCourse !== 'all') params.course = selectedCourse;
+    if (selectedGroup !== 'all') params.group_id = selectedGroup;
+    return params;
+  }, [activeTab, currentPage, selectedFaculty, selectedCourse, selectedGroup]);
+
+  const { data: ratingData, isFetching: loading, error: ratingError } = useRating(ratingParams);
   useEffect(() => {
-    const fetchFilters = async () => {
-      try {
-        const res = await userApi.getRatingFilters();
-        setFilterOptions(res.data);
-      } catch (error) {
-        console.error('Ошибка: ', error);
-      }
-    };
-    fetchFilters();
-  }, []);
+    if (ratingError) console.error('Ошибка: ', ratingError);
+  }, [ratingError]);
 
-  useEffect(() => {
-    const fetchRating = async () => {
-      setLoading(true);
-      try {
-        const params: RatingParams = {
-          category: activeTab,
-          page: currentPage,
-          page_size: pageSize,
-        };
-
-        if (selectedFaculty !== 'all') params.faculty_id = selectedFaculty;
-        if (selectedCourse !== 'all') params.course = selectedCourse;
-        if (selectedGroup !== 'all') params.group_id = selectedGroup;
-
-        const response = await userApi.getRating(params);
-
-        setStudents(response.data.results);
-        setTotalCount(response.data.count);
-      } catch (error) {
-        console.error('Ошибка: ', error);
-        setStudents([]);
-        setTotalCount(0);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRating();
-  }, [activeTab, selectedFaculty, selectedCourse, selectedGroup, currentPage]);
+  // Как раньше: при ошибке список очищается, при загрузке видны прежние строки.
+  // Student — UI-тип строки с индекс-сигнатурой (динамический доступ к баллам по коду категории).
+  const students: Student[] = ratingError ? [] : ratingData?.results ?? [];
+  const totalCount = ratingError ? 0 : ratingData?.count ?? 0;
 
   const availableGroups = useMemo(() => {
     return filterOptions.groups.filter(g => {
@@ -171,7 +151,7 @@ export default function RatingPage() {
                   triggerClassName="text-[11px] py-1 px-2"
                   options={[
                     { value: 'all', label: 'Все' },
-                    ...filterOptions.faculties.map((f) => ({ value: f.id, label: f.short_name })),
+                    ...filterOptions.faculties.map((f) => ({ value: String(f.id), label: f.short_name })),
                   ]}
                   onChange={(value) => {
                     handleFilterChange(setSelectedFaculty, value);
@@ -205,7 +185,7 @@ export default function RatingPage() {
                   triggerClassName="text-[11px] py-1 px-2"
                   options={[
                     { value: 'all', label: 'Все' },
-                    ...availableGroups.map((g) => ({ value: g.id, label: g.name })),
+                    ...availableGroups.map((g) => ({ value: String(g.id), label: g.name })),
                   ]}
                   onChange={(value) => handleFilterChange(setSelectedGroup, value)}
                 />
@@ -238,7 +218,7 @@ export default function RatingPage() {
                         className="max-[544px]:flex-col"
                         options={[
                           { value: 'all', label: 'Все' },
-                          ...filterOptions.faculties.map((f) => ({ value: f.id, label: f.short_name })),
+                          ...filterOptions.faculties.map((f) => ({ value: String(f.id), label: f.short_name })),
                         ]}
                         onChange={(value) => {
                           handleFilterChange(setSelectedFaculty, value);
@@ -280,7 +260,7 @@ export default function RatingPage() {
                         className="max-[544px]:flex-col"
                         options={[
                           { value: 'all', label: 'Все' },
-                          ...availableGroups.map((g) => ({ value: g.id, label: g.name })),
+                          ...availableGroups.map((g) => ({ value: String(g.id), label: g.name })),
                         ]}
                         onChange={(value) => handleFilterChange(setSelectedGroup, value)}
                       />

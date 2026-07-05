@@ -30,59 +30,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchUser();
   }, [fetchUser]);
 
-  // Short-polling
-  const isStaff = user?.is_staff;
-  const username = user?.username;
-  useEffect(() => {
-    if (!isStaff) return;
-
-    const POLL_INTERVAL_MS = 15_000;
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-
-    const fetchCount = () => {
-      authApi.getPendingCount()
-        .then(res => {
-          const count = res.data.pending_docs_count;
-          if (typeof count === 'number') {
-            setUser(prev => (prev ? { ...prev, pending_docs_count: count } : prev));
-          }
-        })
-        .catch(() => {}); // игнорируем
-    };
-
-    const startPolling = () => {
-      if (intervalId === null) {
-        intervalId = setInterval(fetchCount, POLL_INTERVAL_MS);
-      }
-    };
-
-    const stopPolling = () => {
-      if (intervalId !== null) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-    };
-
-    const handleVisibility = () => {
-      if (document.hidden) {
-        stopPolling();
-      } else {
-        fetchCount(); // синхронизация при возврате во вкладку
-        startPolling();
-      }
-    };
-
-    if (!document.hidden) {
-      fetchCount();
-      startPolling();
-    }
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-      stopPolling();
-    };
-  }, [isStaff, username]);
+  // Поллинг счётчика заявок переехал в hooks/queries/usePendingCount.ts
+  // (TanStack Query: refetchInterval 15с + пауза на скрытой вкладке); badge читает Header.
 
   const registerUser = async (formData: RegisterFormData) => {
     // Саморегистрация отключена (backend-маршрут не подключён); страница

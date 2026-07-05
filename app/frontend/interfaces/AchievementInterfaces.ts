@@ -1,3 +1,4 @@
+/** Совместим с Document из OpenAPI-типов (опциональность полей — как в схеме). */
 export interface Achievement {
   id: number;
   achievement: string;
@@ -7,11 +8,11 @@ export interface Achievement {
   sub_type_display: string;
   level_display: string | null;
   result_display: string | null;
-  date_received: string;
+  date_received?: string;
   uploaded_at: string;
-  score: number;
-  rejection_reason: string | null;
-  files: Array<{ id: number; original_file_name: string }>;
+  score?: number;
+  rejection_reason?: string | null;
+  files: Array<{ id: number; original_file_name?: string }>;
 }
 
 export interface AchievementItemProps {
@@ -46,6 +47,8 @@ export interface DataStructure {
   [key: string]: DataStructureCategory;
 }
 
+// В OpenAPI-схеме structure — нетипизированный Dict (SerializerMethodField),
+// поэтому конфиг достижений описан вручную и богаче генерата.
 export interface AchievementConfigResponse {
   structure: DataStructure;
   levels: SelectOption[];
@@ -53,6 +56,4 @@ export interface AchievementConfigResponse {
   doc_types: SelectOption[];
 }
 
-export interface AchievementUploadResponse {
-  message: string;
-}
+export type { MessageDto as AchievementUploadResponse } from '@/lib/api';

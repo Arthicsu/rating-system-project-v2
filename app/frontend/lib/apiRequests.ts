@@ -1,10 +1,26 @@
 import api from './axios';
-import type { AuthUser, LoginFormData } from '@/interfaces/AuthInterfaces';
-import type { Profile } from '@/interfaces/ProfileInterfaces';
-import type { AchievementConfigResponse, AchievementUploadResponse } from '@/interfaces/AchievementInterfaces';
-import type { RejectionReason, Semester, Group, FilterStudentsParams, DashboardStatsParams, DashboardStatsResponse, ReviewDocumentData, Document } from '@/interfaces/StaffInterfaces';
-import type { FilterOptions, RatingParams, FilterParams, ExportExcelParams, CategoryAchievement } from '@/interfaces/RatingInterfaces';
-import type Student from '@/interfaces/StudentInterfaces';
+import type {
+  AcademicYearDto,
+  AuthUser,
+  CategoryDto,
+  DashboardStatsResponse,
+  GroupDto,
+  MessageDto,
+  Paginated,
+  PendingCountDto,
+  PendingDocumentDto,
+  Profile,
+  RatingFiltersResponseDto,
+  RejectionReasonDto,
+  ReviewDocumentRequestDto,
+  StaffProfileResponseDto,
+  StudentProfileDto,
+  StudentRatingDto,
+} from '@/lib/api';
+import type { LoginFormData } from '@/interfaces/AuthInterfaces';
+import type { FilterStudentsParams, DashboardStatsParams } from '@/interfaces/StaffInterfaces';
+import type { AchievementConfigResponse } from '@/interfaces/AchievementInterfaces';
+import type { RatingParams, FilterParams, ExportExcelParams } from '@/interfaces/RatingInterfaces';
 
 export const authApi = {
   checkAuth: () => api.get<AuthUser>('/api/v1/auth/session/'),
@@ -17,10 +33,10 @@ export const authApi = {
   logout: () => api.post('/api/v1/auth/logout/'),
 
   forgotPassword: (data: { email: string }) =>
-    api.post<{ message: string }>('/api/v1/auth/forgot-password/', data),
+    api.post<MessageDto>('/api/v1/auth/forgot-password/', data),
 
   getPendingCount: () =>
-    api.get<{ pending_docs_count: number }>('/api/v1/notifications/pending-count/', {
+    api.get<PendingCountDto>('/api/v1/notifications/pending-count/', {
       skipErrorRedirect: true,
     }),
 };
@@ -31,12 +47,12 @@ export const studentApi = {
   getProfileById: (id: string) => api.get<Profile>(`/api/v1/students/${id}/`),
 
   getAchievementDetail: (id: string | number) =>
-    api.get<Document>(`/api/v1/achievements/${id}/`, { skipErrorRedirect: true }),
+    api.get<PendingDocumentDto>(`/api/v1/achievements/${id}/`, { skipErrorRedirect: true }),
 
   getAchievementConfig: () => api.get<AchievementConfigResponse>('/api/v1/achievements/config/'),
 
   uploadAchievement: (formData: FormData) =>
-    api.post<AchievementUploadResponse>('/api/v1/achievements/', formData, {headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000}),
+    api.post<MessageDto>('/api/v1/achievements/', formData, {headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000}),
 
   updateAchievement: (id: number, formData: FormData) =>
     api.patch(`/api/v1/achievements/${id}/`, formData, {headers: { 'Content-Type': 'multipart/form-data' },}),
@@ -49,32 +65,32 @@ export const studentApi = {
 };
 
 export const universityApi = {
-  getStaffProfile: () => api.get('/api/v1/staff/me/'),
+  getStaffProfile: () => api.get<StaffProfileResponseDto>('/api/v1/staff/me/'),
 
-  getRejectionReasons: () => api.get<RejectionReason[]>('/api/v1/rejection-reasons/'),
+  getRejectionReasons: () => api.get<RejectionReasonDto[]>('/api/v1/rejection-reasons/'),
 
-  getAcademicYears: () => api.get<Semester[]>('/api/v1/academic-years/'),
+  getAcademicYears: () => api.get<AcademicYearDto[]>('/api/v1/academic-years/'),
 
   getFilteredGroups: (params?: FilterParams) =>
-    api.get<Group[]>('/api/v1/groups/', { params }),
+    api.get<GroupDto[]>('/api/v1/groups/', { params }),
 
   getFilteredStudents: (params: FilterStudentsParams) =>
-    api.get<{ results: Student[]; count: number }>('/api/v1/students/', { params }),
+    api.get<Paginated<StudentProfileDto>>('/api/v1/students/', { params }),
 
   getFilteredDashboardStats: (params: DashboardStatsParams) =>
     api.get<DashboardStatsResponse>('/api/v1/achievements/', { params }),
 
-  reviewDocument: (documentId: number, data: ReviewDocumentData) =>
-    api.post(`/api/v1/achievements/${documentId}/review/`, data),
+  reviewDocument: (documentId: number, data: ReviewDocumentRequestDto) =>
+    api.post<MessageDto>(`/api/v1/achievements/${documentId}/review/`, data),
 
   exportRatingToExcel: (params?: ExportExcelParams) =>
     api.get('/api/v1/rating/export/', { params, responseType: 'blob' }),
 };
 
 export const userApi = {
-  getCategoryAchievements: () => api.get<CategoryAchievement[]>('/api/v1/categories/'),
+  getCategoryAchievements: () => api.get<CategoryDto[]>('/api/v1/categories/'),
 
-  getRatingFilters: () => api.get<FilterOptions>('/api/v1/rating/filters/'),
+  getRatingFilters: () => api.get<RatingFiltersResponseDto>('/api/v1/rating/filters/'),
 
-  getRating: (params: RatingParams) => api.get<{ results: Student[]; count: number }>('/api/v1/rating/', { params }),
+  getRating: (params: RatingParams) => api.get<Paginated<StudentRatingDto>>('/api/v1/rating/', { params }),
 };

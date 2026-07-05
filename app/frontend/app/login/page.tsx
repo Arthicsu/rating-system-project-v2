@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
 import { useMySession } from '@/context/AuthContext';
-import type LoginFormData from '@/interfaces/LoginInterfaces';
+import type { LoginFormData } from '@/interfaces/AuthInterfaces';
 import type ApiError from '@/interfaces/GeneralInterfaces';
 
 

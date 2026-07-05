@@ -1,4 +1,13 @@
-import type { FacultySimple } from './StaffInterfaces';
+/**
+ * Серверные DTO — из сгенерированных OpenAPI-типов (lib/api.ts);
+ * здесь остаются UI-only типы (props, параметры запросов).
+ */
+import type { RatingFiltersResponseDto } from '@/lib/api';
+
+/** Ответ GET /api/v1/rating/filters/ (faculties/courses/groups — id числовые). */
+export type FilterOptions = RatingFiltersResponseDto;
+
+// --- UI-only типы ------------------------------------------------------------
 
 export interface PaginationProps {
   page: number;
@@ -6,12 +15,6 @@ export interface PaginationProps {
   pageSize: number;
   loading?: boolean;
   onPageChange: (page: number) => void;
-}
-
-export interface FilterOptions {
-  faculties: FacultySimple[];
-  courses: Array<number>;
-  groups: Array<{ id: string; name: string; course: number; faculty_id: string; academic_year: string }>;
 }
 
 export interface Tab {
