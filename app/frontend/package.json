@@ -2,13 +2,18 @@
   "name": "frontend",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.34.4",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "generate:api": "openapi-typescript ./schema.yml -o ./lib/api-types.ts",
+    "check:api-sync": "openapi-typescript ./schema.yml -o ./lib/api-types.check.tmp && node -e \"const fs=require('fs');const a=fs.readFileSync('lib/api-types.ts','utf8');const b=fs.readFileSync('lib/api-types.check.tmp','utf8');fs.unlinkSync('lib/api-types.check.tmp');if(a!==b){console.error('lib/api-types.ts устарел: запустите pnpm generate:api');process.exit(1)}\""
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.2",
     "axios": "^1.13.5",
     "boneyard-js": "^1.7.6",
     "chart.js": "^4.5.1",
@@ -18,8 +23,11 @@
     "react-chartjs-2": "^5.3.1",
     "react-cookie-consent": "^9.0.0",
     "react-dom": "19.2.3",
+    "react-hook-form": "^7.81.0",
     "react-hot-toast": "^2.6.0",
-    "react-pdf": "^10.4.1"
+    "react-pdf": "^10.4.1",
+    "zod": "^4.4.3",
+    "@hookform/resolvers": "^5.4.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -28,6 +36,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -1,38 +1,48 @@
 # syntax=docker/dockerfile:1
 
 ARG NODE_VERSION=24.17.0
-# Всё равно версия pnpm не подхватывается и используется последняя...
-ARG PNPM_VERSION=11.9.0
+# Версия pnpm зафиксирована ЖЁСТКО и совпадает с "packageManager" в package.json.
+# Corepack гарантирует, что используется ровно она (никаких самообновлений на 11+,
+# из-за которых образ на старте докачивал/пересобирал зависимости и съедал ОЗУ).
+# Runtime-стадия pnpm НЕ использует вообще (CMD запускает next напрямую через node).
+ARG PNPM_VERSION=10.34.4
 
-FROM node:${NODE_VERSION}-alpine as base
+FROM node:${NODE_VERSION}-alpine AS base
 
 WORKDIR /usr/src/app
 
-RUN --mount=type=cache,target=/root/.npm \
-    npm install -g pnpm@${PNPM_VERSION}
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
-FROM base as deps
+FROM base AS deps
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN pnpm install --prod --frozen-lockfile
 
-FROM deps as build
+FROM deps AS devdeps
 
-# devDependencies for the production build. Manifests are inherited from `deps`.
+# devDependencies for lint/typecheck/build. Manifests are inherited from `deps`.
 RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the source files into the image.
 COPY . .
+
+# Гейт качества: docker build --target check .
+# (запускается отдельно, в цепочку до final не входит)
+FROM devdeps AS check
+RUN pnpm run lint && pnpm run typecheck
+
+FROM devdeps AS build
+
 # Run the build script.
 RUN pnpm run build
 
 ################################################################################
 # Create a new stage to run the application with minimal runtime dependencies
 # where the necessary files are copied from the build stage.
-FROM base as final
+FROM base AS final
 
 # Use production node environment by default.
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 # Copy package.json so that package manager commands can be used.
 

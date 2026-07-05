@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Статические бандлы (pdf.worker.min.mjs и пр.) — не наш код, не линтуем.
+    "public/**",
   ]),
 ]);
 

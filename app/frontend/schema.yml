@@ -1,0 +1,1882 @@
+openapi: 3.0.3
+info:
+  title: rating-system-project-v2 API
+  version: 1.0.1
+  description: BGITU-Tracking-Student-Performance-for-Scholarships
+paths:
+  /api/v1/academic-years/:
+    get:
+      operationId: v1_academic_years_list
+      description: Учебные периоды для селектора семестра (кэш 2 часа).
+      tags:
+      - academic-years
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AcademicYear'
+          description: ''
+  /api/v1/achievements/:
+    get:
+      operationId: v1_achievements_list
+      description: |-
+        Достижения (заявки студентов).
+
+        - create — загрузка достижения студентом (throttle 'upload');
+        - retrieve — карточка заявки (владелец или сотрудник в scope);
+        - partial_update / destroy — правка/удаление своей заявки
+          (чужие скрыты фильтром по владельцу: 404, существование не раскрывается);
+        - list — заявки на модерацию для сотрудника (?list_type=pending|reviewed),
+          в пагинированный ответ добавляются stats и top5;
+        - review — решение по заявке (кафедра / декан / ректорат);
+        - config — конфигурация формы загрузки (кэш 1 час).
+      parameters:
+      - in: query
+        name: academic_year
+        schema:
+          type: integer
+        description: ID семестра (по умолчанию — текущий)
+      - in: query
+        name: course
+        schema:
+          type: string
+      - in: query
+        name: faculty_id
+        schema:
+          type: string
+      - in: query
+        name: group_id
+        schema:
+          type: string
+      - in: query
+        name: list_type
+        schema:
+          type: string
+        description: pending (по умолчанию) | reviewed
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: semester
+        schema:
+          type: integer
+        description: Синоним academic_year
+      tags:
+      - achievements
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPendingDocumentList'
+          description: ''
+    post:
+      operationId: v1_achievements_create
+      description: |-
+        Достижения (заявки студентов).
+
+        - create — загрузка достижения студентом (throttle 'upload');
+        - retrieve — карточка заявки (владелец или сотрудник в scope);
+        - partial_update / destroy — правка/удаление своей заявки
+          (чужие скрыты фильтром по владельцу: 404, существование не раскрывается);
+        - list — заявки на модерацию для сотрудника (?list_type=pending|reviewed),
+          в пагинированный ответ добавляются stats и top5;
+        - review — решение по заявке (кафедра / декан / ректорат);
+        - config — конфигурация формы загрузки (кэш 1 час).
+      tags:
+      - achievements
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AchievementUpload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AchievementUpload'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AchievementUpload'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+  /api/v1/achievements/{id}/:
+    get:
+      operationId: v1_achievements_retrieve
+      description: |-
+        Достижения (заявки студентов).
+
+        - create — загрузка достижения студентом (throttle 'upload');
+        - retrieve — карточка заявки (владелец или сотрудник в scope);
+        - partial_update / destroy — правка/удаление своей заявки
+          (чужие скрыты фильтром по владельцу: 404, существование не раскрывается);
+        - list — заявки на модерацию для сотрудника (?list_type=pending|reviewed),
+          в пагинированный ответ добавляются stats и top5;
+        - review — решение по заявке (кафедра / декан / ректорат);
+        - config — конфигурация формы загрузки (кэш 1 час).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      tags:
+      - achievements
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingDocument'
+          description: ''
+    patch:
+      operationId: v1_achievements_partial_update
+      description: |-
+        Достижения (заявки студентов).
+
+        - create — загрузка достижения студентом (throttle 'upload');
+        - retrieve — карточка заявки (владелец или сотрудник в scope);
+        - partial_update / destroy — правка/удаление своей заявки
+          (чужие скрыты фильтром по владельцу: 404, существование не раскрывается);
+        - list — заявки на модерацию для сотрудника (?list_type=pending|reviewed),
+          в пагинированный ответ добавляются stats и top5;
+        - review — решение по заявке (кафедра / декан / ректорат);
+        - config — конфигурация формы загрузки (кэш 1 час).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      tags:
+      - achievements
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAchievementUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAchievementUpdate'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAchievementUpdate'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+    delete:
+      operationId: v1_achievements_destroy
+      description: |-
+        Достижения (заявки студентов).
+
+        - create — загрузка достижения студентом (throttle 'upload');
+        - retrieve — карточка заявки (владелец или сотрудник в scope);
+        - partial_update / destroy — правка/удаление своей заявки
+          (чужие скрыты фильтром по владельцу: 404, существование не раскрывается);
+        - list — заявки на модерацию для сотрудника (?list_type=pending|reviewed),
+          в пагинированный ответ добавляются stats и top5;
+        - review — решение по заявке (кафедра / декан / ректорат);
+        - config — конфигурация формы загрузки (кэш 1 час).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      tags:
+      - achievements
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+  /api/v1/achievements/{id}/review/:
+    post:
+      operationId: v1_achievements_review_create
+      description: |-
+        Достижения (заявки студентов).
+
+        - create — загрузка достижения студентом (throttle 'upload');
+        - retrieve — карточка заявки (владелец или сотрудник в scope);
+        - partial_update / destroy — правка/удаление своей заявки
+          (чужие скрыты фильтром по владельцу: 404, существование не раскрывается);
+        - list — заявки на модерацию для сотрудника (?list_type=pending|reviewed),
+          в пагинированный ответ добавляются stats и top5;
+        - review — решение по заявке (кафедра / декан / ректорат);
+        - config — конфигурация формы загрузки (кэш 1 час).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      tags:
+      - achievements
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewDocumentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewDocumentRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewDocumentRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewDocumentResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+  /api/v1/achievements/config/:
+    get:
+      operationId: v1_achievements_config_retrieve
+      description: 'Конфигурация формы достижения: категории, подтипы, уровни, результаты,
+        правила баллов.'
+      tags:
+      - achievements
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementConfig'
+          description: ''
+  /api/v1/auth/forgot-password/:
+    post:
+      operationId: v1_auth_forgot_password_create
+      description: |-
+        Аутентификация: login / logout / session (ex check-auth) / forgot-password.
+
+        Регистрация отключена намеренно (см. RegistrationAPIView — код сохранён,
+        маршрут не подключён).
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+  /api/v1/auth/login/:
+    post:
+      operationId: v1_auth_login_create
+      description: |-
+        Аутентификация: login / logout / session (ex check-auth) / forgot-password.
+
+        Регистрация отключена намеренно (см. RegistrationAPIView — код сохранён,
+        маршрут не подключён).
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: v1_auth_logout_create
+      description: |-
+        Аутентификация: login / logout / session (ex check-auth) / forgot-password.
+
+        Регистрация отключена намеренно (см. RegistrationAPIView — код сохранён,
+        маршрут не подключён).
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/session/:
+    get:
+      operationId: v1_auth_session_retrieve
+      description: 'Текущая сессия: данные пользователя либо {"isAuthenticated": false}.'
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+          description: ''
+  /api/v1/categories/:
+    get:
+      operationId: v1_categories_list
+      description: Справочник категорий достижений с подтипами (кэш 2 часа).
+      tags:
+      - categories
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+          description: ''
+  /api/v1/document-files/{id}/download/:
+    get:
+      operationId: v1_document_files_download_retrieve
+      description: 'Потоковое проксирование файла из хранилища (Content-Disposition:
+        attachment).'
+      summary: Скачать файл документа
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      tags:
+      - document-files
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+  /api/v1/document-files/{id}/preview/:
+    get:
+      operationId: v1_document_files_preview_retrieve
+      description: Отдаёт файл inline; .doc/.docx конвертируются в PDF (Gotenberg)
+        с кэшем.
+      summary: Предпросмотр файла документа (офисные форматы — в PDF)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      tags:
+      - document-files
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+  /api/v1/groups/:
+    get:
+      operationId: v1_groups_list
+      description: |-
+        Учебные группы, доступные сотруднику (в его scope, только с студентами).
+        Кэш 5 минут, per-cookie (данные зависят от роли).
+      parameters:
+      - in: query
+        name: course
+        schema:
+          type: string
+      - in: query
+        name: faculty_id
+        schema:
+          type: string
+      - in: query
+        name: group_id
+        schema:
+          type: string
+      tags:
+      - groups
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+          description: ''
+  /api/v1/notifications/pending-count/:
+    get:
+      operationId: v1_notifications_pending_count_retrieve
+      description: Число заявок, ожидающих действия текущего сотрудника (0 для не-сотрудников).
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingCount'
+          description: ''
+  /api/v1/rating/:
+    get:
+      operationId: v1_rating_list
+      description: |-
+        Публичный рейтинг студентов (всегда текущий семестр).
+
+        - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
+        - filters — данные для построения фильтров (кэш 2 часа);
+        - export — выгрузка рейтинга в Excel (только сотрудники).
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: 'Категория сортировки: common (по умолчанию) | academic | research
+          | sport | social | cultural'
+      - in: query
+        name: course
+        schema:
+          type: string
+      - in: query
+        name: faculty_id
+        schema:
+          type: string
+      - in: query
+        name: group_id
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - rating
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedStudentRatingList'
+          description: ''
+  /api/v1/rating/export/:
+    get:
+      operationId: v1_rating_export_retrieve
+      description: |-
+        Публичный рейтинг студентов (всегда текущий семестр).
+
+        - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
+        - filters — данные для построения фильтров (кэш 2 часа);
+        - export — выгрузка рейтинга в Excel (только сотрудники).
+      summary: Экспорт рейтинга в Excel
+      tags:
+      - rating
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/rating/filters/:
+    get:
+      operationId: v1_rating_filters_retrieve
+      description: |-
+        Публичный рейтинг студентов (всегда текущий семестр).
+
+        - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
+        - filters — данные для построения фильтров (кэш 2 часа);
+        - export — выгрузка рейтинга в Excel (только сотрудники).
+      tags:
+      - rating
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingFiltersResponse'
+          description: ''
+  /api/v1/rejection-reasons/:
+    get:
+      operationId: v1_rejection_reasons_list
+      description: Справочник активных причин отклонения заявок (кэш 2 часа).
+      tags:
+      - rejection-reasons
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RejectionReason'
+          description: ''
+  /api/v1/staff/me/:
+    get:
+      operationId: v1_staff_me_retrieve
+      description: Профиль сотрудника (деканат / кафедра / ректорат).
+      tags:
+      - staff
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffProfileResponse'
+          description: ''
+  /api/v1/students/:
+    get:
+      operationId: v1_students_list
+      description: |-
+        Студенты.
+
+        - list — студенты в области видимости сотрудника с фильтрами и выбором
+          семестра (прошлый семестр — баллы из истории SemesterScore);
+        - retrieve — полный профиль (свой или в scope сотрудника);
+        - me — собственный профиль студента.
+      parameters:
+      - in: query
+        name: academic_year
+        schema:
+          type: integer
+        description: ID семестра (по умолчанию — текущий)
+      - in: query
+        name: course
+        schema:
+          type: string
+      - in: query
+        name: faculty_id
+        schema:
+          type: string
+      - in: query
+        name: group_id
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: semester
+        schema:
+          type: integer
+        description: Синоним academic_year
+      tags:
+      - students
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedStudentProfileList'
+          description: ''
+  /api/v1/students/{id}/:
+    get:
+      operationId: v1_students_retrieve
+      description: |-
+        Студенты.
+
+        - list — студенты в области видимости сотрудника с фильтрами и выбором
+          семестра (прошлый семестр — баллы из истории SemesterScore);
+        - retrieve — полный профиль (свой или в scope сотрудника);
+        - me — собственный профиль студента.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      tags:
+      - students
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentProfile'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+  /api/v1/students/me/:
+    get:
+      operationId: v1_students_me_retrieve
+      description: |-
+        Студенты.
+
+        - list — студенты в области видимости сотрудника с фильтрами и выбором
+          семестра (прошлый семестр — баллы из истории SemesterScore);
+        - retrieve — полный профиль (свой или в scope сотрудника);
+        - me — собственный профиль студента.
+      tags:
+      - students
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentProfile'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+components:
+  schemas:
+    AcademicYear:
+      type: object
+      description: Сериализатор для .
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        label:
+          type: string
+          title: Название периода
+          maxLength: 100
+        start_date:
+          type: string
+          format: date
+          title: Дата начала
+        end_date:
+          type: string
+          format: date
+          title: Дата окончания
+        is_current:
+          type: boolean
+          title: Текущий семестр
+      required:
+      - end_date
+      - id
+      - label
+      - start_date
+    AchievementConfig:
+      type: object
+      properties:
+        structure:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        levels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Level'
+          readOnly: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AchievementResult'
+          readOnly: true
+        doc_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocType'
+          readOnly: true
+      required:
+      - doc_types
+      - levels
+      - results
+      - structure
+    AchievementResult:
+      type: object
+      properties:
+        code:
+          type: string
+          title: Код
+          maxLength: 50
+        label:
+          type: string
+          title: Название
+          maxLength: 255
+      required:
+      - code
+      - label
+    AchievementType:
+      type: object
+      properties:
+        code:
+          type: string
+          title: Код
+          maxLength: 50
+        label:
+          type: string
+          title: Название
+          maxLength: 100
+        needs_level:
+          type: boolean
+          title: Требует указания уровня
+        needs_result:
+          type: boolean
+          title: Требует указания результата
+        allowed_results:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - allowed_results
+      - code
+      - label
+    AchievementUpload:
+      type: object
+      properties:
+        record_book:
+          type: string
+        category:
+          type: string
+          title: Код
+        sub_type:
+          type: string
+        level:
+          type: string
+          title: Код
+          nullable: true
+        result:
+          type: string
+          title: Код
+          nullable: true
+        achievement:
+          type: string
+        date_received:
+          type: string
+          format: date
+        doc_type:
+          type: string
+          title: Код
+          default: other
+        files:
+          type: array
+          items:
+            type: string
+            format: uri
+          writeOnly: true
+      required:
+      - achievement
+      - category
+      - files
+      - record_book
+      - sub_type
+    ActionEnum:
+      enum:
+      - approve
+      - reject
+      type: string
+      description: |-
+        * `approve` - approve
+        * `reject` - reject
+    Category:
+      type: object
+      properties:
+        code:
+          type: string
+          title: Код
+          maxLength: 50
+        label:
+          type: string
+          title: Название
+          maxLength: 255
+        sub_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/AchievementType'
+          readOnly: true
+      required:
+      - code
+      - label
+      - sub_types
+    DocType:
+      type: object
+      properties:
+        code:
+          type: string
+          title: Код
+          maxLength: 50
+        label:
+          type: string
+          title: Название
+          maxLength: 255
+      required:
+      - code
+      - label
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        category:
+          type: integer
+          title: Категория
+        category_display:
+          type: string
+          readOnly: true
+        sub_type:
+          type: integer
+          title: Подтип
+        sub_type_display:
+          type: string
+          readOnly: true
+        level:
+          type: integer
+          nullable: true
+          title: Уровень
+        level_display:
+          type: string
+          readOnly: true
+        result:
+          type: integer
+          nullable: true
+          title: Результат
+        result_display:
+          type: string
+          readOnly: true
+        achievement:
+          type: string
+          title: Название достижения
+          maxLength: 1000
+        rejection_reason:
+          type: string
+          nullable: true
+          title: Причина отказа
+          maxLength: 500
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Баллы
+        status:
+          type: integer
+          title: Статус
+        status_display:
+          type: string
+          readOnly: true
+        doc_type:
+          type: integer
+          title: Тип документа
+        doc_type_display:
+          type: string
+          readOnly: true
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentFile'
+          readOnly: true
+        date_received:
+          type: string
+          format: date
+          title: Дата получения
+        uploaded_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - achievement
+      - category
+      - category_display
+      - doc_type
+      - doc_type_display
+      - files
+      - id
+      - level_display
+      - result_display
+      - status
+      - status_display
+      - sub_type
+      - sub_type_display
+      - uploaded_at
+    DocumentFile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        original_file_name:
+          type: string
+          title: Оригинальное имя файла
+          maxLength: 255
+        uploaded_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата загрузки
+        order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          title: Порядок
+          description: Для сортировки файлов
+        document:
+          type: integer
+          title: Документ
+      required:
+      - document
+      - id
+      - uploaded_at
+    ErrorDetail:
+      type: object
+      description: 'Единый формат ошибки API: {"detail": "..."}.'
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    FacultyFilter:
+      type: object
+      description: Сериализатор для фильтрации факультетов.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        short_name:
+          type: string
+          title: Сокращение
+          maxLength: 20
+        name:
+          type: string
+          title: Название факультета
+          maxLength: 255
+      required:
+      - id
+      - name
+      - short_name
+    ForgotPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: Введите ваш email для восстановления пароля
+      required:
+      - email
+    Group:
+      type: object
+      description: Сериализатор для групп.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Название группы
+          maxLength: 50
+        course:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          title: Курс
+        faculty_name:
+          type: string
+          readOnly: true
+        academic_year:
+          type: string
+          title: Учебный год
+          maxLength: 20
+        education_level:
+          type: string
+          title: Уровень
+          maxLength: 5
+        education_form:
+          type: string
+          title: Форма обучения
+          maxLength: 5
+        specialty_name:
+          type: string
+          readOnly: true
+        specialty_code:
+          type: string
+          readOnly: true
+      required:
+      - academic_year
+      - course
+      - education_form
+      - education_level
+      - faculty_name
+      - id
+      - name
+      - specialty_code
+      - specialty_name
+    GroupFilter:
+      type: object
+      description: Сериализатор для фильтрации групп.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Название группы
+          maxLength: 50
+        course:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          title: Курс
+        faculty_id:
+          type: integer
+          readOnly: true
+        faculty_name:
+          type: string
+          readOnly: true
+        academic_year:
+          type: string
+          title: Учебный год
+          maxLength: 20
+      required:
+      - academic_year
+      - course
+      - faculty_id
+      - faculty_name
+      - id
+      - name
+    Level:
+      type: object
+      properties:
+        code:
+          type: string
+          title: Код
+          maxLength: 50
+        label:
+          type: string
+          title: Название
+          maxLength: 255
+      required:
+      - code
+      - label
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - password
+      - username
+    Message:
+      type: object
+      description: 'Успешный ответ вида {"message": "..."}.'
+      properties:
+        message:
+          type: string
+      required:
+      - message
+    PaginatedPendingDocumentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PendingDocument'
+    PaginatedStudentProfileList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentProfile'
+    PaginatedStudentRatingList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentRating'
+    PatchedAchievementUpdate:
+      type: object
+      description: |-
+        Частичное редактирование достижения студентом (PATCH).
+
+        Все поля опциональны. Подтип проверяется в рамках категории (переданной или
+        текущей). Если переданы файлы — старые удаляются и заменяются новыми.
+        Балл пересчитывается в `Document.save()`. Если документ был отклонён, при
+        сохранении он возвращается на повторное рассмотрение (статус 'pending').
+
+        Редактирование уже подтверждённых достижений запрещается на уровне view.
+      properties:
+        category:
+          type: string
+          title: Код
+        sub_type:
+          type: string
+        level:
+          type: string
+          title: Код
+          nullable: true
+        result:
+          type: string
+          title: Код
+          nullable: true
+        achievement:
+          type: string
+        date_received:
+          type: string
+          format: date
+        doc_type:
+          type: string
+          title: Код
+        files:
+          type: array
+          items:
+            type: string
+            format: uri
+          writeOnly: true
+    PendingCount:
+      type: object
+      properties:
+        pending_docs_count:
+          type: integer
+          readOnly: true
+      required:
+      - pending_docs_count
+    PendingDocument:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        category:
+          type: integer
+          title: Категория
+        category_display:
+          type: string
+          readOnly: true
+        sub_type:
+          type: integer
+          title: Подтип
+        sub_type_display:
+          type: string
+          readOnly: true
+        level:
+          type: integer
+          nullable: true
+          title: Уровень
+        level_display:
+          type: string
+          readOnly: true
+        result:
+          type: integer
+          nullable: true
+          title: Результат
+        result_display:
+          type: string
+          readOnly: true
+        achievement:
+          type: string
+          title: Название достижения
+          maxLength: 1000
+        rejection_reason:
+          type: string
+          nullable: true
+          title: Причина отказа
+          maxLength: 500
+        score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Баллы
+        status:
+          type: integer
+          title: Статус
+        status_display:
+          type: string
+          readOnly: true
+        doc_type:
+          type: integer
+          title: Тип документа
+        doc_type_display:
+          type: string
+          readOnly: true
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentFile'
+          readOnly: true
+        date_received:
+          type: string
+          format: date
+          title: Дата получения
+        uploaded_at:
+          type: string
+          format: date-time
+          readOnly: true
+        user_id:
+          type: integer
+          readOnly: true
+        student_id:
+          type: integer
+          readOnly: true
+        student_name:
+          type: string
+          readOnly: true
+        group:
+          type: string
+          readOnly: true
+          default: Без группы
+        group_id:
+          type: integer
+          readOnly: true
+        course:
+          type: integer
+          readOnly: true
+        faculty:
+          type: string
+          readOnly: true
+          default: —
+        record_book:
+          type: string
+          readOnly: true
+          default: —
+      required:
+      - achievement
+      - category
+      - category_display
+      - course
+      - doc_type
+      - doc_type_display
+      - faculty
+      - files
+      - group
+      - group_id
+      - id
+      - level_display
+      - record_book
+      - result_display
+      - status
+      - status_display
+      - student_id
+      - student_name
+      - sub_type
+      - sub_type_display
+      - uploaded_at
+      - user_id
+    RatingFiltersResponse:
+      type: object
+      description: Сериализатор фильтра рейтинга для модерации документа.
+      properties:
+        faculties:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacultyFilter'
+          readOnly: true
+        courses:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupFilter'
+          readOnly: true
+      required:
+      - courses
+      - faculties
+      - groups
+    RejectionReason:
+      type: object
+      description: Сериализатор причин отклонения заявок.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        text:
+          type: string
+          title: Текст причины
+          maxLength: 255
+      required:
+      - id
+      - text
+    ReviewDocumentRequest:
+      type: object
+      description: Сериализатор для модерации документа.
+      properties:
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+        reasons:
+          type: array
+          items:
+            type: string
+          description: Список причин при отклонении
+      required:
+      - action
+    ReviewDocumentResponse:
+      type: object
+      description: Сериализатор ответа при модерации документа.
+      properties:
+        message:
+          type: string
+      required:
+      - message
+    SemesterScore:
+      type: object
+      description: Строка истории баллов студента за один семестр.
+      properties:
+        semester_id:
+          type: integer
+          readOnly: true
+        semester_label:
+          type: string
+          readOnly: true
+        is_current:
+          type: boolean
+          readOnly: true
+        start_date:
+          type: string
+          format: date
+          readOnly: true
+        end_date:
+          type: string
+          format: date
+          readOnly: true
+        total_score:
+          type: integer
+          readOnly: true
+        academic_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        research_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        sport_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        social_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        cultural_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+      required:
+      - end_date
+      - is_current
+      - semester_id
+      - semester_label
+      - start_date
+      - total_score
+    StaffProfileResponse:
+      type: object
+      description: Сериализатор ответа профиля сотрудника.
+      properties:
+        id:
+          type: integer
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        department_name:
+          type: string
+        faculty_name:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        is_own_profile:
+          type: boolean
+        is_staff:
+          type: boolean
+        type:
+          type: string
+      required:
+      - department_name
+      - email
+      - faculty_name
+      - full_name
+      - id
+      - is_own_profile
+      - is_staff
+      - phone
+      - roles
+      - type
+    StudentProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user_id:
+          type: integer
+          nullable: true
+          readOnly: true
+        full_name:
+          type: string
+          title: ФИО
+          description: Полное ФИО студента
+          maxLength: 255
+        short_name:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 254
+        record_book:
+          type: string
+          nullable: true
+          title: Зачетка
+          maxLength: 50
+        group:
+          type: string
+          readOnly: true
+          default: Без группы
+        group_id:
+          type: integer
+          readOnly: true
+        course:
+          type: integer
+          readOnly: true
+        faculty:
+          type: string
+          readOnly: true
+          default: —
+        status:
+          type: string
+          title: Статус
+          description: Код статуса
+          maxLength: 5
+        status_decoding:
+          type: string
+          title: Расшифровка Статуса
+          description: Расшифровка кода статуса
+          maxLength: 255
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: В архиве с
+          description: 'Если заполнено - студент архивирован: скрыт из текущего рейтинга/списков/дашборда,
+            но запись, история баллов и файлы сохранены. Проставляется при импорте
+            для статусов отчислен/окончил/архив или для студентов, пропавших из полной
+            выгрузки.'
+        is_archived:
+          type: boolean
+          readOnly: true
+        academic_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        research_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        sport_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        social_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        cultural_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        total_score:
+          type: integer
+          readOnly: true
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+          readOnly: true
+        semester_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/SemesterScore'
+          readOnly: true
+      required:
+      - course
+      - documents
+      - faculty
+      - full_name
+      - group
+      - group_id
+      - id
+      - is_archived
+      - semester_history
+      - short_name
+      - total_score
+      - user_id
+    StudentRating:
+      type: object
+      description: 'Строка публичного рейтинга: живые баллы текущего семестра из кэша
+        Student.'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user_id:
+          type: integer
+          nullable: true
+          readOnly: true
+        full_name:
+          type: string
+          title: ФИО
+          description: Полное ФИО студента
+          maxLength: 255
+        short_name:
+          type: string
+          readOnly: true
+        group:
+          type: string
+          readOnly: true
+          default: Без группы
+        group_id:
+          type: integer
+          readOnly: true
+        course:
+          type: integer
+          readOnly: true
+          default: 0
+        faculty:
+          type: string
+          readOnly: true
+          default: —
+        total_score:
+          type: integer
+          readOnly: true
+        academic_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        research_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        sport_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        social_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        cultural_score:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        faculty_id:
+          type: integer
+          readOnly: true
+          default: 0
+      required:
+      - course
+      - faculty
+      - faculty_id
+      - full_name
+      - group
+      - group_id
+      - id
+      - short_name
+      - total_score
+      - user_id
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          title: Имя пользователя
+          description: Обязательное поле. Не более 150 символов. Только буквы, цифры
+            и символы @/./+/-/_.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        record_book:
+          type: string
+          readOnly: true
+          default: —
+        isAuthenticated:
+          type: boolean
+          default: true
+        is_staff:
+          type: boolean
+          title: Статус персонала
+          description: Отметьте, если пользователь может входить в административную
+            часть сайта.
+        full_name:
+          type: string
+          readOnly: true
+        short_name:
+          type: string
+          readOnly: true
+        roles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - full_name
+      - id
+      - record_book
+      - roles
+      - short_name
+      - username
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
