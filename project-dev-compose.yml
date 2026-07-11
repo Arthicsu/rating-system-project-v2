@@ -92,7 +92,7 @@ services:
     container_name: postgres_db
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-      - ${SHARED_HOST_DIR:-./shared}/dumps/Project_20260702_203308.sql:/docker-entrypoint-initdb.d/dump.sql
+      - ${SHARED_HOST_DIR:-./shared}/dumps/Project_20260706_121210.sql:/docker-entrypoint-initdb.d/dump.sql
     deploy:
       resources:
         limits:

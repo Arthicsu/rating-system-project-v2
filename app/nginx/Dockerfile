@@ -4,6 +4,7 @@ LABEL authors="Arthicsu"
 RUN rm /etc/nginx/conf.d/default.conf
 
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY security-headers.conf /etc/nginx/security-headers.conf
 COPY conf.d /etc/nginx/conf.d/
 
 RUN mkdir -p /app/staticfiles /var/cache/nginx

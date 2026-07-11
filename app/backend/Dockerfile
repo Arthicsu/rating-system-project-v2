@@ -42,10 +42,13 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY requirements.txt .
 COPY . .
 
-RUN mkdir -p /backups && chmod 777 /backups
-RUN mkdir -p /dumps && chmod 777 /dumps
-RUN mkdir -p /app/logs && chown 777 /app/logs
-RUN chmod +x entrypoint.sh
+# Непривилегированный пользователь (uid 1000): контейнер не работает от root.
+RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --create-home app \
+    && mkdir -p /backups /dumps /app/logs /app/staticfiles \
+    && chown -R app:app /backups /dumps /app/logs /app/staticfiles \
+    && chmod +x entrypoint.sh
+
+USER app
 
 EXPOSE 8000
 

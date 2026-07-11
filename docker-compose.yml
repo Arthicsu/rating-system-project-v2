@@ -2,6 +2,8 @@ services:
   backend:
     image: arthicsu/bgitu-rating-backend:1.1.0
     container_name: app_backend
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - ./app/backend:/app
       - static_files:/app/staticfiles
@@ -32,6 +34,11 @@ services:
     image: arthicsu/bgitu-rating-backend:1.1.0
     container_name: app_celery
     command: celery -A backend worker --beat --pool=solo --loglevel=info --schedule=/tmp/celerybeat-schedule --without-gossip --without-mingle --without-heartbeat
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
       - ./app/backend:/app
       - ${SHARED_HOST_DIR:-./shared}:/shared
@@ -58,6 +65,8 @@ services:
   frontend:
     image: arthicsu/bgitu-rating-frontend:1.1.3
     container_name: app_frontend
+    security_opt:
+      - no-new-privileges:true
     deploy:
       resources:
         limits:
@@ -102,6 +111,9 @@ services:
   redis:
     image: redis:8.8.0-alpine
     container_name: app_redis
+    # setuid не нужен: entrypoint от root дропает привилегии сам (это разрешено).
+    security_opt:
+      - no-new-privileges:true
     environment:
       REDIS_USER: ${REDIS_USER}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -151,6 +163,8 @@ services:
   gotenberg:
     image: gotenberg/gotenberg:8.34.0-libreoffice
     container_name: app_gotenberg
+    security_opt:
+      - no-new-privileges:true
     command:
       - gotenberg
       - --api-timeout=90s
@@ -166,6 +180,9 @@ services:
   nginx:
     build: ./app/nginx
     container_name: app_nginx
+    # Master от root (порт 80), воркеры дропаются до nginx — эскалация не нужна.
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "80:80"
       - "443:443"
