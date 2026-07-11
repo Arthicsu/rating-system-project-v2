@@ -178,6 +178,23 @@ class LoginAPIViewTests(UsersAPITestCase):
         check = self.client.get(reverse("api:auth-session"))
         self.assertEqual(check.status_code, status.HTTP_200_OK)
 
+    def test_login_sets_csrf_cookie(self):
+        """login() делает rotate_token → csrftoken приходит в ответе логина."""
+        resp = self.login("login@uni.ru")
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn("csrftoken", resp.cookies)
+
+    def test_login_writes_audit_log(self):
+        """Вход и неудачная попытка пишутся в аудит-лог (logger 'audit')."""
+        with self.assertLogs("audit", level="INFO") as captured:
+            self.login("login@uni.ru")
+        self.assertTrue(any("login user=login@uni.ru" in line for line in captured.output))
+
+        with self.assertLogs("audit", level="WARNING") as captured:
+            self.client.post(self.url, {"username": "login@uni.ru", "password": "wrong-pass"})
+        self.assertTrue(any("login_failed username=login@uni.ru" in line for line in captured.output))
+
     def test_login_wrong_password(self):
         resp = self.client.post(
             self.url, {"username": "login@uni.ru", "password": "wrong-pass"}
@@ -251,6 +268,179 @@ class CheckAuthAPIViewTests(UsersAPITestCase):
         # Контракт UserResponseSerializer
         for field in ("id", "is_staff", "full_name", "short_name", "roles"):
             self.assertIn(field, data)
+
+    def test_session_response_is_not_cacheable(self):
+        """
+        Регресс бага «слетает сессия после F5»: браузер кэшировал ответ
+        session-ручки без Cache-Control и отдавал устаревший из кэша.
+        """
+        resp = self.client.get(self.url)
+        self.assertEqual(resp["Cache-Control"], "no-store")
+
+        self.login("me@uni.ru")
+        resp = self.client.get(self.url)
+        self.assertEqual(resp["Cache-Control"], "no-store")
+
+
+@override_settings(**TEST_SETTINGS)
+class ApiAuthProtectionTests(UsersAPITestCase):
+    """
+    Все ручки API закрыты от анонимов; публичные — только login / session /
+    forgot-password (регистрация отключена намеренно).
+    """
+
+    PROTECTED_GET = [
+        ("api:rating-list", []),
+        ("api:rating-filters", []),
+        ("api:rating-export", []),
+        ("api:categories-list", []),
+        ("api:students-list", []),
+        ("api:students-me", []),
+        ("api:students-detail", [1]),
+        ("api:achievements-list", []),
+        ("api:achievements-detail", [1]),
+        ("api:achievements-config", []),
+        ("api:document-files-download", [1]),
+        ("api:document-files-preview", [1]),
+        ("api:staff-me", []),
+        ("api:groups-list", []),
+        ("api:rejection-reasons-list", []),
+        ("api:academic-years-list", []),
+        ("api:notifications-pending-count", []),
+    ]
+
+    PROTECTED_POST = [
+        ("api:achievements-list", []),
+        ("api:achievements-review", [1]),
+        ("api:auth-logout", []),
+    ]
+
+    def test_protected_get_endpoints_reject_anonymous(self):
+        for name, args in self.PROTECTED_GET:
+            with self.subTest(endpoint=name):
+                resp = self.client.get(reverse(name, args=args))
+                self.assertIn(
+                    resp.status_code,
+                    (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
+                    f"{name}: аноним получил {resp.status_code}",
+                )
+
+    def test_protected_write_endpoints_reject_anonymous(self):
+        for name, args in self.PROTECTED_POST:
+            with self.subTest(endpoint=name):
+                resp = self.client.post(reverse(name, args=args), {})
+                self.assertIn(
+                    resp.status_code,
+                    (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
+                    f"POST {name}: аноним получил {resp.status_code}",
+                )
+
+        for method in ("patch", "delete"):
+            with self.subTest(endpoint="api:achievements-detail", method=method):
+                resp = getattr(self.client, method)(reverse("api:achievements-detail", args=[1]))
+                self.assertIn(
+                    resp.status_code,
+                    (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
+                )
+
+    def test_public_endpoints_reachable_by_anonymous(self):
+        # session: всегда 200 (для анонима — {"isAuthenticated": false})
+        resp = self.client.get(reverse("api:auth-session"))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        # login/forgot-password: аноним допущен (400 — ошибка валидации, а не отказ в доступе)
+        resp = self.client.post(reverse("api:auth-login"), {})
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+        resp = self.client.post(reverse("api:auth-forgot-password"), {})
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+@override_settings(**TEST_SETTINGS)
+class StaffEndpointsForbiddenForStudentTests(UsersAPITestCase):
+    """
+    Staff-ручки недоступны СТУДЕНТУ (не только анониму): роль проверяет backend
+    (IsStaffProfile/CanReviewDocument), а не фронтенд. Даже увидев интерфейс
+    сотрудника (остановка рендера в DevTools), студент не выполнит staff-действий.
+    """
+
+    STAFF_GET = [
+        ("api:students-list", []),
+        ("api:achievements-list", []),
+        ("api:groups-list", []),
+        ("api:rejection-reasons-list", []),
+        ("api:academic-years-list", []),
+        ("api:staff-me", []),
+        ("api:rating-export", []),
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.student_user = self.create_user(username="student@uni.ru")
+        Student.objects.create(
+            user=self.student_user, external_id="EXT-S", full_name="Студент", record_book="RB-S"
+        )
+
+    def test_staff_get_endpoints_forbidden_for_student(self):
+        self.client.force_authenticate(self.student_user)
+        for name, args in self.STAFF_GET:
+            with self.subTest(endpoint=name):
+                resp = self.client.get(reverse(name, args=args))
+                self.assertEqual(
+                    resp.status_code,
+                    status.HTTP_403_FORBIDDEN,
+                    f"{name}: студент получил {resp.status_code}",
+                )
+
+    def test_review_forbidden_for_student(self):
+        self.client.force_authenticate(self.student_user)
+        resp = self.client.post(
+            reverse("api:achievements-review", args=[1]), {"action": "approve"}
+        )
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+
+@override_settings(**TEST_SETTINGS)
+class StaffEndpointsRoleProtectionTests(UsersAPITestCase):
+    """
+    Staff-ручки закрыты от аутентифицированного СТУДЕНТА (ролевая защита,
+    а не только от анонимов): 403 на каждом endpoint'е кабинета сотрудника.
+    """
+
+    STAFF_GET = [
+        ("api:students-list", []),
+        ("api:achievements-list", []),
+        ("api:staff-me", []),
+        ("api:groups-list", []),
+        ("api:rejection-reasons-list", []),
+        ("api:academic-years-list", []),
+        ("api:rating-export", []),
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.student_user = self.create_user(username="student@uni.ru")
+        Student.objects.create(
+            user=self.student_user, external_id="EXT-S1", full_name="Студент", record_book="RB-S1"
+        )
+
+    def test_staff_get_endpoints_reject_student(self):
+        self.client.force_authenticate(self.student_user)
+        for name, args in self.STAFF_GET:
+            with self.subTest(endpoint=name):
+                resp = self.client.get(reverse(name, args=args))
+                self.assertEqual(
+                    resp.status_code,
+                    status.HTTP_403_FORBIDDEN,
+                    f"{name}: студент получил {resp.status_code}, ожидали 403",
+                )
+
+    def test_review_rejects_student(self):
+        self.client.force_authenticate(self.student_user)
+        resp = self.client.post(
+            reverse("api:achievements-review", args=[1]), {"action": "approve"}
+        )
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
 
 @override_settings(**TEST_SETTINGS)

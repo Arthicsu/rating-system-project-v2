@@ -69,6 +69,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.ApiNoStoreMiddleware',
 ]
 
 CORS_ALLOWED_ORIGINS = os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", '').split(",")
@@ -101,8 +102,12 @@ CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'True').lower() == 'true'
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 
-CSRF_COOKIE_HTTPONLY = os.getenv('CSRF_COOKIE_HTTPONLY', 'True').lower() == 'true'
+CSRF_COOKIE_HTTPONLY = os.getenv('CSRF_COOKIE_HTTPONLY', 'False').lower() == 'true'
 SESSION_COOKIE_HTTPONLY = os.getenv('SESSION_COOKIE_HTTPONLY', 'True').lower() == 'true'
+
+# Срок сессии 12 часов. Активность продлевает сессию.
+SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE', 60 * 60 * 12))
+SESSION_SAVE_EVERY_REQUEST = True
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = os.getenv('DJANGO_USE_X_FORWARDED_HOST', 'True').lower() == 'true'
@@ -219,10 +224,11 @@ CACHES = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'rating-system-project-v2 API',
-    'DESCRIPTION': 'BGITU-Tracking-Student-Performance-for-Scholarships',
-    'VERSION': '1.0.1',
-    'SERVE_INCLUDE_SCHEMA': False,
+    'TITLE': 'Portfolio.bgitu.ru API',
+    'DESCRIPTION': 'For Admin only. Schema of portfolio.bgitu.ru API. For more information, please refer to our API documentation',
+    'VERSION': '1.2.0',
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAdminUser'],
+    'SERVE_INCLUDE_SCHEMA': True,
 }
 
 STORAGES = {
@@ -234,22 +240,48 @@ STORAGES = {
     },
 }
 
-# logging.FileHandler не создаёт директорию сам — гарантируем её наличие.
+# logging.FileHandler не создаёт директорию сам - гарантируем её наличие.
 (SHARED_DIR / 'logs').mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
+        # Ротация вместо бесконечного роста файла: 10 МБ × 5 копий.
         'file': {
             'level': os.getenv("DJANGO_LOG_LEVEL", "INFO"),
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': SHARED_DIR / 'logs' / 'django.log',
+            'maxBytes': 10 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        # Аудит-события (входы/выходы, решения по заявкам) - отдельный файл.
+        'audit_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': SHARED_DIR / 'logs' / 'audit.log',
+            'maxBytes': 10 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'verbose',
         },
     },
     'root': {
         'handlers': ['file'],
         "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+    },
+    'loggers': {
+        'audit': {
+            'handlers': ['audit_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 
@@ -290,7 +322,7 @@ CELERY_BEAT_SCHEDULE = {
         # У нас по умолчанию в 3:00 по МСК
         'schedule': crontab(hour=int(os.getenv('SCHEDULE_HOUR', 3)), minute=int(os.getenv('SCHEDULE_MINUTE', 0))),
     },
-    # Ежедневная проверка: если текущий семестр закончился — авто-ролловер на следующий.
+    # Ежедневная проверка: если текущий семестр закончился - авто-ролловер на следующий.
     'auto-semester-rollover-daily': {
         'task': 'students.tasks.auto_rollover_semester',
         'schedule': crontab(hour=int(os.getenv('ROLLOVER_HOUR', 4)), minute=int(os.getenv('ROLLOVER_MINUTE', 30))),
@@ -339,7 +371,7 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)         # 
 
 
 # Предпросмотр документов (конвертация офисных файлов в PDF)
-# Gotenberg — sidecar над LibreOffice; конвертация изолирована от backend.
+# Gotenberg - sidecar над LibreOffice; конвертация изолирована от backend.
 GOTENBERG_URL = os.getenv('GOTENBERG_URL', 'http://gotenberg:3000')
 GOTENBERG_TIMEOUT = int(os.getenv('GOTENBERG_TIMEOUT', 100))
 # Префикс в основном бакете под кэш конвертированных PDF (TTL через lifecycle).

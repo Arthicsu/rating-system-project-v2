@@ -246,6 +246,7 @@ class GroupAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
 
     def process_import_csv(self, request, data):
         imported = 0
+        # TODO позже понадобиться
         faculties = {f.external_id: f for f in Faculty.objects.all()}
         with transaction.atomic():
             for row in data:

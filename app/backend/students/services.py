@@ -22,6 +22,8 @@ from students.models import Document, DocumentFile, DocumentStatus, Student, Sem
 from students.scoring import calculate_achievement_score
 
 logger = logging.getLogger(__name__)
+# Решения по заявкам — в аудит-лог (SHARED_DIR/logs/audit.log, см. LOGGING).
+audit_logger = logging.getLogger('audit')
 
 
 CATEGORY_SCORE_FIELDS = (
@@ -203,12 +205,20 @@ def review_document(*, document, reviewer, action, reasons=()):
 
             # Баллы начисляются в семестр заявки (текущий — так же обновит кэш Student).
             credit_document(document)
+            audit_logger.info(
+                "review doc=%s reviewer=%s action=approve result=approved score=%s",
+                document.id, reviewer.pk, document.score,
+            )
             return "Документ подтвержден кафедрой, баллы начислены"
 
         document.status = DocumentStatus.objects.get(code='rejected')
         document.rejection_reason = reason_text
         document.verified_by = reviewer
         document.save()
+        audit_logger.info(
+            "review doc=%s reviewer=%s action=reject result=rejected reasons=%s",
+            document.id, reviewer.pk, reason_text,
+        )
         return "Документ отклонен кафедрой"
 
     if reviewer.is_dean or reviewer.is_rectorate:
@@ -223,6 +233,10 @@ def review_document(*, document, reviewer, action, reasons=()):
         document.rejection_reason = reason_text
         document.verified_by = reviewer
         document.save()
+        audit_logger.info(
+            "review doc=%s reviewer=%s action=reject result=returned_to_pending reasons=%s",
+            document.id, reviewer.pk, reason_text,
+        )
         return "Решение отменено руководством. Заявка возвращена на рассмотрение, баллы вычтены."
 
     raise InvalidDocumentState("Неизвестная ошибка")

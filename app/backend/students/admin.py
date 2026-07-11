@@ -175,7 +175,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 is_monitor = clean_val('Староста') == '1'
                 admission_year_raw = clean_val('Год_Поступления')
                 admission_year = int(admission_year_raw) if admission_year_raw.isdigit() else None
-
+                # TODO нужно обновлять всё у студента
                 if student:
                     # Если студент есть, работаем с его существующим юзером
                     user = student.user
