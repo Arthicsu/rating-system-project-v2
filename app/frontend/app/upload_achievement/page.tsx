@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -11,6 +12,8 @@ import FileDropZone from '@/components/upload/FileDropZone';
 import CustomSelect from '@/components/CustomSelect';
 import { studentApi } from '@/lib/apiRequests';
 import { useAchievementConfig } from '@/hooks/queries/useAchievementConfig';
+import { qk } from '@/lib/queryKeys';
+import { MAX_FILES, MAX_FILE_SIZE, MAX_TOTAL_SIZE } from '@/lib/validation/achievement';
 import { AxiosError } from 'axios';
 import type { SelectOption, DataStructure } from '@/interfaces/AchievementInterfaces';
 
@@ -18,6 +21,7 @@ const EMPTY_STRUCTURE: DataStructure = {};
 
 export default function UploadAchievement() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, loading: authLoading } = useMySession();
 
   const { data: config, error: configError } = useAchievementConfig();
@@ -112,21 +116,20 @@ export default function UploadAchievement() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const MAX_SIZE = 20 * 1024 * 1024;
     const selected = Array.from(e.target.files || []);
-    const oversized = selected.filter(f => f.size > MAX_SIZE);
+    const oversized = selected.filter(f => f.size > MAX_FILE_SIZE);
     if (oversized.length > 0) {
       toast.error(`Файл(ы) превышают 20 МБ: ${oversized.map(f => f.name).join(', ')}`);
       return;
     }
     const totalSize = selected.reduce((sum, f) => sum + f.size, 0);
-    if (totalSize > MAX_SIZE) {
+    if (totalSize > MAX_TOTAL_SIZE) {
       toast.error("Общий размер файлов превышает 20 МБ");
       return;
     }
-    if (selected.length > 3) {
-      toast.error("Максимальное количество файлов - 3");
-      setFiles(selected.slice(0, 3));
+    if (selected.length > MAX_FILES) {
+      toast.error(`Максимальное количество файлов - ${MAX_FILES}`);
+      setFiles(selected.slice(0, MAX_FILES));
     } else {
       setFiles(selected);
     }
@@ -172,6 +175,10 @@ export default function UploadAchievement() {
       const response = await studentApi.uploadAchievement(formData);
       toast.dismiss(loadingToast);
       toast.success(response.data.message);
+      // Новая заявка должна сразу появиться в профиле/списках — сбрасываем кэш Query.
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: qk.pendingCount });
       router.push('/profile');
     } catch (error) {
       toast.dismiss(loadingToast);
@@ -387,6 +394,7 @@ export default function UploadAchievement() {
                   <Link
                     href="https://clck.ru/3RRp3V"
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="mt-2 inline-flex items-center text-sm font-medium text-sky-700 hover:text-sky-900"
                   >
                     clck.ru/3RRp3V

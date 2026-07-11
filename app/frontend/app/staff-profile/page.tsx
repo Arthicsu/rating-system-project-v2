@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
+import type { AxiosError } from 'axios';
+
 import { useMySession } from '@/context/AuthContext';
+import ErrorState from '@/components/ErrorState';
 import ModalApprove from '@/components/modals/modalApprove';
 import ModalReject from '@/components/modals/modalReject';
 import FilterPanel from '@/components/staff/FilterPanel';
@@ -31,11 +34,36 @@ import type Student from '@/interfaces/StudentInterfaces';
 const EMPTY_STATS: DashboardStats = { total_students: 0, avg_score: 0, max_score: 0, min_score: 0, categories: {} };
 
 /**
- * Staff-профиль: оркестратор вкладок (Группа / Заявки / Рассмотренные / Статистика).
- * Данные — TanStack Query (hooks/queries), фильтры — useStaffFilters,
- * разметка вкладок — components/staff/* (JSX перенесён дословно).
+ * Guard кабинета сотрудника: пока роль не подтверждена — не рендерим и не
+ * выполняем НИ ОДНОГО хука кабинета (StaffDashboard не монтируется вовсе).
+ *
+ * Это убирает мигание staff-интерфейса у студента/анонима и не даёт странице
+ * стрелять staff-запросами от чужого имени. Сама защита данных — на backend
+ * (IsStaffProfile/CanReviewDocument, покрыто тестами): даже остановив рендер
+ * через DevTools, не-сотрудник получит 403 на любой staff-ручке.
  */
 export default function StaffProfilePage() {
+  const { user, loading } = useMySession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      router.replace('/login');
+    } else if (!user.is_staff) {
+      router.replace('/profile');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user?.is_staff) {
+    return null;
+  }
+
+  return <StaffDashboard />;
+}
+
+/** Кабинет сотрудника; монтируется только после подтверждения роли (см. guard выше). */
+function StaffDashboard() {
   const { user, refreshUser } = useMySession();
   const router = useRouter();
   const isRectorate = !!user?.roles?.includes('Rectorate');
@@ -64,12 +92,6 @@ export default function StaffProfilePage() {
   const requestsPageSize = 6;
 
   useEffect(() => {
-    if (user && !user.is_staff) {
-      router.replace('/profile');
-    }
-  }, [user, router]);
-
-  useEffect(() => {
     const tab = new URLSearchParams(window.location.search).get('tab');
     if (tab && ['my-group', 'pending-requests', 'reviewed-requests', 'statistics'].includes(tab)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- синхронизация состояния с ?tab= после гидрации (лениво инициализировать нельзя: hydration mismatch)
@@ -78,6 +100,7 @@ export default function StaffProfilePage() {
   }, []);
 
   // Смена фильтров сбрасывает страницу списка студентов (как прежние handle*Change).
+  // Роль сотрудника гарантирована guard-обёрткой StaffProfilePage.
   const filters = useStaffFilters(() => setCurrentPage(1));
   const { groupId, semesterId, semesterLabel, groupsList } = filters;
 
@@ -263,6 +286,15 @@ export default function StaffProfilePage() {
     ? 'Все группы'
     : (groupsList.find(g => String(g.id) === groupId)?.name || 'Все группы');
 
+  // ErrorState вместо вкладки — только когда данных нет совсем (5xx/сеть);
+  // при сбое фонового рефетча показываем прежние данные.
+  const tabError = (queryError: unknown, hasData: boolean) =>
+    queryError && !hasData ? ((queryError as AxiosError).response?.status ?? 500) : null;
+
+  const studentsErrorCode = tabError(studentsQuery.error, !!studentsQuery.data);
+  const pendingErrorCode = tabError(pendingQuery.error, !!pendingQuery.data);
+  const reviewedErrorCode = tabError(reviewedQuery.error, !!reviewedQuery.data);
+
   return (
     <>
       <main className="min-h-screen bg-slate-50 pt-24 pb-10">
@@ -336,7 +368,9 @@ export default function StaffProfilePage() {
             </button>
           </div>
 
-          {activeTab === 'my-group' && (
+          {activeTab === 'my-group' && (studentsErrorCode ? (
+            <ErrorState code={studentsErrorCode} onReset={() => { void studentsQuery.refetch(); }} />
+          ) : (
             <MyGroupTab
               students={studentsData}
               loading={studentsLoading}
@@ -350,9 +384,11 @@ export default function StaffProfilePage() {
               onSearch={handleGroupSearch}
               onPageChange={setCurrentPage}
             />
-          )}
+          ))}
 
-          {activeTab === 'pending-requests' && (
+          {activeTab === 'pending-requests' && (pendingErrorCode ? (
+            <ErrorState code={pendingErrorCode} onReset={() => { void pendingQuery.refetch(); }} />
+          ) : (
             <PendingRequestsTab
               docs={pendingDocsData}
               loading={pendingLoading}
@@ -367,9 +403,11 @@ export default function StaffProfilePage() {
               onApprove={(doc) => openModal('approve', doc)}
               onReject={(doc) => openModal('reject', doc)}
             />
-          )}
+          ))}
 
-          {activeTab === 'reviewed-requests' && (
+          {activeTab === 'reviewed-requests' && (reviewedErrorCode ? (
+            <ErrorState code={reviewedErrorCode} onReset={() => { void reviewedQuery.refetch(); }} />
+          ) : (
             <ReviewedRequestsTab
               docs={reviewedDocsData}
               loading={reviewedLoading}
@@ -383,15 +421,17 @@ export default function StaffProfilePage() {
               onApprove={(doc) => openModal('approve', doc)}
               onReject={(doc) => openModal('reject', doc)}
             />
-          )}
+          ))}
 
-          {activeTab === 'statistics' && (
+          {activeTab === 'statistics' && (pendingErrorCode ? (
+            <ErrorState code={pendingErrorCode} onReset={() => { void pendingQuery.refetch(); }} />
+          ) : (
             <StatisticsTab
               dynamicStats={dynamicStats}
               currentGroupName={currentGroupName}
               semesterLabel={semesterLabel}
             />
-          )}
+          ))}
         </div>
       </main>
 

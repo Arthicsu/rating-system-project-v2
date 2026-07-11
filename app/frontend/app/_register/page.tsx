@@ -1,67 +1,56 @@
 'use client';
 
-import { useState, ChangeEvent, SubmitEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMySession } from '@/context/AuthContext';
+import PasswordInput from '@/components/forms/PasswordInput';
+import { registerSchema, type RegisterFormValues } from '@/lib/validation/auth';
 import toast from 'react-hot-toast';
 import type ApiError from '@/interfaces/GeneralInterfaces';
 
 export default function RegisterPage() {
   const { registerUser } = useMySession();
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    last_name: '',
-    first_name: '',
-    patronymic: '',
-    email: '',
-    record_book: '',
-    password: '',
+
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting, errors },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      last_name: '',
+      first_name: '',
+      patronymic: '',
+      email: '',
+      record_book: '',
+      password: '',
+      passwordConfirm: '',
+    },
   });
-  const [passwordConfirm, setPasswordConfirm] = useState('');
 
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  // Первая ошибка валидации — в тот же <p>, что и раньше.
+  const error = Object.values(errors)[0]?.message ?? '';
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.name === 'passwordConfirm') {
-      setPasswordConfirm(e.target.value);
-    } else {
-      setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    }
-  };
-
-  const handleSubmit = async (e: SubmitEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    if (formData.password !== passwordConfirm) {
-      setError('Пароли не совпадают');
-      toast.error('Пароли не совпадают');
-      setIsLoading(false);
-      return;
-    }
-
+  const onSubmit = async (data: RegisterFormValues) => {
     try {
-      await registerUser(formData);
+      await registerUser(data);
 
       toast.success('Регистрация успешна!');
       router.push('/');
     } catch (err) {
       const error = err as ApiError;
       const errorData = error.response?.data;
-      
+
       if (errorData) {
         const firstError = Object.values(errorData).flat().join(', ');
         toast.error(firstError || 'Ошибка регистрации');
       } else {
         toast.error('Ошибка регистрации. Повторите попытку позже.');
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -75,7 +64,7 @@ export default function RegisterPage() {
             Регистрация
           </h1>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-1">
               <label htmlFor="lastName" className="text-sm font-medium text-slate-600">
                 Фамилия<span className="text-rose-600">*</span>
@@ -83,11 +72,9 @@ export default function RegisterPage() {
               <input
                 type="text"
                 id="lastName"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleChange}
                 required
                 className={inputClasses}
+                {...register('last_name')}
               />
             </div>
 
@@ -98,11 +85,9 @@ export default function RegisterPage() {
               <input
                 type="text"
                 id="firstName"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleChange}
                 required
                 className={inputClasses}
+                {...register('first_name')}
               />
             </div>
 
@@ -113,10 +98,8 @@ export default function RegisterPage() {
               <input
                 type="text"
                 id="patronymic"
-                name="patronymic"
-                value={formData.patronymic}
-                onChange={handleChange}
                 className={inputClasses}
+                {...register('patronymic')}
               />
             </div>
 
@@ -127,11 +110,9 @@ export default function RegisterPage() {
               <input
                 type="email"
                 id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
                 required
                 className={inputClasses}
+                {...register('email')}
               />
             </div>
 
@@ -142,11 +123,9 @@ export default function RegisterPage() {
               <input
                 type="text"
                 id="recordBook"
-                name="record_book"
-                value={formData.record_book}
-                onChange={handleChange}
                 required
                 className={inputClasses}
+                {...register('record_book')}
               />
             </div>
 
@@ -154,68 +133,24 @@ export default function RegisterPage() {
               <label htmlFor="password" className="text-sm font-medium text-slate-600">
                 Пароль<span className="text-rose-600">*</span>
               </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className={`${inputClasses} pr-10`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                  )}
-                </button>
-              </div>
+              <PasswordInput
+                id="password"
+                required
+                className={`${inputClasses} pr-10`}
+                {...register('password')}
+              />
             </div>
 
             <div className="space-y-1">
               <label htmlFor="passwordConfirm" className="text-sm font-medium text-slate-600">
                 Повторите пароль<span className="text-rose-600">*</span>
               </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="passwordConfirm"
-                  name="passwordConfirm"
-                  value={passwordConfirm}
-                  onChange={handleChange}
-                  required
-                  className={`${inputClasses} pr-10`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                  )}
-                </button>
-              </div>
+              <PasswordInput
+                id="passwordConfirm"
+                required
+                className={`${inputClasses} pr-10`}
+                {...register('passwordConfirm')}
+              />
             </div>
 
             <div className="rounded-lg bg-sky-50 px-4 py-3 text-xs text-sky-800">
@@ -233,10 +168,10 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isSubmitting}
               className="cursor-pointer mt-2 w-full rounded-md bg-sky-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
-              {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
+              {isSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
             </button>
           </form>
         </div>

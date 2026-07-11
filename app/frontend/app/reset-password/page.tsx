@@ -1,22 +1,32 @@
 'use client';
 
-import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 import { useMySession } from '@/context/AuthContext';
 import { authApi } from '@/lib/apiRequests';
+import { resetPasswordSchema, type ResetPasswordFormValues } from '@/lib/validation/auth';
 import type ApiError from '@/interfaces/GeneralInterfaces';
 
 export default function ResetPasswordPage() {
   const { user } = useMySession();
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSent, setIsSent] = useState(false);
+  const [sentEmail, setSentEmail] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { email: '' },
+  });
 
   useEffect(() => {
     if (user) {
@@ -26,17 +36,10 @@ export default function ResetPasswordPage() {
 
   if (user) return null;
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
+  const onSubmit = async ({ email }: ResetPasswordFormValues) => {
     try {
       const { data } = await authApi.forgotPassword({ email });
-      setIsSent(true);
+      setSentEmail(email);
       toast.success(data?.message ?? 'Новый пароль отправлен на почту');
     } catch (err) {
       const error = err as Error | ApiError;
@@ -47,8 +50,6 @@ export default function ResetPasswordPage() {
       } else {
         toast.error('Не удалось отправить письмо. Повторите попытку позже.');
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -60,16 +61,16 @@ export default function ResetPasswordPage() {
             Восстановление пароля
           </h1>
 
-          {isSent ? (
+          {sentEmail ? (
             <div className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">
               <p>
-                Если аккаунт с почтой <span className="font-semibold">{email}</span> существует,
+                Если аккаунт с почтой <span className="font-semibold">{sentEmail}</span> существует,
                 на него отправлено письмо с новый пароль. Проверьте почту (в том числе
                 папку «Спам») и войдите с новым паролем.
               </p>
             </div>
           ) : (
-            <form className="space-y-4" onSubmit={handleSubmit}>
+            <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
               <p className="text-sm text-slate-600">
                 Укажите email, привязанный к вашему аккаунту. Мы отправим на него новый временный пароль.
               </p>
@@ -81,21 +82,19 @@ export default function ResetPasswordPage() {
                 <input
                   type="email"
                   id="email"
-                  name="email"
-                  value={email}
-                  onChange={handleChange}
                   required
                   placeholder="you@bgitu.ru"
                   className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#0069a8] focus:ring-1 focus:ring-[#0069a8]"
+                  {...register('email')}
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className="cursor-pointer mt-2 w-full rounded-md bg-sky-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
-                {isLoading ? 'Отправка...' : 'Отправить новый пароль'}
+                {isSubmitting ? 'Отправка...' : 'Отправить новый пароль'}
               </button>
             </form>
           )}

@@ -1,8 +1,11 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
+import { Skeleton } from 'boneyard-js/react';
+import type { AxiosError } from 'axios';
 import Pagination from '@/components/Pagination';
 import CustomSelect from '@/components/CustomSelect';
+import ErrorState from '@/components/ErrorState';
 import { useCategories, useRatingFilters } from '@/hooks/queries/useLookups';
 import { useRating } from '@/hooks/queries/useRating';
 import type { FilterOptions, Tab, RatingParams } from '@/interfaces/RatingInterfaces';
@@ -49,7 +52,7 @@ export default function RatingPage() {
     return params;
   }, [activeTab, currentPage, selectedFaculty, selectedCourse, selectedGroup]);
 
-  const { data: ratingData, isFetching: loading, error: ratingError } = useRating(ratingParams);
+  const { data: ratingData, isFetching: loading, error: ratingError, refetch: refetchRating } = useRating(ratingParams);
   useEffect(() => {
     if (ratingError) console.error('Ошибка: ', ratingError);
   }, [ratingError]);
@@ -193,8 +196,16 @@ export default function RatingPage() {
             </div>
           )}
 
+          {ratingError && !ratingData ? (
+            // Данные недоступны (5xx/сеть): остаёмся на странице, показываем ErrorState с ретраем.
+            <ErrorState
+              code={(ratingError as AxiosError).response?.status ?? 500}
+              onReset={() => { void refetchRating(); }}
+            />
+          ) : (
           <div className="rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
             <div key={activeTab} className="animate-fade-in w-full overflow-x-auto">
+              <Skeleton name="rating-table" loading={false}>
               <table className="min-w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead>
                   <tr className="bg-sky-700 text-white">
@@ -310,7 +321,7 @@ export default function RatingPage() {
                   )}
                 </tbody>
               </table>
-              
+              </Skeleton>
               <Pagination 
                 page={currentPage}
                 totalCount={totalCount}
@@ -344,6 +355,7 @@ export default function RatingPage() {
               )} */}
             </div>
           </div>
+          )}
         </div>
       </section>
     </div>
