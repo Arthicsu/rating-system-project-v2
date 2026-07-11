@@ -2,6 +2,11 @@ import type { AuthUser } from '@/lib/api';
 
 declare module 'axios' {
   interface AxiosRequestConfig {
+    /**
+     * Исторический флаг «без редиректа на /error/*». Жёстких редиректов больше
+     * нет; теперь подавляет глобальную обработку в интерсепторе (429-toast) —
+     * для фоновых запросов вроде поллинга pending-count.
+     */
     skipErrorRedirect?: boolean;
   }
 }

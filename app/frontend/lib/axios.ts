@@ -1,7 +1,6 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-
-const ERROR_REDIRECT_CODES = [403, 429, 500, 502, 503];
 
 const getCsrfToken = (): string | undefined => {
   if (typeof document === 'undefined') return undefined;
@@ -43,15 +42,10 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
     const status = error.response?.status;
-    const isOnErrorPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/error/');
-    const skipRedirect = error.config?.skipErrorRedirect;
+    const skipGlobalHandling = error.config?.skipErrorRedirect;
 
-    if (status && !skipRedirect && !isOnErrorPage && ERROR_REDIRECT_CODES.includes(status)) {
-      // Единый формат ошибок API: {"detail": "..."}.
-      const message = (error.response?.data as { detail?: string })?.detail;
-      window.location.href = message
-        ? `/error/${status}?msg=${encodeURIComponent(message)}`
-        : `/error/${status}`;
+    if (status === 429 && !skipGlobalHandling) {
+      toast.error('Слишком много запросов - подождите немного и повторите.', { id: 'rate-limit' });
     }
     return Promise.reject(error);
   }

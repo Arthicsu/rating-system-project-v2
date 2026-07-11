@@ -22,18 +22,23 @@ export function useRatingFilters() {
   });
 }
 
-export function useRejectionReasons() {
+// Справочники ниже — staff-ручки (IsStaffProfile): для студента запрос не
+// выполняется вовсе (enabled=false), а не завершается 403.
+
+export function useRejectionReasons(enabled = true) {
   return useQuery({
     queryKey: qk.rejectionReasons,
     queryFn: () => universityApi.getRejectionReasons().then((r) => r.data),
     staleTime: LOOKUP_STALE_TIME,
+    enabled,
   });
 }
 
-export function useAcademicYears() {
+export function useAcademicYears(enabled = true) {
   return useQuery({
     queryKey: qk.academicYears,
     queryFn: () => universityApi.getAcademicYears().then((r) => r.data),
     staleTime: LOOKUP_STALE_TIME,
+    enabled,
   });
 }

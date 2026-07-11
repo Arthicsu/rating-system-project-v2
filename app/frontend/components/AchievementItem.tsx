@@ -10,8 +10,9 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
   const uploadedDateText = doc?.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('ru-RU') : 'Не указана';
   
   if (loading) {
+    // Ручной pulse — до появления костей achievement-item (Skeleton-обёртка
+    // перенесена на реальную карточку ниже: сканер снимает кости с настоящего DOM).
     return (
-      <Skeleton name="achievement-item" loading={false}>
         <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:p-4.5 animate-pulse">
           <div className="flex flex-1 items-start gap-3">
             <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-slate-200" />
@@ -26,7 +27,6 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
           </div>
           <div className="h-6 w-12 rounded-full bg-slate-200" />
         </div>
-      </Skeleton>
     );
   }
 
@@ -35,7 +35,11 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
   }
 
   return (
-    <><div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:p-4.5">
+    <>
+    {/* Skeleton вокруг РЕАЛЬНОЙ карточки: сканер boneyard снимает кости с
+        настоящего DOM (loading={false} — рантайм не меняется до скана). */}
+    <Skeleton name="achievement-item" loading={false}>
+    <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:p-4.5">
       <div className="flex flex-1 items-start gap-3">
         <div className="mt-1 flex px-1.5 sm:px-2 lg:px-2 py-1.5 sm:py-2 lg:py-2 items-center justify-center rounded-full bg-sky-700 text-white">
           <i className={`fa-regular ${statusIcon} text-sm`} />
@@ -127,6 +131,7 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
         )}
       </div>
     </div>
+    </Skeleton>
     {doc?.status_display == 'rejected' && doc?.rejection_reason && (
       <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50/70 p-4">
         <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-rose-700">

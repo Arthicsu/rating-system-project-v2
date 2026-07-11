@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import {Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, } from 'chart.js';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Radar } from 'react-chartjs-2';
 import AchievementItem from '@/components/AchievementItem';
 import ModalConfirm from '@/components/modals/modalConfirm';
 import ModalEditAchievement from '@/components/modals/modalEditAchievement';
@@ -13,7 +12,12 @@ import type { StudentProfileProps } from '@/interfaces/ProfileInterfaces';
 import type { Achievement } from '@/interfaces/AchievementInterfaces';
 import { Skeleton } from 'boneyard-js/react';
 
-ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
+// chart.js грузим только на клиенте и только когда профиль реально рендерится —
+// не тащим его в общий бандл.
+const RadarChart = dynamic(() => import('@/components/profile/RadarChart'), {
+  ssr: false,
+  loading: () => null,
+});
 
 export default function StudentProfile({ profile, isOwner, loading = false, onRefresh }: StudentProfileProps) {
   const [editingDoc, setEditingDoc] = useState<Achievement | null>(null);
@@ -46,43 +50,6 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
   const radarLabels = profile?.radar_stats?.labels ?? [];
   const radarData = profile?.radar_stats?.data ?? [];
 
-  const data = {
-    labels: radarLabels,
-    datasets: [
-      {
-        label: 'Баллы',
-        data: radarData,
-        backgroundColor: 'rgba(0, 80, 207, 0.35)',
-        borderColor: '#0069a8',
-        borderWidth: 2,
-        pointBackgroundColor: '#0069a8',
-      },
-    ],
-  };
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      r: {
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        angleLines: { display: true, color: 'rgba(0,0,0,0.12)' },
-        grid: { color: 'rgba(0,0,0,0.08)' },
-        suggestedMin: 0,
-        suggestedMax: 15,
-        pointLabels: {
-          font: { size: 13, weight: 'bold' as const },
-        },
-        ticks: {
-          display: false,
-        },
-      },
-    },
-    plugins: {
-      legend: { display: false },
-    },
-  };
-
   const documents: Achievement[] = profile?.documents || [];
   const approvedDocs = documents.filter((d) => d.status_display === 'approved');
   const pendingDocs = documents.filter((d) => d.status_display === 'pending');
@@ -90,8 +57,10 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
   const semesterHistory = profile?.semester_history ?? [];
 
   if (loading) {
+    // Ручной pulse-плейсхолдер — до появления костей student-profile
+    // (Skeleton-обёртка перенесена на реальный контент ниже: сканер boneyard
+    // снимает кости с настоящего DOM, а не с заглушки).
     return (
-      <Skeleton name="student-profile" loading={false}>
         <section className="min-h-screen bg-slate-50 pt-24 pb-10">
           <div className="mx-auto max-w-350 px-4 sm:px-5">
             <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5 animate-pulse">
@@ -119,7 +88,6 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
             </div>
           </div>
         </section>
-      </Skeleton>
     );
   }
 
@@ -137,6 +105,9 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
 
   return (
     <>
+      {/* Skeleton вокруг РЕАЛЬНОГО контента: сканер boneyard снимает кости
+          с настоящего DOM (loading={false} — рантайм не меняется до скана). */}
+      <Skeleton name="student-profile" loading={false}>
       <section className="min-h-screen bg-slate-50 pt-24 pb-10">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
           <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:p-5">
@@ -177,7 +148,7 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
                   Диаграмма распределения баллов
                 </p>
                 <div className="relative h-64 sm:h-80">
-                  <Radar data={data} options={options} />
+                  <RadarChart labels={radarLabels} data={radarData} />
                 </div>
               </div>
 
@@ -334,6 +305,7 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
           </div>
         </div>
       </section>
+      </Skeleton>
 
       <ModalEditAchievement
         isOpen={!!editingDoc}

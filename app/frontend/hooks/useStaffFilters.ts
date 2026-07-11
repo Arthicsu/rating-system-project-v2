@@ -32,8 +32,10 @@ export interface StaffFilters {
  *
  * @param onFilterChange — вызывается при смене факультета/курса/группы
  *   (страница сбрасывает пагинацию списка студентов, как раньше).
+ * @param enabled — false, пока роль сотрудника не подтверждена: ни один
+ *   staff-запрос (группы/периоды) не выполняется для студента.
  */
-export function useStaffFilters(onFilterChange?: () => void): StaffFilters {
+export function useStaffFilters(onFilterChange?: () => void, enabled = true): StaffFilters {
   const [facultyId, setFacultyId] = useState('all');
   const [course, setCourse] = useState('all');
   const [groupId, setGroupId] = useState('all');
@@ -47,17 +49,20 @@ export function useStaffFilters(onFilterChange?: () => void): StaffFilters {
     [ratingFilters]
   );
 
-  const { data: semesterOptions = [] } = useAcademicYears();
+  const { data: semesterOptions = [] } = useAcademicYears(enabled);
 
   // Текущий семестр — значение по умолчанию (деривация вместо setState-в-эффекте).
   const currentSemester = semesterOptions.find((s) => s.is_current);
   const semesterId = pickedSemesterId !== 0 ? pickedSemesterId : currentSemester?.id ?? 0;
   const semesterLabel = pickedSemesterId !== 0 ? pickedSemesterLabel : currentSemester?.label ?? '';
 
-  const { data: groupsData } = useGroups({
-    course: course !== 'all' ? course : undefined,
-    faculty_id: facultyId !== 'all' ? facultyId : undefined,
-  });
+  const { data: groupsData } = useGroups(
+    {
+      course: course !== 'all' ? course : undefined,
+      faculty_id: facultyId !== 'all' ? facultyId : undefined,
+    },
+    enabled
+  );
   const groupsList = useMemo<Group[]>(() => groupsData ?? [], [groupsData]);
 
   // Прежняя логика после загрузки групп: при 'all' в курсе/факультете группа
