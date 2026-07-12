@@ -19,6 +19,7 @@ services:
     env_file:
       - .env
     environment:
+      - DEBUG=true
       - USE_GUNICORN=${USE_GUNICORN:-false}
     depends_on:
       db:
@@ -133,7 +134,7 @@ services:
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "PING"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli PING"]
       interval: 10s
       retries: 3
       timeout: 5s
@@ -189,7 +190,6 @@ services:
     container_name: app_nginx
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - static_files:/app/staticfiles:ro
       # DEV: монтируем cache-free конфиг поверх запечённого прод-конфига из образа.

@@ -35,10 +35,8 @@ check_vars
 create_bucket
 
 
-if [ "${HAS_DUMP}" = "false" ]; then
-    echo "Running migrations..."
-    python manage.py migrate
-fi
+echo "Running migrations..."
+python manage.py migrate
 
 # Для Nginx
 echo "Collecting static files..."
@@ -48,11 +46,18 @@ python manage.py collectstatic --noinput
 echo "Initializing preview cache bucket..."
 python manage.py init_preview_cache
 
-# Выбор сервера: USE_GUNICORN=true для prod (с Nginx)
-if [ "${USE_GUNICORN}" = "true" ]; then
-    echo "Starting Gunicorn server..."
-    exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers $GUNICORN_WORKERS --threads $GUNICORN_THREADS --keep-alive 5 --access-logfile - --error-logfile -
-else
-    echo "Starting server..."
+# Выбор сервера. По умолчанию gunicorn: безопасный вариант, если переменную забыли задать.
+# Dev-сервер Django поднимается только при явном USE_GUNICORN=false
+if [ "${USE_GUNICORN:-true}" = "false" ]; then
+    echo "Starting Django dev server (USE_GUNICORN=false)..."
     exec python manage.py runserver 0.0.0.0:8000
+else
+    echo "Starting Gunicorn server..."
+    exec gunicorn backend.wsgi:application \
+        --bind 0.0.0.0:8000 \
+        --workers "${GUNICORN_WORKERS:-4}" \
+        --threads "${GUNICORN_THREADS:-2}" \
+        --timeout "${GUNICORN_TIMEOUT:-120}" \
+        --keep-alive 5 \
+        --access-logfile - --error-logfile -
 fi

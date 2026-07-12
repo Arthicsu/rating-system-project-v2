@@ -5,7 +5,6 @@ services:
     security_opt:
       - no-new-privileges:true
     volumes:
-      - ./app/backend:/app
       - static_files:/app/staticfiles
       - ${SHARED_HOST_DIR:-./shared}:/shared
     deploy:
@@ -19,7 +18,7 @@ services:
     env_file:
       - .env
     environment:
-      - USE_GUNICORN=${USE_GUNICORN:-false}
+      - USE_GUNICORN=${USE_GUNICORN:-true}
     depends_on:
       db:
         condition: service_healthy
@@ -40,7 +39,6 @@ services:
     tmpfs:
       - /tmp
     volumes:
-      - ./app/backend:/app
       - ${SHARED_HOST_DIR:-./shared}:/shared
     env_file:
       - .env
@@ -130,7 +128,7 @@ services:
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "PING"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli PING"]
       interval: 10s
       retries: 3
       timeout: 5s
@@ -180,12 +178,10 @@ services:
   nginx:
     build: ./app/nginx
     container_name: app_nginx
-    # Master от root (порт 80), воркеры дропаются до nginx — эскалация не нужна.
     security_opt:
       - no-new-privileges:true
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - static_files:/app/staticfiles:ro
       - nginx_cache:/var/cache/nginx

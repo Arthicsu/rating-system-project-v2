@@ -6,3 +6,10 @@ media
 .git
 *.md
 !README.md
+.env
+.env.*
+env.bak
+staticfiles
+logs
+dumps
+backups

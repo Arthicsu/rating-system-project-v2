@@ -10,7 +10,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "generate:api": "openapi-typescript ./schema.yml -o ./lib/api-types.ts",
-    "check:api-sync": "openapi-typescript ./schema.yml -o ./lib/api-types.check.tmp && node -e \"const fs=require('fs');const a=fs.readFileSync('lib/api-types.ts','utf8');const b=fs.readFileSync('lib/api-types.check.tmp','utf8');fs.unlinkSync('lib/api-types.check.tmp');if(a!==b){console.error('lib/api-types.ts устарел: запустите pnpm generate:api');process.exit(1)}\""
+    "check:api-sync": "openapi-typescript ./schema.yml -o ./lib/api-types.check.tmp && node -e \"const fs=require('fs');const n=s=>s.replace(/\\r\\n/g,'\\n');const a=n(fs.readFileSync('lib/api-types.ts','utf8'));const b=n(fs.readFileSync('lib/api-types.check.tmp','utf8'));fs.unlinkSync('lib/api-types.check.tmp');if(a!==b){console.error('lib/api-types.ts устарел: запустите pnpm generate:api');process.exit(1)}\""
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",
