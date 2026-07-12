@@ -3,13 +3,25 @@
 import { useState, useRef, DragEvent } from 'react';
 import toast from 'react-hot-toast';
 
+import {
+  MAX_FILES,
+  MAX_FILE_SIZE,
+  MAX_TOTAL_SIZE,
+  ALLOWED_EXTENSIONS,
+} from '@/lib/validation/achievement';
+
 interface FileDropZoneProps {
   files: File[];
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
 }
 
-const MAX_SIZE = 20 * 1024 * 1024; // 20 МБ
-const ALLOWED_EXTENSIONS = ['doc', 'docx', 'pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'];
+// Лимиты берём из единого модуля валидации (зеркало backend),
+// локальные копии констант выпиливаем, чтобы значения не расходились.
+// В ALLOWED_EXTENSIONS расширения с точкой ('.pdf') - для сравнения
+// с f.name.split('.').pop() нужен вариант без точки.
+const ALLOWED_EXTENSIONS_BARE = ALLOWED_EXTENSIONS.map(ext => ext.replace(/^\./, ''));
+const MAX_TOTAL_SIZE_MB = Math.round(MAX_TOTAL_SIZE / (1024 * 1024));
+const MAX_FILE_SIZE_MB = Math.round(MAX_FILE_SIZE / (1024 * 1024));
 
 export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -20,7 +32,7 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
     // 1. Проверка расширений только для новых файлов
     const invalidFiles = newFiles.filter(f => {
       const ext = f.name.split('.').pop()?.toLowerCase() || '';
-      return !ALLOWED_EXTENSIONS.includes(ext);
+      return !ALLOWED_EXTENSIONS_BARE.includes(ext);
     });
 
     if (invalidFiles.length > 0) {
@@ -29,9 +41,9 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
     }
 
     // 2. Проверка размера одиночного нового файла
-    const oversized = newFiles.filter(f => f.size > MAX_SIZE);
+    const oversized = newFiles.filter(f => f.size > MAX_FILE_SIZE);
     if (oversized.length > 0) {
-      toast.error(`Файл(ы) превышают 20 МБ: ${oversized.map(f => f.name).join(', ')}`);
+      toast.error(`Файл(ы) превышают ${MAX_FILE_SIZE_MB} МБ: ${oversized.map(f => f.name).join(', ')}`);
       return;
     }
 
@@ -45,29 +57,29 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
       return;
     }
 
-    // 4. Проверяем лимит на количество (максимум 3 в сумме)
+    // 4. Проверяем лимит на количество (максимум MAX_FILES в сумме)
     const totalCountAfterAdd = files.length + uniqueNewFiles.length;
-    
-    if (totalCountAfterAdd > 3) {
-      const allowedSlots = 3 - files.length;
+
+    if (totalCountAfterAdd > MAX_FILES) {
+      const allowedSlots = MAX_FILES - files.length;
       if (allowedSlots <= 0) {
-        toast.error("Максимум можно загрузить 3 файла. Удалите что-то из списка.");
+        toast.error(`Максимум можно загрузить ${MAX_FILES} файла. Удалите что-то из списка.`);
         return;
       }
-      
+
       toast.error(`Максимум можно  добавить файлов: ${allowedSlots}. Лишние отсечены.`);
-      
+
       // Берем только то количество, которое влезает в лимит
       const slicedNewFiles = uniqueNewFiles.slice(0, allowedSlots);
       const combined = [...files, ...slicedNewFiles];
-      
+
       // Проверяем общий размер для урезанного списка
       const totalSize = combined.reduce((sum, f) => sum + f.size, 0);
-      if (totalSize > MAX_SIZE) {
-        toast.error("Общий размер файлов превышает 20 МБ");
+      if (totalSize > MAX_TOTAL_SIZE) {
+        toast.error(`Общий размер файлов превышает ${MAX_TOTAL_SIZE_MB} МБ`);
         return;
       }
-      
+
       setFiles(combined);
       return;
     }
@@ -75,9 +87,9 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
     // 5. Проверяем общий размер всех файлов вместе (старых + новых)
     const combinedFiles = [...files, ...uniqueNewFiles];
     const totalSize = combinedFiles.reduce((sum, f) => sum + f.size, 0);
-    
-    if (totalSize > MAX_SIZE) {
-      toast.error("Общий размер всех загруженных файлов превышает 20 МБ");
+
+    if (totalSize > MAX_TOTAL_SIZE) {
+      toast.error(`Общий размер всех загруженных файлов превышает ${MAX_TOTAL_SIZE_MB} МБ`);
       return;
     }
 
@@ -131,7 +143,7 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
         type="file"
         ref={fileInputRef}
         multiple
-        accept=".doc,.docx,.pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp"
+        accept={ALLOWED_EXTENSIONS.join(',')}
         className="hidden"
         onChange={handleFileChange}
       />
@@ -157,7 +169,7 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
           Перетащите файлы сюда или <span className="text-sky-700 group-hover:text-sky-600 font-semibold">выберите на компьютере</span>
         </p>
         <p className="mt-1 text-[10px] text-sky-700 max-w-xs">
-          До 3-х файлов по очереди или вместе. Общий размер до 20 МБ.
+          До {MAX_FILES}-х файлов по очереди или вместе. Общий размер до {MAX_TOTAL_SIZE_MB} МБ.
         </p>
       </div>
 
@@ -186,9 +198,9 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
               </button>
             </div>
           ))}
-          {files.length === 3 && (
+          {files.length === MAX_FILES && (
             <p className="text-[10px] text-amber-600 flex items-center gap-1">
-              <i className="fa-solid fa-triangle-exclamation" /> Достигнут лимит в 3 файла
+              <i className="fa-solid fa-triangle-exclamation" /> Достигнут лимит в {MAX_FILES} файла
             </p>
           )}
         </div>

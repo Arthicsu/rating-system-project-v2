@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -10,10 +9,9 @@ import { Skeleton } from 'boneyard-js/react';
 import { useRouter } from 'next/navigation';
 import FileDropZone from '@/components/upload/FileDropZone';
 import CustomSelect from '@/components/CustomSelect';
-import { studentApi } from '@/lib/apiRequests';
 import { useAchievementConfig } from '@/hooks/queries/useAchievementConfig';
-import { qk } from '@/lib/queryKeys';
-import { MAX_FILES, MAX_FILE_SIZE, MAX_TOTAL_SIZE } from '@/lib/validation/achievement';
+import { useUploadAchievement } from '@/hooks/mutations/useAchievementMutations';
+import { apiErrorMessage } from '@/lib/apiError';
 import { AxiosError } from 'axios';
 import type { SelectOption, DataStructure } from '@/interfaces/AchievementInterfaces';
 
@@ -21,8 +19,8 @@ const EMPTY_STRUCTURE: DataStructure = {};
 
 export default function UploadAchievement() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { user, loading: authLoading } = useMySession();
+  const uploadMutation = useUploadAchievement();
 
   const { data: config, error: configError, isPending: configLoading } = useAchievementConfig();
   useEffect(() => {
@@ -115,26 +113,6 @@ export default function UploadAchievement() {
     return rule?.score ?? null;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(e.target.files || []);
-    const oversized = selected.filter(f => f.size > MAX_FILE_SIZE);
-    if (oversized.length > 0) {
-      toast.error(`Файл(ы) превышают 20 МБ: ${oversized.map(f => f.name).join(', ')}`);
-      return;
-    }
-    const totalSize = selected.reduce((sum, f) => sum + f.size, 0);
-    if (totalSize > MAX_TOTAL_SIZE) {
-      toast.error("Общий размер файлов превышает 20 МБ");
-      return;
-    }
-    if (selected.length > MAX_FILES) {
-      toast.error(`Максимальное количество файлов - ${MAX_FILES}`);
-      setFiles(selected.slice(0, MAX_FILES));
-    } else {
-      setFiles(selected);
-    }
-  };
-
   const handleSubmit = async () => {
     if (!user?.record_book || !category || !subType || !achievementName || !docType || !dateReceived || files.length === 0) {
       toast.error("Пожалуйста, заполните все обязательные поля (категория, вид, тип документа, название, дата получения) и прикрепите файл(-ы) подтверждения достижения.");
@@ -172,26 +150,19 @@ export default function UploadAchievement() {
     const loadingToast = toast.loading('Загрузка достижения...');
 
     try {
-      const response = await studentApi.uploadAchievement(formData);
+      // Инвалидация кэша (профиль, дашборд, счётчик заявок) живёт в самом хуке.
+      const response = await uploadMutation.mutateAsync(formData);
       toast.dismiss(loadingToast);
-      toast.success(response.data.message);
-      // Новая заявка должна сразу появиться в профиле/списках — сбрасываем кэш Query.
-      await queryClient.invalidateQueries({ queryKey: ['profile'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: qk.pendingCount });
+      toast.success(response.message);
       router.push('/profile');
     } catch (error) {
       toast.dismiss(loadingToast);
       const err = error as AxiosError;
       if (err.code === 'ECONNABORTED') {
         toast.error('Время ожидания ответа от сервера истекло. Проверьте размер файлов и попробуйте снова.');
-      } else if (err.response?.data && typeof err.response.data === 'object') {
-        const data = err.response.data as Record<string, string | string[]>;
-        const firstKey = Object.keys(data)[0];
-        const msg = Array.isArray(data[firstKey]) ? (data[firstKey] as string[])[0] : data[firstKey];
-        toast.error('Ошибка: ' + msg);
       } else {
-        toast.error('Ошибка при отправке достижения');
+        const msg = apiErrorMessage(error, '');
+        toast.error(msg ? 'Ошибка: ' + msg : 'Ошибка при отправке достижения');
       }
     }
   };

@@ -61,6 +61,14 @@ export const studentApi = {
 
   downloadDocument: (fileId: number) => api.get(`/api/v1/document-files/${fileId}/download/`, {
     responseType: 'blob',
+    skipErrorRedirect: true,
+  }),
+
+  previewDocument: (fileId: number) => api.get(`/api/v1/document-files/${fileId}/preview/`, {
+    responseType: 'blob',
+    skipErrorRedirect: true,
+    // Конвертация офисных форматов в PDF на сервере может занять время.
+    timeout: 30000,
   }),
 };
 

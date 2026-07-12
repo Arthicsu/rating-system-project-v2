@@ -1,13 +1,10 @@
 import toast from 'react-hot-toast';
-import api from '@/lib/axios';
+import { studentApi } from '@/lib/apiRequests';
 
 export function useDownloadFile() {
   const downloadFile = async (fileId: number, fileName: string) => {
     try {
-      const response = await api.get(`/api/v1/document-files/${fileId}/download/`, {
-        responseType: 'blob',
-        skipErrorRedirect: true,
-      });
+      const response = await studentApi.downloadDocument(fileId);
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');

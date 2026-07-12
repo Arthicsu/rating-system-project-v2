@@ -14,6 +14,14 @@ export const qk = {
   rejectionReasons: ['rejection-reasons'] as const,
   academicYears: ['academic-years'] as const,
 
+  // Префиксы для инвалидации: накрывают все параметризованные ключи семейства
+  // (например, profileAll инвалидирует и ['profile','me'], и ['profile','<id>']).
+  profileAll: ['profile'] as const,
+  achievementAll: ['achievement'] as const,
+  dashboardAll: ['dashboard'] as const,
+  studentsAll: ['students'] as const,
+  ratingAll: ['rating'] as const,
+
   rating: (params: RatingParams) => ['rating', params] as const,
   profile: (id?: string) => ['profile', id ?? 'me'] as const,
   achievement: (id: string | number) => ['achievement', String(id)] as const,

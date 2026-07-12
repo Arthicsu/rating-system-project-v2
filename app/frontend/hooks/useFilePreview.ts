@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import api from '@/lib/axios';
+import { studentApi } from '@/lib/apiRequests';
 
 export type FilePreviewKind = 'pdf' | 'image' | 'unsupported';
 
@@ -43,11 +43,7 @@ export function useFilePreview(fileId: number | null, enabled: boolean) {
       setError(null);
 
       try {
-        const response = await api.get(`/api/v1/document-files/${fileId}/preview/`, {
-          responseType: 'blob',
-          skipErrorRedirect: true,
-          timeout: 30000,
-        });
+        const response = await studentApi.previewDocument(fileId);
 
         if (cancelled) return;
 

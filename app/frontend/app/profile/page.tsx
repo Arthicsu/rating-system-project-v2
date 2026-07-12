@@ -10,7 +10,7 @@ import type { Profile } from '@/interfaces/ProfileInterfaces';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { data: profile, isPending, error, refetch } = useMyProfile();
+  const { data: profile, isPending, error } = useMyProfile();
 
   useEffect(() => {
     if (error) toast.error('Ошибка: ' + error);
@@ -33,5 +33,5 @@ export default function ProfilePage() {
     return <div className="p-10 text-center">Данный профиль не найден.</div>;
   }
 
-  return <StudentProfile profile={profile} isOwner={profile.is_own_profile} onRefresh={() => { refetch(); }} />;
+  return <StudentProfile profile={profile} isOwner={profile.is_own_profile} />;
 }

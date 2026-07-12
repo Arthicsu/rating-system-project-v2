@@ -7,7 +7,8 @@ import Link from 'next/link';
 import AchievementItem from '@/components/AchievementItem';
 import ModalConfirm from '@/components/modals/modalConfirm';
 import ModalEditAchievement from '@/components/modals/modalEditAchievement';
-import { studentApi } from '@/lib/apiRequests';
+import { useDeleteAchievement } from '@/hooks/mutations/useAchievementMutations';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { StudentProfileProps } from '@/interfaces/ProfileInterfaces';
 import type { Achievement } from '@/interfaces/AchievementInterfaces';
 import { Skeleton } from 'boneyard-js/react';
@@ -19,10 +20,10 @@ const RadarChart = dynamic(() => import('@/components/profile/RadarChart'), {
   loading: () => null,
 });
 
-export default function StudentProfile({ profile, isOwner, loading = false, onRefresh }: StudentProfileProps) {
+export default function StudentProfile({ profile, isOwner, loading = false }: StudentProfileProps) {
   const [editingDoc, setEditingDoc] = useState<Achievement | null>(null);
   const [deletingDoc, setDeletingDoc] = useState<Achievement | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const deleteMutation = useDeleteAchievement();
 
   const handleDeleteConfirm = async () => {
     if (!deletingDoc) return;
@@ -32,17 +33,13 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
       setDeletingDoc(null);
       return;
     }
-    setDeleting(true);
     try {
-      await studentApi.deleteAchievement(deletingDoc.id);
+      // Профиль перезапросится сам: инвалидация кэша живёт в хуке мутации.
+      await deleteMutation.mutateAsync(deletingDoc.id);
       toast.success('Достижение удалено');
       setDeletingDoc(null);
-      onRefresh?.();
     } catch (error) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail ?? 'Не удалось удалить достижение');
-    } finally {
-      setDeleting(false);
+      toast.error(apiErrorMessage(error, 'Не удалось удалить достижение'));
     }
   };
   // radar_stats может отсутствовать в ответе (рассинхрон версий бэка/сид-данных) —
@@ -316,7 +313,6 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
         isOpen={!!editingDoc}
         doc={editingDoc}
         onClose={() => setEditingDoc(null)}
-        onSaved={() => { onRefresh?.(); }}
       />
 
       <ModalConfirm
@@ -325,7 +321,7 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
         message="Достижение будет удалено безвозвратно."
         confirmLabel="Удалить"
         danger
-        loading={deleting}
+        loading={deleteMutation.isPending}
         onConfirm={handleDeleteConfirm}
         onClose={() => setDeletingDoc(null)}
       />

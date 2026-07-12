@@ -16,11 +16,11 @@ export function useReviewDocument() {
     mutationFn: ({ documentId, data }: { documentId: number; data: ReviewDocumentRequestDto }) =>
       universityApi.reviewDocument(documentId, data).then((r) => r.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      queryClient.invalidateQueries({ queryKey: ['rating'] });
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      queryClient.invalidateQueries({ queryKey: ['achievement'] });
+      queryClient.invalidateQueries({ queryKey: qk.dashboardAll });
+      queryClient.invalidateQueries({ queryKey: qk.studentsAll });
+      queryClient.invalidateQueries({ queryKey: qk.ratingAll });
+      queryClient.invalidateQueries({ queryKey: qk.profileAll });
+      queryClient.invalidateQueries({ queryKey: qk.achievementAll });
       queryClient.invalidateQueries({ queryKey: qk.pendingCount });
     },
   });

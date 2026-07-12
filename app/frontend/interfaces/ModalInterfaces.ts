@@ -63,5 +63,4 @@ export interface ModalEditAchievementProps {
   isOpen: boolean;
   doc: import('./AchievementInterfaces').Achievement | null;
   onClose: () => void;
-  onSaved: () => void;
 }

@@ -1,7 +1,8 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { studentApi } from '@/lib/apiRequests';
+import { useUpdateAchievement } from '@/hooks/mutations/useAchievementMutations';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { ModalEditAchievementProps } from '@/interfaces/ModalInterfaces';
 import FileDropZone from '@/components/upload/FileDropZone';
 
@@ -9,11 +10,13 @@ export default function ModalEditAchievement({
   isOpen,
   doc,
   onClose,
-  onSaved,
 }: ModalEditAchievementProps) {
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const updateMutation = useUpdateAchievement();
+  // Инвалидация кэша после сохранения живёт в хуке мутации, отдельный
+  // проп onSaved с ручным рефетчем родителя больше не нужен.
+  const saving = updateMutation.isPending;
   const [seededDocId, setSeededDocId] = useState<number | null>(null);
   const [achievementName, setAchievementName] = useState('');
   const [dateReceived, setDateReceived] = useState('');
@@ -73,17 +76,12 @@ export default function ModalEditAchievement({
     formData.append('date_received', dateReceived);
     files.forEach(f => formData.append('files', f));
 
-    setSaving(true);
     try {
-      await studentApi.updateAchievement(doc.id, formData);
+      await updateMutation.mutateAsync({ id: doc.id, formData });
       toast.success(isRejected ? 'Сохранено и отправлено на повторное рассмотрение' : 'Изменения сохранены');
-      onSaved();
       handleClose();
     } catch (error) {
-      const err = error as { response?: { data?: { files?: string[]; detail?: string } } };
-      toast.error('Ошибка: ' + (err.response?.data?.files?.[0] ?? err.response?.data?.detail ?? 'не удалось сохранить'));
-    } finally {
-      setSaving(false);
+      toast.error('Ошибка: ' + apiErrorMessage(error, 'не удалось сохранить'));
     }
   };
 
