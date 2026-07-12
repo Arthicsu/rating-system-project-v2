@@ -9,7 +9,6 @@ import Providers from '@/app/providers';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'react-hot-toast';
-import '@/bones/registry';
 
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

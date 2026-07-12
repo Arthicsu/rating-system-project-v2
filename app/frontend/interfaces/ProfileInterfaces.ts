@@ -9,7 +9,9 @@ export type { Profile } from '@/lib/api';
 export type SemesterScoreHistory = SemesterScoreDto;
 
 export interface StudentProfileProps {
-  profile: Profile;
+  // null на время загрузки: компонент сам рисует скелетон (ветка loading)
+  // и заглушку "не найден" (ветка !profile).
+  profile: Profile | null;
   isOwner: boolean;
   loading?: boolean;
   onRefresh?: () => void;

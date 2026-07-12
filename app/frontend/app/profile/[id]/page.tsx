@@ -27,7 +27,9 @@ export default function ProfilePage() {
   }, [isStaffProfile, router]);
 
   if (isPending) {
-    return <div className="p-10 text-center">Загрузка профиля...</div>;
+    // Скелетон профиля вместо текстовой заглушки: StudentProfile в режиме
+    // loading рисует кости boneyard (или ручной pulse до гидрации).
+    return <StudentProfile profile={null} isOwner={false} loading />;
   }
 
   if (!profile || isStaffProfile) {

@@ -24,7 +24,7 @@ export default function UploadAchievement() {
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useMySession();
 
-  const { data: config, error: configError } = useAchievementConfig();
+  const { data: config, error: configError, isPending: configLoading } = useAchievementConfig();
   useEffect(() => {
     if (configError) toast.error("Ошибка: " + configError);
   }, [configError]);
@@ -219,7 +219,9 @@ export default function UploadAchievement() {
               </p>
             </div>
           </div>
-          <Skeleton name="upload-form-fields" loading={false}>
+          {/* Пока конфиг достижений грузится, поверх формы рисуются кости.
+              Скрытая форма с пустыми списками задает высоту контейнера. */}
+          <Skeleton name="upload-form-fields" loading={configLoading}>
             <div className="grid gap-6 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)] sm:p-5">
               {/* Левая колонка: форма */}
               <div className="space-y-4">

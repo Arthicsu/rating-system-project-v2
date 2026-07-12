@@ -57,10 +57,10 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
   const semesterHistory = profile?.semester_history ?? [];
 
   if (loading) {
-    // Ручной pulse-плейсхолдер — до появления костей student-profile
-    // (Skeleton-обёртка перенесена на реальный контент ниже: сканер boneyard
-    // снимает кости с настоящего DOM, а не с заглушки).
-    return (
+    // Кости student-profile рисуются поверх скрытого pulse-макета: он задаёт
+    // высоту контейнера и остаётся запасным вариантом до гидрации бандла
+    // (и на случай, если имя выпадет из bones/registry.js).
+    const pulse = (
         <section className="min-h-screen bg-slate-50 pt-24 pb-10">
           <div className="mx-auto max-w-350 px-4 sm:px-5">
             <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5 animate-pulse">
@@ -89,6 +89,11 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
           </div>
         </section>
     );
+    return (
+      <Skeleton name="student-profile" loading fallback={pulse}>
+        {pulse}
+      </Skeleton>
+    );
   }
 
   if (!profile) {
@@ -105,8 +110,8 @@ export default function StudentProfile({ profile, isOwner, loading = false, onRe
 
   return (
     <>
-      {/* Skeleton вокруг РЕАЛЬНОГО контента: сканер boneyard снимает кости
-          с настоящего DOM (loading={false} — рантайм не меняется до скана). */}
+      {/* Обёртка нужна сканеру boneyard: кости снимаются с настоящего DOM.
+          Рантайм-скелетон живёт в ветке loading выше, здесь профиль уже загружен. */}
       <Skeleton name="student-profile" loading={false}>
       <section className="min-h-screen bg-slate-50 pt-24 pb-10">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
