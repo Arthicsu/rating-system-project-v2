@@ -41,7 +41,8 @@ def register_student(*, email, password, first_name, last_name, patronymic='', r
 def reset_user_password(user) -> str:
     """
     Генерирует новый временный пароль, сохраняет его пользователю и возвращает открытый текст.
-    Сама отправка письма вынесена в Celery-задачу (см. users/tasks.py), чтобы не блокировать HTTP-запрос ожиданием SMTP.
+    Вызывается из Celery-задачи (см. users/tasks.py): и генерация, и отправка письма
+    живут в воркере, чтобы открытый пароль не проходил через брокер задач.
     """
     new_password = generate_password()
     user.set_password(new_password)

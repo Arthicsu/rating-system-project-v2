@@ -65,7 +65,6 @@ from .serializers import (
     StudentRegistrationSerializer,
     UserResponseSerializer,
 )
-from .services import reset_user_password
 from .tasks import send_recovery_password_email
 
 logger = logging.getLogger(__name__)
@@ -182,17 +181,12 @@ class AuthViewSet(viewsets.ViewSet):
             return Response({"message": neutral_message})
 
         try:
-            user_name = user.get_user_display_name()
-        except Exception as e:
-            logger.warning("Не удалось получить отображаемое имя пользователя: %s", e)
-            user_name = "Пользователь"
-
-        try:
-            new_password = reset_user_password(user)
-            send_recovery_password_email.delay(user.email, user_name, new_password)
+            # В очередь уходит только id: генерация пароля и отправка письма
+            # выполняются внутри задачи, открытый пароль через брокер не гоняем.
+            send_recovery_password_email.delay(user.pk)
         except Exception:
             # Деталь ошибки — только в лог: текст исключения может раскрывать внутренности (SMTP, хосты).
-            logger.exception("Ошибка при сбросе пароля и постановке письма в очередь")
+            logger.exception("Ошибка при постановке письма восстановления в очередь")
             raise APIException("Ошибка сервера при отправке письма")
 
         return Response({"message": neutral_message})

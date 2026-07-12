@@ -1,14 +1,16 @@
 """
 Celery-задачи приложения users.
-Отправка письма с новым паролем при восстановлении вынесена сюда, чтобы HTTP-запрос
-не ждал ответа SMTP-сервера.
-Пароль уже сгенерирован и сохранён во вьюхе, в задачу передаётся только готовый открытый текст, поэтому ретраи не порождают новый пароль
+Восстановление пароля целиком выполняется в задаче: HTTP-запрос не ждёт SMTP,
+а в брокер (Redis) уходит только id пользователя. Раньше вьюха генерировала
+пароль сама и передавала его сюда открытым текстом -
+он лежал в очереди (и в аргументах ретраев) до момента отправки письма.
 """
 import logging
 
 from celery import shared_task
+from django.contrib.auth import get_user_model
 
-from .services import send_password_email
+from .services import reset_user_password, send_password_email
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +21,28 @@ logger = logging.getLogger(__name__)
     max_retries=3,
     default_retry_delay=30,
 )
-def send_recovery_password_email(self, email: str, user_name: str, new_password: str):
-    """Отправляет письмо с новым временным паролем; при ошибке SMTP повторяет до 3 раз."""
+def send_recovery_password_email(self, user_id: int):
+    """
+    Генерирует пользователю новый временный пароль и отправляет его на почту.
+    Каждый ретрай генерирует пароль заново, так что действителен тот,
+    который ушёл в последнем успешном письме.
+    """
+    user = get_user_model().objects.filter(pk=user_id).first()
+    if user is None:
+        # Пользователя могли удалить, пока задача ждала в очереди
+        logger.warning("recovery email skipped: user id=%s not found", user_id)
+        return
+
     try:
-        send_password_email(email, user_name, new_password)
-        logger.info("recovery password email sent to %s", email)
+        user_name = user.get_user_display_name()
     except Exception as exc:
-        logger.warning("recovery password email failed for %s: %s", email, exc)
+        logger.warning("Не удалось получить отображаемое имя пользователя: %s", exc)
+        user_name = "Пользователь"
+
+    new_password = reset_user_password(user)
+    try:
+        send_password_email(user.email, user_name, new_password)
+        logger.info("recovery password email sent to user id=%s", user_id)
+    except Exception as exc:
+        logger.warning("recovery password email failed for user id=%s: %s", user_id, exc)
         raise self.retry(exc=exc)

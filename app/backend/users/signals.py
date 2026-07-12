@@ -11,12 +11,22 @@ audit_logger = logging.getLogger('audit')
 
 
 def _client_ip(request):
-    """IP клиента: за nginx настоящий адрес — в X-Forwarded-For (первый в цепочке)."""
+    """
+    IP клиента для аудит-лога.
+
+    Заголовок X-Forwarded-For — это список, в который каждый прокси дописывает
+    адрес СВОЕГО клиента в конец. Первые элементы может подставить сам клиент
+    (curl -H "X-Forwarded-For: 1.2.3.4"), поэтому им доверять нельзя — иначе
+    атакующий пишет в журнал безопасности произвольный адрес. Доверенный
+    элемент ровно один: последний, его добавил наш nginx
+    (proxy_add_x_forwarded_for). Если заголовка нет (запрос напрямую,
+    не через nginx) — берём адрес соединения.
+    """
     if request is None:
         return '-'
     forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
     if forwarded:
-        return forwarded.split(',')[0].strip()
+        return forwarded.split(',')[-1].strip()
     return request.META.get('REMOTE_ADDR', '-')
 
 

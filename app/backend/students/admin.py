@@ -243,8 +243,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
 
                 if index % 50 == 0 or index == total_rows:
                     percent = (index / total_rows) * 100
-                    print(f">>> Обработано: {index}/{total_rows} ({percent:.1f}%)")
-                    logger.info(f"Progress: {index}/{total_rows}")
+                    logger.info("Импорт студентов: обработано %s/%s (%.1f%%)", index, total_rows, percent)
 
             # --- Архивация отсутствующих в файле (только полная выгрузка) ---
             # Ограничиваемся группами, реально присутствующими в файле, чтобы частичная
@@ -262,7 +261,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                     )
                 )
 
-        print("Обработка завершена успешно.\n")
+        logger.info("Импорт студентов завершён: обработано активных %s", active_processed)
         if skipped_no_group:
             logger.warning(
                 f"Импорт: пропущено студентов из-за отсутствующих в БД групп: {len(skipped_no_group)}."

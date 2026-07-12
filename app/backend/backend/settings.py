@@ -36,8 +36,11 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", '').split(",")
-if not DEBUG and not ALLOWED_HOSTS[0]:
+def _env_list(name):
+    return [item.strip() for item in os.environ.get(name, '').split(',') if item.strip()]
+
+ALLOWED_HOSTS = _env_list("DJANGO_ALLOWED_HOSTS")
+if not DEBUG and not ALLOWED_HOSTS:
     raise ValueError("DJANGO_ALLOWED_HOSTS must be set in production")
 
 # Application definition
@@ -72,9 +75,9 @@ MIDDLEWARE = [
     'core.middleware.ApiNoStoreMiddleware',
 ]
 
-CORS_ALLOWED_ORIGINS = os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", '').split(",")
+CORS_ALLOWED_ORIGINS = _env_list("DJANGO_CORS_ALLOWED_ORIGINS")
 
-CSRF_TRUSTED_ORIGINS = os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", '').split(",")
+CSRF_TRUSTED_ORIGINS = _env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 EXTERNAL_SITE_URL = os.getenv('CLIENT_URL', '')
 API_SCHEMA_URL = os.getenv('API_SCHEMA_URL', '')
@@ -352,7 +355,9 @@ AWS_STORAGE_BUCKET_NAME = os.getenv('SEAWEEDFS_BUCKET_NAME')
 AWS_S3_ENDPOINT_URL = os.getenv('SEAWEEDFS_ENDPOINT_URL')
 AWS_S3_FILE_OVERWRITE = os.getenv('SEAWEEDFS_S3_FILE_OVERWRITE', 'False').lower() == 'true'
 AWS_DEFAULT_ACL = os.getenv('SEAWEEDFS_DEFAULT_ACL', 'private')
-AWS_S3_VERIFY = os.getenv('SEAWEEDFS_S3_VERIFY', 'False').lower() == 'true'
+# Проверка TLS-сертификата хранилища включена по умолчанию: отключать её
+# можно только осознанно через env (например, self-signed серт в локальном dev).
+AWS_S3_VERIFY = os.getenv('SEAWEEDFS_S3_VERIFY', 'True').lower() == 'true'
 AWS_QUERYSTRING_AUTH = os.getenv('SEAWEEDFS_QUERYSTRING_AUTH', 'True').lower() == 'true'
 AWS_QUERYSTRING_EXPIRE = int(os.getenv('SEAWEEDFS_QUERYSTRING_EXPIRE', 300))
 
@@ -365,8 +370,8 @@ EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))                                    # 587 для TLS, 465 для SSL
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'              # True если используем порт 587
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'             # True если используем порт 465
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'your-email@gmail.com')     
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-app-password')    # Пароль приложения
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')    # Пароль приложения
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)         # Стандартный адрес отправителя
 
 
