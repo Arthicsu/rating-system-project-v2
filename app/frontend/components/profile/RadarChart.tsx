@@ -13,7 +13,6 @@ interface RadarChartProps {
 /**
  * Радарная диаграмма баллов профиля. Вынесена из StudentProfile и грузится
  * через next/dynamic (ssr: false) — chart.js не попадает в общий бандл.
- * Данные/опции перенесены дословно.
  */
 export default function RadarChart({ labels, data }: RadarChartProps) {
   const chartData = {

@@ -18,7 +18,7 @@ interface StatisticsTabProps {
   semesterLabel: string;
 }
 
-/** Вкладка «Статистика». JSX перенесён дословно из staff-profile/page.tsx. */
+/** Вкладка «Статистика». */
 export default function StatisticsTab({ dynamicStats, currentGroupName, semesterLabel }: StatisticsTabProps) {
   return (
     <div className="mt-5 animate-fade-in">

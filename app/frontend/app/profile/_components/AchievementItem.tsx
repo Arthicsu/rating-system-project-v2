@@ -10,8 +10,8 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
   const uploadedDateText = doc?.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('ru-RU') : 'Не указана';
   
   if (loading) {
-    // Ручной pulse — до появления костей achievement-item (Skeleton-обёртка
-    // перенесена на реальную карточку ниже: сканер снимает кости с настоящего DOM).
+    // Ручной pulse на время загрузки; кости boneyard снимаются
+    // с реальной карточки ниже.
     return (
         <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:p-4.5 animate-pulse">
           <div className="flex flex-1 items-start gap-3">

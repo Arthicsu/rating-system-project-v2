@@ -13,7 +13,7 @@ interface RequestCardProps {
   onReject: (doc: Document) => void;
 }
 
-/** Карточка заявки. JSX перенесён дословно из staff-profile/page.tsx (вкладки pending/reviewed). */
+/** Карточка заявки. */
 export default function RequestCard({ doc, variant, canApprove, onApprove, onReject }: RequestCardProps) {
   if (variant === 'reviewed') {
     const isApproved = doc.status_display === 'approved';

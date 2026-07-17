@@ -22,7 +22,7 @@ interface MyGroupTabProps {
   onPageChange: (page: number) => void;
 }
 
-/** Вкладка «Группа»: таблица студентов. JSX перенесён дословно из staff-profile/page.tsx. */
+/** Вкладка «Группа»: таблица студентов. */
 export default function MyGroupTab({
   students,
   loading,

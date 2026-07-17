@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
-import StudentProfile from '@/components/StudentProfile';
+import StudentProfile from '@/app/profile/_components/StudentProfile';
 import { useProfileById } from '@/hooks/queries/useProfile';
 import type { Profile } from '@/interfaces/ProfileInterfaces';
 
@@ -27,8 +27,8 @@ export default function ProfilePage() {
   }, [isStaffProfile, router]);
 
   if (isPending) {
-    // Скелетон профиля вместо текстовой заглушки: StudentProfile в режиме
-    // loading рисует кости boneyard (или ручной pulse до гидрации).
+    // StudentProfile в режиме loading рисует скелетон: кости boneyard,
+    // до гидрации ручной pulse.
     return <StudentProfile profile={null} isOwner={false} loading />;
   }
 

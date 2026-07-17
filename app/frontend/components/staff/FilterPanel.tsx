@@ -12,7 +12,7 @@ interface FilterPanelProps {
 
 /**
  * Фильтры staff-профиля: мобильный блок + десктопная панель.
- * JSX перенесён дословно из staff-profile/page.tsx.
+ *
  */
 export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }: FilterPanelProps) {
   const {

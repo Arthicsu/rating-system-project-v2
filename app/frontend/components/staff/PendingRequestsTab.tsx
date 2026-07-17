@@ -21,7 +21,7 @@ interface PendingRequestsTabProps {
   onReject: (doc: Document) => void;
 }
 
-/** Вкладка «Заявки на подтверждение». JSX перенесён дословно из staff-profile/page.tsx. */
+/** Вкладка «Заявки на подтверждение». */
 export default function PendingRequestsTab({
   docs,
   loading,

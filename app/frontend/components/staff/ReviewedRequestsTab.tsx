@@ -20,7 +20,7 @@ interface ReviewedRequestsTabProps {
   onReject: (doc: Document) => void;
 }
 
-/** Вкладка «Рассмотренные заявки». JSX перенесён дословно из staff-profile/page.tsx. */
+/** Вкладка «Рассмотренные заявки». */
 export default function ReviewedRequestsTab({
   docs,
   loading,
