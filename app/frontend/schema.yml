@@ -1,9 +1,155 @@
 openapi: 3.0.3
 info:
-  title: rating-system-project-v2 API
-  version: 1.0.1
-  description: BGITU-Tracking-Student-Performance-for-Scholarships
+  title: Portfolio.bgitu.ru API
+  version: 1.2.0
+  description: For Admin only. Schema of portfolio.bgitu.ru API. For more information,
+    please refer to our API documentation
 paths:
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - ht
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/academic-years/:
     get:
       operationId: v1_academic_years_list
@@ -105,6 +251,14 @@ paths:
           в пагинированный ответ добавляются stats и top5;
         - review — решение по заявке (кафедра / декан / ректорат);
         - config — конфигурация формы загрузки (кэш 1 час).
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+          format: uuid
+        description: 'UUID попытки отправки: повтор с тем же ключом получает 409 вместо
+          дубля.'
       tags:
       - achievements
       requestBody:
@@ -129,6 +283,12 @@ paths:
                 $ref: '#/components/schemas/Message'
           description: ''
         '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+        '409':
           content:
             application/json:
               schema:
@@ -262,6 +422,13 @@ paths:
         - review — решение по заявке (кафедра / декан / ректорат);
         - config — конфигурация формы загрузки (кэш 1 час).
       parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+          format: uuid
+        description: 'UUID попытки отправки: повтор с тем же ключом получает 409 вместо
+          дубля.'
       - in: path
         name: id
         schema:
@@ -304,6 +471,12 @@ paths:
                 $ref: '#/components/schemas/ErrorDetail'
           description: ''
         '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+          description: ''
+        '409':
           content:
             application/json:
               schema:

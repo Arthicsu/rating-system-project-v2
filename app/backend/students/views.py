@@ -28,6 +28,7 @@ from django.views.decorators.cache import cache_page
 
 from core import querysets
 from core.filters import DocumentDashboardFilterSet, StudentFilterSet
+from core.idempotency import IDEMPOTENCY_KEY_PARAMETER, idempotent
 from core.permissions import (
     CanReviewDocument,
     HasStudentScope,
@@ -143,9 +144,11 @@ class AchievementViewSet(mixins.CreateModelMixin,
         return super().filter_queryset(queryset)
 
     @extend_schema(
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
         request=AchievementUploadSerializer,
-        responses={201: MessageSerializer, 400: ErrorDetailSerializer},
+        responses={201: MessageSerializer, 400: ErrorDetailSerializer, 409: ErrorDetailSerializer},
     )
+    @idempotent
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -212,15 +215,18 @@ class AchievementViewSet(mixins.CreateModelMixin,
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
         request=ReviewDocumentRequestSerializer,
         responses={
             200: ReviewDocumentResponseSerializer,
             400: ErrorDetailSerializer,
             403: ErrorDetailSerializer,
             404: ErrorDetailSerializer,
+            409: ErrorDetailSerializer,
         },
     )
     @action(detail=True, methods=['post'])
+    @idempotent
     def review(self, request, pk=None):
         document = self.get_object()  # scope проверяет CanReviewDocument.has_object_permission
 

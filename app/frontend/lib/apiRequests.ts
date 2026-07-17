@@ -37,7 +37,7 @@ export const authApi = {
 
   getPendingCount: () =>
     api.get<PendingCountDto>('/api/v1/notifications/pending-count/', {
-      skipErrorRedirect: true,
+      skipGlobalErrorHandling: true,
     }),
 };
 
@@ -47,12 +47,17 @@ export const studentApi = {
   getProfileById: (id: string) => api.get<Profile>(`/api/v1/students/${id}/`),
 
   getAchievementDetail: (id: string | number) =>
-    api.get<PendingDocumentDto>(`/api/v1/achievements/${id}/`, { skipErrorRedirect: true }),
+    api.get<PendingDocumentDto>(`/api/v1/achievements/${id}/`, { skipGlobalErrorHandling: true }),
 
   getAchievementConfig: () => api.get<AchievementConfigResponse>('/api/v1/achievements/config/'),
 
-  uploadAchievement: (formData: FormData) =>
-    api.post<MessageDto>('/api/v1/achievements/', formData, {headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000}),
+  // Idempotency-Key: UUID попытки отправки, повтор с тем же ключом получает 409
+  // вместо дубля (backend: core/idempotency.py).
+  uploadAchievement: (formData: FormData, idempotencyKey: string) =>
+    api.post<MessageDto>('/api/v1/achievements/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data', 'Idempotency-Key': idempotencyKey },
+      timeout: 120000,
+    }),
 
   updateAchievement: (id: number, formData: FormData) =>
     api.patch(`/api/v1/achievements/${id}/`, formData, {headers: { 'Content-Type': 'multipart/form-data' },}),
@@ -61,12 +66,12 @@ export const studentApi = {
 
   downloadDocument: (fileId: number) => api.get(`/api/v1/document-files/${fileId}/download/`, {
     responseType: 'blob',
-    skipErrorRedirect: true,
+    skipGlobalErrorHandling: true,
   }),
 
   previewDocument: (fileId: number) => api.get(`/api/v1/document-files/${fileId}/preview/`, {
     responseType: 'blob',
-    skipErrorRedirect: true,
+    skipGlobalErrorHandling: true,
     // Конвертация офисных форматов в PDF на сервере может занять время.
     timeout: 30000,
   }),
@@ -88,8 +93,10 @@ export const universityApi = {
   getFilteredDashboardStats: (params: DashboardStatsParams) =>
     api.get<DashboardStatsResponse>('/api/v1/achievements/', { params }),
 
-  reviewDocument: (documentId: number, data: ReviewDocumentRequestDto) =>
-    api.post<MessageDto>(`/api/v1/achievements/${documentId}/review/`, data),
+  reviewDocument: (documentId: number, data: ReviewDocumentRequestDto, idempotencyKey: string) =>
+    api.post<MessageDto>(`/api/v1/achievements/${documentId}/review/`, data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }),
 
   exportRatingToExcel: (params?: ExportExcelParams) =>
     api.get('/api/v1/rating/export/', { params, responseType: 'blob' }),

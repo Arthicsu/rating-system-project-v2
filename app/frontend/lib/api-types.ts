@@ -4,6 +4,28 @@
  */
 
 export interface paths {
+    "/api/schema/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description OpenApi3 schema for this API. Format can be selected via content negotiation.
+         *
+         *     - YAML: application/vnd.oai.openapi
+         *     - JSON: application/vnd.oai.openapi+json
+         */
+        get: operations["schema_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/academic-years/": {
         parameters: {
             query?: never;
@@ -981,6 +1003,39 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    schema_retrieve: {
+        parameters: {
+            query?: {
+                format?: "json" | "yaml";
+                lang?: "af" | "ar" | "ar-dz" | "ast" | "az" | "be" | "bg" | "bn" | "br" | "bs" | "ca" | "ckb" | "cs" | "cy" | "da" | "de" | "dsb" | "el" | "en" | "en-au" | "en-gb" | "eo" | "es" | "es-ar" | "es-co" | "es-mx" | "es-ni" | "es-ve" | "et" | "eu" | "fa" | "fi" | "fr" | "fy" | "ga" | "gd" | "gl" | "he" | "hi" | "hr" | "hsb" | "ht" | "hu" | "hy" | "ia" | "id" | "ig" | "io" | "is" | "it" | "ja" | "ka" | "kab" | "kk" | "km" | "kn" | "ko" | "ky" | "lb" | "lt" | "lv" | "mk" | "ml" | "mn" | "mr" | "ms" | "my" | "nb" | "ne" | "nl" | "nn" | "os" | "pa" | "pl" | "pt" | "pt-br" | "ro" | "ru" | "sk" | "sl" | "sq" | "sr" | "sr-latn" | "sv" | "sw" | "ta" | "te" | "tg" | "th" | "tk" | "tr" | "tt" | "udm" | "ug" | "uk" | "ur" | "uz" | "vi" | "zh-hans" | "zh-hant";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.oai.openapi": {
+                        [key: string]: unknown;
+                    };
+                    "application/yaml": {
+                        [key: string]: unknown;
+                    };
+                    "application/vnd.oai.openapi+json": {
+                        [key: string]: unknown;
+                    };
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     v1_academic_years_list: {
         parameters: {
             query?: never;
@@ -1038,7 +1093,10 @@ export interface operations {
     v1_achievements_create: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description UUID попытки отправки: повтор с тем же ключом получает 409 вместо дубля. */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1059,6 +1117,14 @@ export interface operations {
                 };
             };
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1155,7 +1221,10 @@ export interface operations {
     v1_achievements_review_create: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description UUID попытки отправки: повтор с тем же ключом получает 409 вместо дубля. */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: string;
             };
@@ -1194,6 +1263,14 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorDetail"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

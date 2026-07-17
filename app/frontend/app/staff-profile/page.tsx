@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
@@ -204,7 +204,12 @@ function StaffDashboard() {
     };
   }, [pendingDocsData, categoriesData, stats, top5Students]);
 
+  // Ключ идемпотентности решения: генерируется на открытие модалки, повтор
+  // с тем же ключом (двойной клик, ретрай при сбое) получает 409 вместо дубля.
+  const reviewKeyRef = useRef('');
+
   const openModal = (type: string, doc: Document) => {
+    reviewKeyRef.current = crypto.randomUUID();
     setModalState({
       type,
       targetId: doc.id,
@@ -228,11 +233,18 @@ function StaffDashboard() {
       await reviewMutation.mutateAsync({
         documentId: modalState.targetId,
         data: { action: 'approve' },
+        idempotencyKey: reviewKeyRef.current,
       });
       toast.success("Заявка одобрена");
       closeModal();
       await refreshUser();
     } catch (error) {
+      if ((error as AxiosError).response?.status === 409) {
+        // Решение уже принято этим же действием (двойной клик) - не ошибка.
+        toast.success("Решение по заявке уже принято");
+        closeModal();
+        return;
+      }
       toast.error("Ошибка: " + error);
     }
   };
@@ -263,11 +275,18 @@ function StaffDashboard() {
       await reviewMutation.mutateAsync({
         documentId: modalState.targetId,
         data: { action: 'reject', reasons: allReasons },
+        idempotencyKey: reviewKeyRef.current,
       });
       toast.success("Решение по заявке изменено");
       closeModal();
       await refreshUser();
     } catch (error) {
+      if ((error as AxiosError).response?.status === 409) {
+        // Решение уже принято этим же действием (двойной клик) - не ошибка.
+        toast.success("Решение по заявке уже принято");
+        closeModal();
+        return;
+      }
       toast.error("Ошибка: " + error);
     }
   };

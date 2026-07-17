@@ -56,6 +56,13 @@ class InvalidDocumentState(APIException):
     default_code = 'invalid_state'
 
 
+class DuplicateRequest(APIException):
+    """409 на повтор запроса с тем же Idempotency-Key (см. core/idempotency.py)."""
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = 'Этот запрос уже выполнен или обрабатывается'
+    default_code = 'duplicate_request'
+
+
 def api_exception_handler(exc, context):
     """
     Обёртка над стандартным DRF-хендлером:
