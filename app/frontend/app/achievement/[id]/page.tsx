@@ -7,7 +7,7 @@ import type { AxiosError } from 'axios';
 import { useAchievement } from '@/hooks/queries/useAchievement';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
 import FilePreviewPanel from '@/components/preview/FilePreviewPanel';
-import ModalPreview from '@/components/modals/modalPreview';
+import ModalPreview from '@/components/modals/ModalPreview';
 
 type LoadState = 'loading' | 'ready' | 'forbidden' | 'notfound' | 'error';
 

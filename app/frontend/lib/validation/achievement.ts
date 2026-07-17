@@ -2,7 +2,7 @@
  * Ограничения файлов достижения — зеркало backend
  * (students/serializers.py: validate_achievement_files).
  * Единый источник для клиентских проверок
- * (upload_achievement, modalEditAchievement, FileDropZone).
+ * (upload-achievement, ModalEditAchievement, FileDropZone).
  */
 import { z } from 'zod';
 

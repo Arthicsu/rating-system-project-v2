@@ -26,7 +26,10 @@ export const config = {
   matcher: [
     '/profile/:path*',
     '/staff-profile/:path*',
+    // Старый путь остаётся в matcher на один релиз: 308-редирект из next.config
+    // должен пройти через ту же проверку сессии, что и новый путь.
     '/upload_achievement/:path*',
+    '/upload-achievement/:path*',
     '/achievement/:path*',
     '/rating/:path*',
   ],

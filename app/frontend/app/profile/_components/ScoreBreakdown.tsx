@@ -53,7 +53,7 @@ export default function ScoreBreakdown({ radarLabels, radarData, isOwner }: Scor
           <div className="mt-6 flex justify-center ">
             <button className='bg-emerald-600 rounded-full hover:bg-emerald-700 transition shadow-emerald-300 shadow-lg'>
               <Link
-              href="/upload_achievement"
+              href="/upload-achievement"
               className="inline-flex items-center rounded-full justify-center px-5 py-2.5 text-sm font-semibold text-white "
               >
               Загрузить новое достижение

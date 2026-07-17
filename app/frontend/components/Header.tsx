@@ -38,7 +38,7 @@ export default function Header() {
       : [
           { href: '/rating', label: 'Рейтинг', icon: 'fa-solid fa-trophy', isActive: (p) => p === '/rating' },
           { href: '/profile', label: 'Портфолио', icon: 'fa-solid fa-folder-open', isActive: (p) => p.startsWith('/profile') },
-          { href: '/upload_achievement', label: 'Загрузить', icon: 'fa-solid fa-circle-plus', isActive: (p) => p.startsWith('/upload_achievement'), cta: true },
+          { href: '/upload-achievement', label: 'Загрузить', icon: 'fa-solid fa-circle-plus', isActive: (p) => p.startsWith('/upload-achievement'), cta: true },
         ];
 
   return (

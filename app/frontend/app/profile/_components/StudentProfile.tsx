@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import ModalConfirm from '@/components/modals/modalConfirm';
-import ModalEditAchievement from '@/components/modals/modalEditAchievement';
+import ModalConfirm from '@/components/modals/ModalConfirm';
+import ModalEditAchievement from '@/components/modals/ModalEditAchievement';
 import { useDeleteAchievement } from '@/hooks/mutations/useAchievementMutations';
 import { apiErrorMessage } from '@/lib/apiError';
 import type { StudentProfileProps } from '@/interfaces/ProfileInterfaces';

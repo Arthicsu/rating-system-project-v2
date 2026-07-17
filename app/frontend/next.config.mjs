@@ -15,6 +15,16 @@ const nextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
   },
+  async redirects() {
+    return [
+      // Роут переименован из upload_achievement; старые ссылки и закладки живут дальше.
+      {
+        source: '/upload_achievement',
+        destination: '/upload-achievement',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
