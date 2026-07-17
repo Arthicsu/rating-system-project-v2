@@ -42,14 +42,20 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY requirements.txt .
 COPY . .
 
-# Непривилегированный пользователь (uid 1000): контейнер не работает от root.
+# Непривилегированный пользователь (uid 1000). USER не задаём: контейнер
+# стартует от root, entrypoint выравнивает владельца томов (static_files
+# может быть инициализирован nginx'ом как root) и сбрасывает привилегии
+# до app через setpriv - процессы приложения от root не работают.
+# setpriv --version в конце - страховка, что утилита есть в базовом образе.
 RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --create-home app \
     && mkdir -p /backups /dumps /app/logs /app/staticfiles \
     && chown -R app:app /backups /dumps /app/logs /app/staticfiles \
-    && chmod +x entrypoint.sh
-
-USER app
+    && chmod +x entrypoint.sh start-web.sh \
+    && setpriv --version
 
 EXPOSE 8000
 
-CMD ["./entrypoint.sh"]
+# ENTRYPOINT (root-прелюдия) оборачивает и веб-часть, и command celery
+# из compose: оба получают chown томов и сброс привилегий.
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["./start-web.sh"]

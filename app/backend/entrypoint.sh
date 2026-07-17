@@ -1,63 +1,26 @@
 #!/bin/sh
+# Root-прелюдия: контейнер стартует от root только ради владельца томов,
+# затем привилегии сбрасываются до app (uid 1000) без возврата.
+#
+# Зачем: named volume static_files шарится с nginx, и владельца пустого тома
+# задаёт тот контейнер, который первым его инициализировал (а в dev том
+# и вовсе наследует root:root от хостового каталога под bind mount).
+# Из-за этого collectstatic от uid 1000 падал с PermissionError в зависимости
+# от порядка запуска. chown при старте делает владение детерминированным.
+set -e
 
-check_vars() {
-  if [ -z "$SEAWEEDFS_ACCESS_KEY" ] || [ -z "$SEAWEEDFS_SECRET_KEY" ]; then
-    echo "ERR: SEAWEEDFS_ACCESS_KEY and SEAWEEDFS_SECRET_KEY must be set!"
-    exit 1
-  fi
-}
-
-create_bucket() {
-  echo "Ensuring S3 bucket '${SEAWEEDFS_BUCKET_NAME}' exists..."
-  python << END
-import boto3
-import os
-
-s3 = boto3.resource('s3',
-    endpoint_url=os.getenv('SEAWEEDFS_ENDPOINT_URL'),
-    aws_access_key_id=os.getenv('SEAWEEDFS_ACCESS_KEY'),
-    aws_secret_access_key=os.getenv('SEAWEEDFS_SECRET_KEY'),
-    region_name='local'
-)
-bucket_name = os.getenv('SEAWEEDFS_BUCKET_NAME')
-bucket = s3.Bucket(bucket_name)
-
-if bucket.creation_date is None:
-    print(f"Bucket '{bucket_name}' not found. Creating...")
-    bucket.create()
-    print(f"Bucket '{bucket_name}' created successfully.")
-else:
-    print(f"Bucket '{bucket_name}' already exists.")
-END
-}
-
-check_vars
-create_bucket
-
-
-echo "Running migrations..."
-python manage.py migrate
-
-# Для Nginx
-echo "Collecting static files..."
-python manage.py collectstatic --noinput
-
-# Бакет кэша превью + TTL-экспирация (идемпотентно)
-echo "Initializing preview cache bucket..."
-python manage.py init_preview_cache
-
-# Выбор сервера. По умолчанию gunicorn: безопасный вариант, если переменную забыли задать.
-# Dev-сервер Django поднимается только при явном USE_GUNICORN=false
-if [ "${USE_GUNICORN:-true}" = "false" ]; then
-    echo "Starting Django dev server (USE_GUNICORN=false)..."
-    exec python manage.py runserver 0.0.0.0:8000
-else
-    echo "Starting Gunicorn server..."
-    exec gunicorn backend.wsgi:application \
-        --bind 0.0.0.0:8000 \
-        --workers "${GUNICORN_WORKERS:-4}" \
-        --threads "${GUNICORN_THREADS:-2}" \
-        --timeout "${GUNICORN_TIMEOUT:-120}" \
-        --keep-alive 5 \
-        --access-logfile - --error-logfile -
+if [ "$(id -u)" = "0" ]; then
+    for d in /app/staticfiles /app/logs /backups /dumps; do
+        [ -d "$d" ] || continue
+        # chown может не сработать на bind mount (Windows dev) или read-only
+        # rootfs (celery в прод-compose) - там права и так не мешают работе.
+        chown app:app "$d" 2>/dev/null || echo "WARN: владелец $d не сменён"
+        find "$d" ! -user app -exec chown app:app {} + 2>/dev/null || true
+    done
+    export HOME=/home/app
+    exec setpriv --reuid=app --regid=app --init-groups "$@"
 fi
+
+# Если контейнер запущен уже не от root (например, user: в compose) -
+# просто выполняем команду.
+exec "$@"
