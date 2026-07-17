@@ -15,16 +15,6 @@ const nextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
   },
-  async redirects() {
-    return [
-      // Роут переименован из upload_achievement; старые ссылки и закладки живут дальше.
-      {
-        source: '/upload_achievement',
-        destination: '/upload-achievement',
-        permanent: true,
-      },
-    ];
-  },
   async headers() {
     // Фолбэк на случай запуска без прокси; первичный источник security-заголовков —
     // nginx (app/nginx/security-headers.conf), значения скопированы оттуда.
