@@ -1,8 +1,11 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useUpdateAchievement } from '@/hooks/mutations/useAchievementMutations';
 import { apiErrorMessage } from '@/lib/apiError';
+import { editAchievementSchema, type EditAchievementValues } from '@/lib/validation/achievement';
 import type { ModalEditAchievementProps } from '@/interfaces/ModalInterfaces';
 import FileDropZone from '@/components/upload/FileDropZone';
 
@@ -14,21 +17,40 @@ export default function ModalEditAchievement({
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
   const updateMutation = useUpdateAchievement();
-  // Инвалидация кэша после сохранения живёт в хуке мутации, отдельный
-  // проп onSaved с ручным рефетчем родителя больше не нужен.
+  // Инвалидация кэша после сохранения живёт в хуке мутации.
   const saving = updateMutation.isPending;
   const [seededDocId, setSeededDocId] = useState<number | null>(null);
-  const [achievementName, setAchievementName] = useState('');
-  const [dateReceived, setDateReceived] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    getValues,
+    reset,
+    formState: { errors },
+  } = useForm<EditAchievementValues>({
+    resolver: zodResolver(editAchievementSchema),
+    defaultValues: { achievement: '', dateReceived: '', files: [] },
+  });
+
+  const achievementName = watch('achievement');
+  const files = watch('files');
+
+  // FileDropZone ждёт setState-совместимый сеттер (использует в т.ч.
+  // функциональный апдейт при удалении файла из списка).
+  const setFiles: React.Dispatch<React.SetStateAction<File[]>> = (action) =>
+    setValue('files', typeof action === 'function' ? action(getValues('files')) : action);
 
   // Заполняем форму при открытии модалки новой заявкой.
   if (doc && doc.id !== seededDocId) {
     setSeededDocId(doc.id);
-    setAchievementName(doc.achievement ?? '');
-    setDateReceived(doc.date_received ? doc.date_received.slice(0, 10) : '');
-    setFiles([]);
+    reset({
+      achievement: doc.achievement ?? '',
+      dateReceived: doc.date_received ? doc.date_received.slice(0, 10) : '',
+      files: [],
+    });
   }
 
   useEffect(() => {
@@ -58,23 +80,13 @@ export default function ModalEditAchievement({
 
   const isRejected = doc.status_display === 'rejected';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (values: EditAchievementValues) => {
     if (saving) return;
 
-    if (!achievementName.trim()) {
-      toast.error('Укажите название достижения');
-      return;
-    }
-    if (!dateReceived) {
-      toast.error('Укажите дату получения');
-      return;
-    }
-
     const formData = new FormData();
-    formData.append('achievement', achievementName.trim());
-    formData.append('date_received', dateReceived);
-    files.forEach(f => formData.append('files', f));
+    formData.append('achievement', values.achievement);
+    formData.append('date_received', values.dateReceived);
+    values.files.forEach(f => formData.append('files', f));
 
     try {
       await updateMutation.mutateAsync({ id: doc.id, formData });
@@ -114,7 +126,7 @@ export default function ModalEditAchievement({
           </p>
         )}
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-1.5">
             <label htmlFor="edit-achievement-name" className="text-[11px] font-medium text-slate-500">
               Название достижения
@@ -126,13 +138,15 @@ export default function ModalEditAchievement({
                 rows={2}
                 maxLength={1000}
                 placeholder="Название как в документе"
-                value={achievementName}
-                onChange={(e) => setAchievementName(e.target.value)}
+                {...register('achievement')}
               />
               <span className="absolute bottom-1.5 right-2 text-[10px] text-slate-400">
                 {achievementName.length}/1000
               </span>
             </div>
+            {errors.achievement?.message && (
+              <p className="text-xs text-rose-600">{errors.achievement.message}</p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -143,9 +157,11 @@ export default function ModalEditAchievement({
               id="edit-date-received"
               type="date"
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-600 focus:bg-white focus:ring-2 focus:ring-sky-600"
-              value={dateReceived}
-              onChange={(e) => setDateReceived(e.target.value)}
+              {...register('dateReceived')}
             />
+            {errors.dateReceived?.message && (
+              <p className="text-xs text-rose-600">{errors.dateReceived.message}</p>
+            )}
           </div>
 
           <div className="space-y-1.5">
