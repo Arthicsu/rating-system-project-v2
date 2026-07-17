@@ -25,6 +25,22 @@ const nextConfig = {
       },
     ];
   },
+  async headers() {
+    // Фолбэк на случай запуска без прокси; первичный источник security-заголовков —
+    // nginx (app/nginx/security-headers.conf), значения скопированы оттуда.
+    // CSP и X-Frame-Options отсюда НЕ отдаём: двойной CSP комбинируется
+    // рестриктивно и может сломать приложение, когда nginx стоит впереди.
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'same-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -14,6 +14,38 @@ export const MAX_TOTAL_SIZE = 20 * 1024 * 1024; // 20 МБ суммарно
 export const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.png', '.jpeg', '.jpg', '.webp', '.gif', '.bmp'];
 
 /**
+ * Сигнатуры (magic bytes) разрешённых форматов — зеркало FILE_SIGNATURES
+ * backend'а. Клиентская проверка даёт мгновенный отказ вместо 400 после
+ * полной загрузки файла; авторитетная проверка остаётся на сервере.
+ */
+export const FILE_SIGNATURES: Record<string, number[][]> = {
+  '.pdf': [[0x25, 0x50, 0x44, 0x46, 0x2d]], // %PDF-
+  '.doc': [[0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]], // OLE-контейнер
+  '.docx': [[0x50, 0x4b, 0x03, 0x04], [0x50, 0x4b, 0x05, 0x06], [0x50, 0x4b, 0x07, 0x08]], // zip
+  '.png': [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
+  '.jpg': [[0xff, 0xd8, 0xff]],
+  '.jpeg': [[0xff, 0xd8, 0xff]],
+  '.gif': [[0x47, 0x49, 0x46, 0x38, 0x37, 0x61], [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]], // GIF87a / GIF89a
+  '.bmp': [[0x42, 0x4d]], // BM
+  '.webp': [[0x52, 0x49, 0x46, 0x46]], // RIFF; формат уточняется байтами 8-11 'WEBP'
+};
+
+/** Совпадает ли содержимое файла с сигнатурой его расширения (первые 12 байт). */
+export async function matchesFileSignature(file: File): Promise<boolean> {
+  const ext = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
+  const signatures = FILE_SIGNATURES[ext];
+  if (!signatures) return false;
+
+  const header = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const matched = signatures.some(sig => sig.every((byte, i) => header[i] === byte));
+  if (ext === '.webp') {
+    // RIFF - общий контейнер (wav/avi тоже RIFF), сам формат лежит в байтах 8-11.
+    return matched && String.fromCharCode(...header.slice(8, 12)) === 'WEBP';
+  }
+  return matched;
+}
+
+/**
  * Схемы форм достижения (react-hook-form + zodResolver).
  *
  * Размер/количество/формат файлов здесь не перепроверяются: их применяет

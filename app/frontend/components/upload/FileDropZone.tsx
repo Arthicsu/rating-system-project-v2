@@ -8,6 +8,7 @@ import {
   MAX_FILE_SIZE,
   MAX_TOTAL_SIZE,
   ALLOWED_EXTENSIONS,
+  matchesFileSignature,
 } from '@/lib/validation/achievement';
 
 interface FileDropZoneProps {
@@ -28,7 +29,7 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Валидация с логикой ДОБАВЛЕНИЯ файлов
-  const validateAndProcessFiles = (newFiles: File[]) => {
+  const validateAndProcessFiles = async (newFiles: File[]) => {
     // 1. Проверка расширений только для новых файлов
     const invalidFiles = newFiles.filter(f => {
       const ext = f.name.split('.').pop()?.toLowerCase() || '';
@@ -37,6 +38,17 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
 
     if (invalidFiles.length > 0) {
       toast.error(`Недопустимый формат: ${invalidFiles.map(f => f.name).join(', ')}`);
+      return;
+    }
+
+    // 1а. Сверка содержимого с расширением (magic bytes, зеркало backend):
+    // переименованный exe отсекается сразу, а не 400-й после полной загрузки.
+    const mismatched: File[] = [];
+    for (const f of newFiles) {
+      if (!(await matchesFileSignature(f))) mismatched.push(f);
+    }
+    if (mismatched.length > 0) {
+      toast.error(`Содержимое не соответствует расширению: ${mismatched.map(f => f.name).join(', ')}`);
       return;
     }
 
@@ -113,13 +125,13 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFiles = Array.from(e.dataTransfer.files);
-      validateAndProcessFiles(droppedFiles);
+      void validateAndProcessFiles(droppedFiles);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
-    validateAndProcessFiles(selected);
+    void validateAndProcessFiles(selected);
     
     // Сбрасываем значение инпута, чтобы можно было удалить файл и выбрать его же заново через проводник
     if (e.target) e.target.value = '';

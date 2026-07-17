@@ -2,14 +2,13 @@
 
 import { useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
 
 import StudentProfile from '@/app/profile/_components/StudentProfile';
 import { useMyProfile } from '@/hooks/queries/useProfile';
+import { useRedirectIfStaff } from '@/hooks/useRedirectIfStaff';
 import type { Profile } from '@/interfaces/ProfileInterfaces';
 
 export default function ProfilePage() {
-  const router = useRouter();
   const { data: profile, isPending, error } = useMyProfile();
 
   useEffect(() => {
@@ -19,9 +18,7 @@ export default function ProfilePage() {
   // Исторический guard: /students/me/ не возвращает is_staff (для сотрудников
   // ручка отвечает 404) — ветка сохранена на случай смены контракта.
   const isStaffProfile = !!profile && !!(profile as Profile & { is_staff?: boolean }).is_staff;
-  useEffect(() => {
-    if (isStaffProfile) router.push('/staff-profile');
-  }, [isStaffProfile, router]);
+  useRedirectIfStaff(isStaffProfile);
 
   if (isPending) {
     // StudentProfile в режиме loading рисует скелетон: кости boneyard,
