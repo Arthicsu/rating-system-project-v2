@@ -1,25 +1,27 @@
 'use client';
 
-import type { StudentSimple } from '@/interfaces/StaffInterfaces';
-
-export interface DynamicStats {
-  total_students: number;
-  avg_score: number;
-  max_score: number;
-  min_score: number;
-  active_requests: number;
-  top5: StudentSimple[];
-  categories: Record<string, number>;
-}
+import { useCategories } from '@/hooks/queries/useLookups';
+import type { DashboardStats, StudentSimple } from '@/interfaces/StaffInterfaces';
 
 interface StatisticsTabProps {
-  dynamicStats: DynamicStats;
+  stats: DashboardStats;
+  top5: StudentSimple[];
+  activeRequests: number;
   currentGroupName: string;
   semesterLabel: string;
 }
 
 /** Вкладка «Статистика». */
-export default function StatisticsTab({ dynamicStats, currentGroupName, semesterLabel }: StatisticsTabProps) {
+export default function StatisticsTab({ stats, top5, activeRequests, currentGroupName, semesterLabel }: StatisticsTabProps) {
+  const { data: categoriesData = [] } = useCategories();
+
+  // Суммы баллов приходят с бэка по кодам категорий; раскладываем их по
+  // человеческим меткам для строк распределения ниже.
+  const categories: Record<string, number> = {};
+  categoriesData.forEach((cat) => {
+    categories[cat.label] = stats.categories?.[cat.code] ?? 0;
+  });
+
   return (
     <div className="mt-5 animate-fade-in">
       <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.10)] sm:p-5">
@@ -36,7 +38,7 @@ export default function StatisticsTab({ dynamicStats, currentGroupName, semester
               Студентов
             </div>
             <div className="mt-1 text-2xl font-bold text-sky-700">
-              {dynamicStats.total_students}
+              {stats.total_students}
             </div>
           </div>
           <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 sm:p-4">
@@ -44,7 +46,7 @@ export default function StatisticsTab({ dynamicStats, currentGroupName, semester
               Средний балл
             </div>
             <div className="mt-1 text-2xl font-bold text-sky-700">
-              {dynamicStats.avg_score}
+              {stats.avg_score}
             </div>
           </div>
           <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 sm:p-4">
@@ -52,9 +54,9 @@ export default function StatisticsTab({ dynamicStats, currentGroupName, semester
               Максимальный / Минимальный
             </div>
             <div className="mt-1 text-lg font-semibold text-slate-900">
-              {dynamicStats.max_score}{' '}
+              {stats.max_score}{' '}
               <span className="mx-1 text-slate-300">|</span>
-              {dynamicStats.min_score}
+              {stats.min_score}
             </div>
           </div>
           <div className="rounded-2xl border-l-4 border-rose-500 bg-rose-50 p-3.5 sm:p-4">
@@ -62,7 +64,7 @@ export default function StatisticsTab({ dynamicStats, currentGroupName, semester
               Активные заявки
             </div>
             <div className="mt-1 text-2xl font-bold text-rose-600">
-              {dynamicStats.active_requests}
+              {activeRequests}
             </div>
           </div>
         </div>
@@ -73,14 +75,14 @@ export default function StatisticsTab({ dynamicStats, currentGroupName, semester
               Распределение баллов по группе
             </h3>
             <div className="space-y-3">
-              {Object.entries(dynamicStats.categories).map(
+              {Object.entries(categories).map(
                 ([label, value]) => {
                   const percentage =
-                    dynamicStats.avg_score > 0
+                    stats.avg_score > 0
                       ? Math.min(
                           (value /
-                            (dynamicStats.avg_score *
-                              dynamicStats.total_students)) *
+                            (stats.avg_score *
+                              stats.total_students)) *
                             100,
                           100
                         )
@@ -122,7 +124,7 @@ export default function StatisticsTab({ dynamicStats, currentGroupName, semester
                   </tr>
                 </thead>
                 <tbody>
-                  {dynamicStats.top5.map((student, idx) => (
+                  {top5.map((student, idx) => (
                     <tr
                       key={student.id}
                       className="border-t border-slate-100 hover:bg-slate-50/70"
