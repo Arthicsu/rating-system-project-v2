@@ -17,6 +17,20 @@ export interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
+/**
+ * Описание одного селекта фильтра рейтинга (факультет/курс/группа).
+ * Каскадная логика сбросов живёт в onChange на странице, компоненты
+ * панели и шапки таблицы только рендерят конфиг.
+ */
+export interface RatingFilterConfig {
+  id: string;
+  label: string;
+  value: string;
+  disabled?: boolean;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}
+
 export interface Tab {
   id: string;
   label: string;
