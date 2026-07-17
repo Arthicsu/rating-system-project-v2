@@ -233,7 +233,9 @@ def pending_documents(user, request):
         )
         .select_related(*_DOCUMENT_LIST_RELATED)
         .prefetch_related('files')
-        .order_by('-uploaded_at')
+        # Добор по -id: у пачки заявок с одинаковым uploaded_at порядок иначе
+        # не определён, и страницы пагинации перекрываются (одни и те же карточки).
+        .order_by('-uploaded_at', '-id')
     )
 
 
@@ -247,5 +249,5 @@ def reviewed_documents(user, request):
         )
         .select_related(*_DOCUMENT_LIST_RELATED)
         .prefetch_related('files')
-        .order_by('-uploaded_at')
+        .order_by('-uploaded_at', '-id')
     )
