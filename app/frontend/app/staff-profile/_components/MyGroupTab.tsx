@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { Skeleton } from 'boneyard-js/react';
 
 import SearchInput from '@/components/SearchInput';
 import ExportExcelButton from '@/components/ExportExcelButton';
@@ -60,9 +59,6 @@ export default function MyGroupTab({
 
         <div className="mt-4 rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
           <div className="w-full overflow-x-auto">
-            {/* Кости только на первой загрузке (строк еще нет). При пагинации и
-                поиске строки уже есть, там работает затемнение tbody ниже. */}
-            <Skeleton name="staff-students-table" loading={loading && students.length === 0}>
               <table className="min-w-full border-collapse text-xs sm:text-sm" style={{ tableLayout: 'fixed' }}>
                 <thead>
                   <tr className="bg-sky-700 text-white">
@@ -139,8 +135,9 @@ export default function MyGroupTab({
                     </tr>
                   ))
                 ) : loading ? (
-                  // Строк по pageSize: скрытые дети задают высоту контейнера Skeleton,
-                  // кости сняты с полной страницы таблицы.
+                  // Скелетон первой загрузки: строк ещё нет, показываем pageSize
+                  // строк-заглушек. При пагинации и поиске строки уже есть,
+                  // и работает затемнение tbody выше.
                   Array.from({ length: pageSize }).map((_, i) => (
                     <tr key={`sk-${i}`} className="border-b border-[#f0f0f0] last:border-b-0">
                       <td colSpan={isRectorate ? 8 : 7} className="p-2 md:px-4 md:py-3">
@@ -160,7 +157,6 @@ export default function MyGroupTab({
                 )}
                 </tbody>
               </table>
-            </Skeleton>
 
             <div className="border-t border-slate-200 pt-4">
               <Pagination

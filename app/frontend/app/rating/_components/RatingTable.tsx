@@ -1,6 +1,5 @@
 'use client';
 
-import { Skeleton } from 'boneyard-js/react';
 import CustomSelect from '@/components/CustomSelect';
 import Pagination from '@/components/Pagination';
 import type { RatingFilterConfig } from '@/interfaces/RatingInterfaces';
@@ -35,9 +34,6 @@ export default function RatingTable({
   return (
     <div className="rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
       <div className="animate-fade-in w-full overflow-x-auto">
-        {/* Кости только на первой загрузке (строк еще нет). При смене
-            фильтров и страниц работает затемнение tbody ниже. */}
-        <Skeleton name="rating-table" loading={loading && students.length === 0}>
         <table className="min-w-full border-collapse" style={{ tableLayout: 'fixed' }}>
           <thead>
             <tr className="bg-sky-700 text-white">
@@ -95,8 +91,9 @@ export default function RatingTable({
                 </tr>
               ))
             ) : loading ? (
-              // Строк по pageSize: скрытые дети задают высоту контейнера Skeleton,
-              // кости сняты с полной страницы таблицы.
+              // Скелетон первой загрузки: строк ещё нет, показываем pageSize
+              // строк-заглушек. При смене фильтров и страниц строки уже есть,
+              // и работает затемнение tbody выше.
               Array.from({ length: pageSize }).map((_, i) => (
                 <tr key={`sk-${i}`} className="border-b border-[#0068a825] last:border-b-0">
                   <td colSpan={6} className="p-2 md:px-4 md:py-3">
@@ -116,7 +113,6 @@ export default function RatingTable({
             )}
           </tbody>
         </table>
-        </Skeleton>
         <Pagination
           page={currentPage}
           totalCount={totalCount}
