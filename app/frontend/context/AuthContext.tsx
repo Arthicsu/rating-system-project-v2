@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchUser();
   }, [fetchUser]);
 
-  // Поллинг счётчика заявок переехал в hooks/queries/usePendingCount.ts
+  // Поллинг счётчика заявок живёт в hooks/queries/usePendingCount.ts
   // (TanStack Query: refetchInterval 15с + пауза на скрытой вкладке); badge читает Header.
 
   const registerUser = async (formData: RegisterFormData) => {
@@ -50,7 +50,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logoutUser = async () => {
-    await authApi.logout();
+    try {
+      await authApi.logout();
+    } catch {
+      // Сервер недоступен или сессия уже погашена: локальный выход всё равно
+      // выполняем, иначе пользователь застрянет "залогиненным" без сессии.
+    }
     setUser(null);
     router.push('/login');
   };

@@ -1,15 +1,7 @@
 import type { AuthUser } from '@/lib/api';
 
-declare module 'axios' {
-  interface AxiosRequestConfig {
-    /**
-     * Исторический флаг «без редиректа на /error/*». Жёстких редиректов больше
-     * нет; теперь подавляет глобальную обработку в интерсепторе (429-toast) —
-     * для фоновых запросов вроде поллинга pending-count.
-     */
-    skipErrorRedirect?: boolean;
-  }
-}
+// Аугментация конфига axios (флаг skipGlobalErrorHandling) живёт
+// в lib/axios.ts, рядом с самим интерсептором.
 
 // Серверный DTO — из сгенерированных OpenAPI-типов (lib/api.ts).
 export type { AuthUser } from '@/lib/api';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -14,9 +14,18 @@ import { loginSchema, type LoginFormValues } from '@/lib/validation/auth';
 import type ApiError from '@/interfaces/GeneralInterfaces';
 
 
+// Возврат туда, откуда увело на логин (?next= ставят proxy.ts и 401-интерсептор
+// axios). Принимаем только внутренние пути: внешний URL в next был бы open redirect.
+// window.location вместо useSearchParams, чтобы не оборачивать страницу в Suspense.
+function getNextPath(): string {
+  const next = new URLSearchParams(window.location.search).get('next');
+  return next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
+}
+
 export default function LoginPage() {
   const { loginUser, user } = useMySession();
   const router = useRouter();
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const {
     register,
@@ -28,8 +37,17 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
+    // Маркер протухшей сессии от интерсептора axios: тост не пережил бы полную
+    // навигацию, а плашка на самой странице к тому же не исчезнет через пару
+    // секунд, пока пользователь тянется к полям формы. Query читаем в эффекте:
+    // на сервере window нет, а useSearchParams навязал бы Suspense-обёртку.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSessionExpired(new URLSearchParams(window.location.search).get('expired') === '1');
+  }, []);
+
+  useEffect(() => {
     if (user && !isSubmitting) {
-      router.push('/');
+      router.push(getNextPath());
     }
   }, [user, isSubmitting, router]);
 
@@ -38,7 +56,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       await loginUser(data);
-      router.push('/');
+      router.push(getNextPath());
     } catch (err) {
       const error = err as Error | ApiError;
 
@@ -60,6 +78,12 @@ export default function LoginPage() {
           <h1 className="mb-6 text-2xl font-semibold text-black text-center sm:text-3xl">
             Авторизация
           </h1>
+
+          {sessionExpired && (
+            <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              Сессия истекла, войдите снова.
+            </p>
+          )}
 
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-1">
