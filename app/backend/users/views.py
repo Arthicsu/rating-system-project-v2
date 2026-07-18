@@ -41,7 +41,7 @@ from core.exceptions import (
     PreviewFailed,
     StorageUnavailable,
 )
-from core.export_rating_excel import generate_rating_excel_pandas
+from core.export_rating_excel import generate_rating_excel
 from core.filters import StudentFilterSet
 from core.permissions import CanAccessDocumentFile, IsStaffProfile
 from core.preview import (
@@ -246,7 +246,7 @@ class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
     def export(self, request):
         # Экспорт всегда по текущему семестру (генератор ожидает объекты Student).
         queryset = self.filter_queryset(self.get_queryset())
-        excel_bytes = generate_rating_excel_pandas(queryset)
+        excel_bytes = generate_rating_excel(queryset)
 
         response = HttpResponse(
             excel_bytes,
