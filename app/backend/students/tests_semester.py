@@ -17,7 +17,7 @@ from students.models import (
     Category, AchievementType, DocType, Document, DocumentStatus, ScoringRule, Student, SemesterScore,
 )
 from students.services import credit_document, debit_document, rollover_semester
-from university_structure.models import AcademicYear
+from university_structure.models import AcademicYear, Staff
 
 User = get_user_model()
 
@@ -64,6 +64,9 @@ class SemesterScoringTests(APITestCase):
         self.student = Student.objects.create(
             user=self.user, external_id="EXT-1", full_name="Студент", record_book="RB-1",
         )
+        # Рейтинг доступен только сотрудникам — API-проверки ходят от этого пользователя.
+        self.staff_user = User.objects.create_user(username="staff@uni.ru", password="pass12345")
+        Staff.objects.create(user=self.staff_user)
 
     def _doc(self, semester, status_obj=None):
         return Document.objects.create(
@@ -142,7 +145,7 @@ class SemesterScoringTests(APITestCase):
 
     def test_rating_api_current_uses_live_cache(self):
         credit_document(self._doc(self.fall))
-        self.client.force_authenticate(self.user)
+        self.client.force_authenticate(self.staff_user)
 
         resp = self.client.get(reverse("api:rating-list"))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
@@ -153,7 +156,7 @@ class SemesterScoringTests(APITestCase):
         credit_document(self._doc(self.fall))
         rollover_semester()  # осень -> история, весна текущая, кэш обнулён
         cache.clear()
-        self.client.force_authenticate(self.user)
+        self.client.force_authenticate(self.staff_user)
 
         # Рейтинг всегда за текущий семестр (весна) — параметр semester игнорируется.
         resp = self.client.get(reverse("api:rating-list"), {"semester": self.fall.id})

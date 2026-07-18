@@ -15,6 +15,7 @@ import MyGroupTab from './_components/MyGroupTab';
 import PendingRequestsTab from './_components/PendingRequestsTab';
 import ReviewedRequestsTab from './_components/ReviewedRequestsTab';
 import StatisticsTab from './_components/StatisticsTab';
+import RatingTab from './_components/RatingTab';
 import ModalApprove from './_components/ModalApprove';
 import ModalReject from './_components/ModalReject';
 
@@ -33,7 +34,7 @@ import type Student from '@/interfaces/StudentInterfaces';
 
 const EMPTY_STATS: DashboardStats = { total_students: 0, avg_score: 0, max_score: 0, min_score: 0, categories: {} };
 
-const TAB_IDS = ['my-group', 'pending-requests', 'reviewed-requests', 'statistics'] as const;
+const TAB_IDS = ['my-group', 'pending-requests', 'reviewed-requests', 'statistics', 'rating'] as const;
 
 /**
  * Guard кабинета сотрудника: пока роль не подтверждена — не рендерим и не
@@ -177,6 +178,7 @@ function StaffDashboard() {
     { id: 'pending-requests', label: 'Заявки на подтверждение', badge: totalRequests },
     { id: 'reviewed-requests', label: 'Рассмотренные заявки' },
     { id: 'statistics', label: 'Статистика' },
+    { id: 'rating', label: 'Рейтинг' },
   ];
 
   // ErrorState вместо вкладки — только когда данных нет совсем (5xx/сеть);
@@ -192,9 +194,14 @@ function StaffDashboard() {
     <>
       <main className="min-h-screen bg-slate-50 pt-24 pb-10">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <MobileFilterToggle onClick={() => setMobileFiltersOpen((prev) => !prev)} visibleAt="max-[640px]:flex" />
+          {/* Панель группы/семестра относится к спискам кабинета; у рейтинга свои фильтры. */}
+          {activeTab !== 'rating' && (
+            <>
+              <MobileFilterToggle onClick={() => setMobileFiltersOpen((prev) => !prev)} visibleAt="max-[640px]:flex" />
 
-          <FilterPanel filters={filters} isRectorate={isRectorate} mobileFiltersOpen={mobileFiltersOpen} />
+              <FilterPanel filters={filters} isRectorate={isRectorate} mobileFiltersOpen={mobileFiltersOpen} />
+            </>
+          )}
 
           <TabsNav tabs={tabs} activeTab={activeTab} onChange={changeTab} />
 
@@ -252,6 +259,8 @@ function StaffDashboard() {
               onReject={(doc) => openModal('reject', doc)}
             />
           ))}
+
+          {activeTab === 'rating' && <RatingTab />}
 
           {activeTab === 'statistics' && (pendingErrorCode ? (
             <ErrorState code={pendingErrorCode} onReset={() => { void pendingQuery.refetch(); }} />

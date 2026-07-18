@@ -1,8 +1,9 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useMySession } from '@/context/AuthContext';
 import { usePendingCount } from '@/hooks/queries/usePendingCount';
 
@@ -10,7 +11,8 @@ type NavItem = {
   href: string;
   label: string;
   icon: string;
-  isActive: (path: string) => boolean;
+  /** tab - значение ?tab= текущего URL: обе staff-ссылки ведут в /staff-profile и различаются только вкладкой. */
+  isActive: (path: string, tab: string | null) => boolean;
   cta?: boolean;
   badge?: number;
 };
@@ -26,17 +28,21 @@ export default function Header() {
     ? []
     : user.is_staff
       ? [
-          { href: '/rating', label: 'Рейтинг', icon: 'fa-solid fa-trophy', isActive: (p) => p === '/rating' },
+          {
+            href: '/staff-profile?tab=rating',
+            label: 'Рейтинг',
+            icon: 'fa-solid fa-trophy',
+            isActive: (p, tab) => p.startsWith('/staff-profile') && tab === 'rating',
+          },
           {
             href: '/staff-profile?tab=pending-requests',
             label: 'Заявки',
             icon: 'fa-solid fa-inbox',
-            isActive: (p) => p.startsWith('/staff-profile'),
+            isActive: (p, tab) => p.startsWith('/staff-profile') && tab !== 'rating',
             badge: pendingCount ?? 0,
           },
         ]
       : [
-          { href: '/rating', label: 'Рейтинг', icon: 'fa-solid fa-trophy', isActive: (p) => p === '/rating' },
           { href: '/profile', label: 'Портфолио', icon: 'fa-solid fa-folder-open', isActive: (p) => p.startsWith('/profile') },
           { href: '/upload-achievement', label: 'Загрузить', icon: 'fa-solid fa-circle-plus', isActive: (p) => p.startsWith('/upload-achievement'), cta: true },
         ];
@@ -61,39 +67,10 @@ export default function Header() {
               </Link>
 
               <nav className="hidden items-center gap-1 sm:flex">
-                {navItems.map((item) => {
-                  const active = item.isActive(pathname);
-                  if (item.cta) {
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className="ml-1 inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-800"
-                      >
-                        <i className={item.icon} aria-hidden="true" />
-                        {item.label}
-                      </Link>
-                    );
-                  }
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      aria-current={active ? 'page' : undefined}
-                      className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
-                        active ? 'bg-slate-100 font-medium text-sky-700' : 'text-slate-600 hover:bg-slate-100 hover:text-sky-700'
-                      }`}
-                    >
-                      <i className={item.icon} aria-hidden="true" />
-                      {item.label}
-                      {!!item.badge && item.badge > 0 && (
-                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[11px] font-semibold leading-tight text-white">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
+                {/* useSearchParams требует Suspense при пререндере; до логина элементов всё равно нет. */}
+                <Suspense fallback={null}>
+                  <DesktopNavLinks items={navItems} pathname={pathname} />
+                </Suspense>
               </nav>
             </div>
 
@@ -159,29 +136,77 @@ export default function Header() {
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
-          {navItems.map((item) => {
-            const active = item.isActive(pathname);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-                className={`relative flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] transition ${
-                  active || item.cta ? 'text-sky-700' : 'text-slate-500'
-                }`}
-              >
-                <i className={`${item.icon} text-lg`} aria-hidden="true" />
-                <span>{item.label}</span>
-                {!!item.badge && item.badge > 0 && (
-                  <span className="absolute left-1/2 top-1 ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-semibold leading-tight text-white">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+          <Suspense fallback={null}>
+            <MobileNavLinks items={navItems} pathname={pathname} />
+          </Suspense>
         </nav>
       )}
     </>
   );
+}
+
+/** Ссылки верхней навигации (ПК); подсветка учитывает и путь, и вкладку ?tab=. */
+function DesktopNavLinks({ items, pathname }: { items: NavItem[]; pathname: string }) {
+  const tab = useSearchParams().get('tab');
+
+  return items.map((item) => {
+    const active = item.isActive(pathname, tab);
+    if (item.cta) {
+      return (
+        <Link
+          key={item.href}
+          href={item.href}
+          className="ml-1 inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-800"
+        >
+          <i className={item.icon} aria-hidden="true" />
+          {item.label}
+        </Link>
+      );
+    }
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-current={active ? 'page' : undefined}
+        className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+          active ? 'bg-slate-100 font-medium text-sky-700' : 'text-slate-600 hover:bg-slate-100 hover:text-sky-700'
+        }`}
+      >
+        <i className={item.icon} aria-hidden="true" />
+        {item.label}
+        {!!item.badge && item.badge > 0 && (
+          <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[11px] font-semibold leading-tight text-white">
+            {item.badge}
+          </span>
+        )}
+      </Link>
+    );
+  });
+}
+
+/** Ссылки нижнего таб-бара (мобилки); подсветка та же, что и наверху. */
+function MobileNavLinks({ items, pathname }: { items: NavItem[]; pathname: string }) {
+  const tab = useSearchParams().get('tab');
+
+  return items.map((item) => {
+    const active = item.isActive(pathname, tab);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-current={active ? 'page' : undefined}
+        className={`relative flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] transition ${
+          active || item.cta ? 'text-sky-700' : 'text-slate-500'
+        }`}
+      >
+        <i className={`${item.icon} text-lg`} aria-hidden="true" />
+        <span>{item.label}</span>
+        {!!item.badge && item.badge > 0 && (
+          <span className="absolute left-1/2 top-1 ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-semibold leading-tight text-white">
+            {item.badge}
+          </span>
+        )}
+      </Link>
+    );
+  });
 }

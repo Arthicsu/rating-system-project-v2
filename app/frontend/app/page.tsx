@@ -15,7 +15,9 @@ export default function Main() {
       );
     }
     
-  if (user?.isAuthenticated === true) {redirect("/rating")}
+  // Авторизованных уводим сразу в их кабинет: рейтинг закрыт от студентов
+  // и живёт вкладкой в /staff-profile.
+  if (user?.isAuthenticated === true) {redirect(user.is_staff ? "/staff-profile" : "/profile")}
   return (
     <section className="min-h-screen px-4 flex flex-col justify-center pb-6">
       <div className="mx-auto flex max-w-300 flex-col gap-6 rounded-2xl bg-white/90 p-6 shadow-sm items-center lg:flex-row md:gap-8 md:px-10 md:py-8">

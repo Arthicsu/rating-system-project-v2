@@ -15,6 +15,13 @@ const nextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
   },
+  async redirects() {
+    return [
+      // Рейтинг переехал вкладкой в кабинет сотрудника; старые закладки
+      // приводим туда же (студента /staff-profile сам уведёт в /profile).
+      { source: '/rating', destination: '/staff-profile?tab=rating', permanent: false },
+    ];
+  },
   async headers() {
     // Фолбэк на случай запуска без прокси; первичный источник security-заголовков —
     // nginx (app/nginx/security-headers.conf), значения скопированы оттуда.

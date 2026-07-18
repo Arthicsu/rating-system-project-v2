@@ -1,6 +1,6 @@
 """
 ViewSets приложения users (API /api/v1/, router — backend/api_urls.py):
-аутентификация, публичный рейтинг, справочник категорий и выдача файлов.
+аутентификация, рейтинг для сотрудников, справочник категорий и выдача файлов.
 
 RegistrationAPIView сохранён без маршрута — саморегистрация отключена намеренно.
 """
@@ -197,14 +197,17 @@ class AuthViewSet(viewsets.ViewSet):
 @extend_schema(tags=['rating'])
 class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
     """
-    Публичный рейтинг студентов (всегда текущий семестр).
+    Рейтинг студентов, всегда текущий семестр. Доступ только сотрудникам:
+    ФИО и баллы всех студентов - не для любого авторизованного.
 
     - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
     - filters — данные для построения фильтров (кэш 2 часа);
-    - export — выгрузка рейтинга в Excel (только сотрудники).
+    - export — выгрузка рейтинга в Excel.
     """
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    # Кэш list/filters остаётся общим: rating_queryset не зависит от пользователя
+    # (scope тут нет), а permissions отрабатывают в dispatch до cache_page.
+    permission_classes = [IsStaffProfile]
     serializer_class = StudentRatingSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = StudentFilterSet
@@ -244,7 +247,7 @@ class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
         return Response(serializer.data)
 
     @extend_schema(summary="Экспорт рейтинга в Excel", responses={200: OpenApiTypes.BINARY})
-    @action(detail=False, methods=['get'], permission_classes=[IsStaffProfile])
+    @action(detail=False, methods=['get'])
     def export(self, request):
         # Экспорт всегда по текущему семестру (генератор ожидает объекты Student).
         queryset = self.filter_queryset(self.get_queryset())

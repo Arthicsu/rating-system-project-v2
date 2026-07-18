@@ -4,9 +4,9 @@ import toast from 'react-hot-toast';
 import type { AxiosError } from 'axios';
 import ErrorState from '@/components/ErrorState';
 import MobileFilterToggle from '@/components/MobileFilterToggle';
-import RatingTabs from './_components/RatingTabs';
-import RatingMobileFilters from './_components/RatingMobileFilters';
-import RatingTable from './_components/RatingTable';
+import RatingTabs from './RatingTabs';
+import RatingMobileFilters from './RatingMobileFilters';
+import RatingTable from './RatingTable';
 import { useCategories, useRatingFilters } from '@/hooks/queries/useLookups';
 import { useRating } from '@/hooks/queries/useRating';
 import type { FilterOptions, RatingFilterConfig, RatingParams, Tab } from '@/interfaces/RatingInterfaces';
@@ -14,7 +14,12 @@ import type Student from '@/interfaces/StudentInterfaces';
 
 const EMPTY_FILTER_OPTIONS: FilterOptions = { faculties: [], courses: [], groups: [] };
 
-export default function RatingPage() {
+/**
+ * Вкладка «Рейтинг» кабинета сотрудника: рейтинг всех студентов за текущий
+ * семестр. Фильтры (факультет/курс/группа) и категория здесь свои и от
+ * фильтров кабинета (группа/семестр из FilterPanel) не зависят.
+ */
+export default function RatingTab() {
   const [selectedFaculty, setSelectedFaculty] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [selectedGroup, setSelectedGroup] = useState('all');
@@ -128,37 +133,33 @@ export default function RatingPage() {
   ];
 
   return (
-    <div className="pt-25">
+    <div className="mt-5">
       <RatingTabs tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
 
-      <section className="w-full pb-6">
-        <div className="mx-auto max-w-350 px-5">
-          <MobileFilterToggle visibleAt="max-[411px]:flex" onClick={() => setMobileFiltersOpen((prev) => !prev)} />
+      <MobileFilterToggle visibleAt="max-[411px]:flex" onClick={() => setMobileFiltersOpen((prev) => !prev)} />
 
-          <RatingMobileFilters open={mobileFiltersOpen} filters={ratingFilters} />
+      <RatingMobileFilters open={mobileFiltersOpen} filters={ratingFilters} />
 
-          {ratingError && !ratingData ? (
-            // Данные недоступны (5xx/сеть): остаёмся на странице, показываем ErrorState с ретраем.
-            <ErrorState
-              code={(ratingError as AxiosError).response?.status ?? 500}
-              onReset={() => { void refetchRating(); }}
-            />
-          ) : (
-            // key по вкладке перезапускает fade-анимацию таблицы при переключении.
-            <RatingTable
-              key={activeTab}
-              filters={ratingFilters}
-              students={students}
-              loading={loading}
-              scoreKey={scoreKey}
-              currentPage={currentPage}
-              pageSize={pageSize}
-              totalCount={totalCount}
-              onPageChange={setCurrentPage}
-            />
-          )}
-        </div>
-      </section>
+      {ratingError && !ratingData ? (
+        // Данные недоступны (5xx/сеть): остаёмся на вкладке, показываем ErrorState с ретраем.
+        <ErrorState
+          code={(ratingError as AxiosError).response?.status ?? 500}
+          onReset={() => { void refetchRating(); }}
+        />
+      ) : (
+        // key по вкладке перезапускает fade-анимацию таблицы при переключении.
+        <RatingTable
+          key={activeTab}
+          filters={ratingFilters}
+          students={students}
+          loading={loading}
+          scoreKey={scoreKey}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          onPageChange={setCurrentPage}
+        />
+      )}
     </div>
   );
 }

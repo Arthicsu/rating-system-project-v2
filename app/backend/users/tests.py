@@ -372,6 +372,8 @@ class StaffEndpointsForbiddenForStudentTests(UsersAPITestCase):
         ("api:rejection-reasons-list", []),
         ("api:academic-years-list", []),
         ("api:staff-me", []),
+        ("api:rating-list", []),
+        ("api:rating-filters", []),
         ("api:rating-export", []),
     ]
 
@@ -415,6 +417,8 @@ class StaffEndpointsRoleProtectionTests(UsersAPITestCase):
         ("api:groups-list", []),
         ("api:rejection-reasons-list", []),
         ("api:academic-years-list", []),
+        ("api:rating-list", []),
+        ("api:rating-filters", []),
         ("api:rating-export", []),
     ]
 
@@ -458,6 +462,8 @@ class ReferenceDataEndpointsTests(UsersAPITestCase):
         self.assertRequiresAuth(self.filters_url)
 
     def test_rating_filters_ok(self):
+        # Фильтры рейтинга, как и сам рейтинг, доступны только сотрудникам.
+        Staff.objects.create(user=self.user)
         self.client.force_authenticate(self.user)
         resp = self.client.get(self.filters_url)
 
@@ -484,7 +490,9 @@ class RatingListAPIViewTests(UsersAPITestCase):
 
     def setUp(self):
         super().setUp()
+        # Рейтинг закрыт от студентов, смотрим от имени сотрудника.
         self.user = self.create_user(username="rating@uni.ru")
+        Staff.objects.create(user=self.user)
         self.url = reverse("api:rating-list")
 
     def test_requires_auth(self):
