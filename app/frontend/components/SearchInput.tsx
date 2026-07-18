@@ -11,14 +11,23 @@ export default function SearchInput({ onSearch, placeholder = 'Поиск...', d
   const [value, setValue] = useState('');
   const firstRender = useRef(true);
 
+  // onSearch живёт в ref, а не в зависимостях debounce-эффекта: родители передают
+  // его инлайн-функцией, и новая ссылка на каждый рендер перезапускала бы таймер.
+  // Перезапуск с пустым value вызывал onSearch('') и сбрасывал пагинацию списка
+  // на первую страницу сразу после перехода на другую.
+  const onSearchRef = useRef(onSearch);
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+  });
+
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
       return;
     }
-    const timer = setTimeout(() => onSearch(value), debounceMs);
+    const timer = setTimeout(() => onSearchRef.current(value), debounceMs);
     return () => clearTimeout(timer);
-  }, [value, debounceMs, onSearch]);
+  }, [value, debounceMs]);
 
   return (
     <div className="relative flex items-center flex-1 min-w-0">
