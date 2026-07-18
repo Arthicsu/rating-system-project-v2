@@ -6,7 +6,7 @@ api:auth-login, api:students-list, api:achievements-review, ...
 """
 from rest_framework.routers import DefaultRouter
 
-from notifications.views import NotificationViewSet
+from users.views import NotificationViewSet
 from students.views import AchievementViewSet, StudentViewSet
 from university_structure.views import (
     AcademicYearViewSet,

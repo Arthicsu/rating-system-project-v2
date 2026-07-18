@@ -62,9 +62,11 @@ from .serializers import (
     DocumentFileAccessSerializer,
     ForgotPasswordRequestSerializer,
     LoginRequestSerializer,
+    PendingCountSerializer,
     StudentRegistrationSerializer,
     UserResponseSerializer,
 )
+from .services import get_pending_docs_count
 from .tasks import send_recovery_password_email
 
 logger = logging.getLogger(__name__)
@@ -379,3 +381,17 @@ class DocumentFileViewSet(GenericViewSet):
                 yield chunk
         finally:
             file_like.close()
+
+
+@extend_schema(tags=['notifications'])
+class NotificationViewSet(viewsets.ViewSet):
+    """Уведомления сотрудника (счётчик заявок, ожидающих действия)."""
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: PendingCountSerializer})
+    @action(detail=False, methods=['get'], url_path='pending-count')
+    def pending_count(self, request):
+        """Число заявок, ожидающих действия текущего сотрудника (0 для не-сотрудников)."""
+        count = get_pending_docs_count(request.user)
+        return Response(PendingCountSerializer({'pending_docs_count': count}).data)

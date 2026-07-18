@@ -3,7 +3,7 @@ from drf_spectacular.utils import extend_schema_field
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from students.models import Student, DocumentFile
-from notifications.services import get_pending_docs_count
+# from users.services import get_pending_docs_count
 
 User = get_user_model()
 
@@ -112,3 +112,7 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
 
 class ForgotPasswordRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(help_text="Введите ваш email для восстановления пароля")
+
+
+class PendingCountSerializer(serializers.Serializer):
+    pending_docs_count = serializers.IntegerField(read_only=True)
