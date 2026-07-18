@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from django.db import transaction
 from django.contrib.auth.models import Group as DjangoGroup
 
-from core.admin_import_csv import CsvImport
+from core.admin_import import CsvImport
 from core.eos.admin_mixin import EosSyncActionsMixin
 from core.eos.syncers import FacultySyncer, DepartmentSyncer, GroupSyncer
 
@@ -27,7 +27,7 @@ class StaffAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
     def get_urls(self):
         return self.get_import_urls() + self.get_eos_urls() + super().get_urls()
 
-    def process_import_csv(self, request, data):
+    def process_import(self, request, data):
         imported = 0
         with transaction.atomic():
             g_dept, _ = DjangoGroup.objects.get_or_create(name='Department')
@@ -96,7 +96,7 @@ class FacultyAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
     def get_urls(self):
         return self.get_import_urls() + self.get_eos_urls() + super().get_urls()
 
-    def process_import_csv(self, request, data):
+    def process_import(self, request, data):
         imported = 0
         with transaction.atomic():
             for row in data:
@@ -129,7 +129,7 @@ class SpecialtyAdmin(admin.ModelAdmin, CsvImport):
     def get_urls(self):
         return self.get_import_urls() + super().get_urls()
 
-    def process_import_csv(self, request, data):
+    def process_import(self, request, data):
         imported = 0
         with transaction.atomic():
             for row in data:
@@ -180,7 +180,7 @@ class DepartmentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
     def get_urls(self):
         return self.get_import_urls() + self.get_eos_urls() + super().get_urls()
 
-    def process_import_csv(self, request, data):
+    def process_import(self, request, data):
         imported = 0
         with transaction.atomic():
             for row in data:
@@ -244,7 +244,7 @@ class GroupAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
         queryset = super().get_queryset(request)
         return queryset.select_related('specialty', 'specialty__faculty', 'specialty__department')
 
-    def process_import_csv(self, request, data):
+    def process_import(self, request, data):
         imported = 0
         # TODO позже понадобиться
         faculties = {f.external_id: f for f in Faculty.objects.all()}

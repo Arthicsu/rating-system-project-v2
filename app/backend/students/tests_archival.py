@@ -87,7 +87,7 @@ class StudentCsvImportArchivalTests(TestCase):
     def test_terminal_status_archives_existing_without_deleting(self):
         s = self._student("S1", group=self.g1)
         data = [{"Код": "S1", "Статус": "3", "Фамилия": "Иванов", "Имя": "Иван", "Отчество": "Иванович"}]
-        self.admin.process_import_csv(self._request(), data)
+        self.admin.process_import(self._request(), data)
         s.refresh_from_db()
         self.assertIsNotNone(s.archived_at)
         self.assertEqual(s.status, "3")
@@ -97,14 +97,14 @@ class StudentCsvImportArchivalTests(TestCase):
 
     def test_terminal_status_does_not_create_new_student(self):
         data = [{"Код": "NEW", "Статус": "4", "Фамилия": "Н", "Имя": "Н", "Отчество": "Н"}]
-        self.admin.process_import_csv(self._request(), data)
+        self.admin.process_import(self._request(), data)
         self.assertFalse(Student.objects.filter(external_id="NEW").exists())
 
     def test_active_status_unarchives_returning_student(self):
         s = self._student("S2", group=self.g1, archived=True, status="6")
         data = [{"Код": "S2", "Статус": "1", "Код_Группы": "G1",
                  "Фамилия": "П", "Имя": "П", "Отчество": "П"}]
-        self.admin.process_import_csv(self._request(), data)
+        self.admin.process_import(self._request(), data)
         s.refresh_from_db()
         self.assertIsNone(s.archived_at)
         self.assertEqual(s.status, "1")
@@ -115,7 +115,7 @@ class StudentCsvImportArchivalTests(TestCase):
         other = self._student("OTH", group=self.g2)
         data = [{"Код": "P", "Статус": "1", "Код_Группы": "G1",
                  "Фамилия": "П", "Имя": "П", "Отчество": "П"}]
-        self.admin.process_import_csv(self._request({"archive_absent": "on"}), data)
+        self.admin.process_import(self._request({"archive_absent": "on"}), data)
         for s in (present, absent, other):
             s.refresh_from_db()
         self.assertIsNone(present.archived_at)      # активен в файле
@@ -128,7 +128,7 @@ class StudentCsvImportArchivalTests(TestCase):
         absent = self._student("ABS", group=self.g1)
         data = [{"Код": "P", "Статус": "1", "Код_Группы": "G1",
                  "Фамилия": "П", "Имя": "П", "Отчество": "П"}]
-        self.admin.process_import_csv(self._request(), data)  # без archive_absent
+        self.admin.process_import(self._request(), data)  # без archive_absent
         absent.refresh_from_db()
         self.assertIsNone(absent.archived_at)
 

@@ -7,8 +7,7 @@ from django.utils import timezone
 
 from core.admin_password_generator import generate_password
 from core.admin_save_generated_password_for_user import log_generated_passwords
-from core.admin_import_csv import CsvImport, CsvImportForm
-from core.admin_import_json import JsonImport
+from core.admin_import import CsvImport, ImportForm, JsonImport
 from core.eos.admin_mixin import EosSyncActionsMixin
 from core.eos.syncers import StudentSyncer
 from university_structure.models import Faculty, Department, Group, Staff
@@ -22,7 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class StudentCsvImportForm(CsvImportForm):
+class StudentCsvImportForm(ImportForm):
     """Форма импорта студентов с опцией архивации отсутствующих в выгрузке."""
     archive_absent = forms.BooleanField(
         required=False,
@@ -43,7 +42,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
     raw_id_fields = ('user', 'group', 'faculty', 'department')
     actions = ['action_archive', 'action_unarchive']
     change_list_template = "admin/import_actions.html"
-    csv_import_form_class = StudentCsvImportForm
+    import_form_class = StudentCsvImportForm
     eos_syncer_class = StudentSyncer
     eos_sync_label = "Обновить студентов из ЭОС (не работает)"
 
@@ -65,7 +64,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
         updated = queryset.filter(archived_at__isnull=False).update(archived_at=None)
         self.message_user(request, f"Возвращено из архива: {updated}.", messages.SUCCESS)
 
-    def process_import_csv(self, request, data):
+    def process_import(self, request, data):
         new_credentials = []
         skipped_no_group = []
         archived_terminal = 0          # переведено в архив по статусу 3/4/6
@@ -320,7 +319,7 @@ class CategoryAdmin(admin.ModelAdmin, JsonImport):
     def get_urls(self):
         return self.get_import_urls() + super().get_urls()
  
-    def process_import_json(self, data):
+    def process_import(self, request, data):
         metadata = data.get('metadata', {})
         known_levels_data = metadata.get('levels', {})
         known_results_data = metadata.get('results', {})
