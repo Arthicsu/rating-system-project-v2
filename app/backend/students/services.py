@@ -19,7 +19,6 @@ from django.db import transaction
 from core.exceptions import InvalidDocumentState
 from university_structure.models import AcademicYear
 from students.models import Document, DocumentFile, DocumentStatus, Student, SemesterScore
-from students.scoring import calculate_achievement_score
 
 logger = logging.getLogger(__name__)
 # Решения по заявкам — в аудит-лог (SHARED_DIR/logs/audit.log, см. LOGGING).
@@ -101,24 +100,16 @@ def create_achievement(*, user, files, **validated):
     """
     Создать заявку (Document) с файлами.
 
-    Балл считается по ScoringRule; заявка привязывается к текущему семестру
-    и уходит на рассмотрение (статус 'pending'). Вызывается из
-    AchievementUploadSerializer.create().
+    Балл считается по ScoringRule в Document.save(); заявка привязывается
+    к текущему семестру и уходит на рассмотрение (статус 'pending').
+    Вызывается из AchievementUploadSerializer.create().
     """
     status_obj = DocumentStatus.objects.get(code='pending')
-
-    score = calculate_achievement_score(
-        validated['category'].code,
-        validated['sub_type'].code,
-        validated.get('level').code if validated.get('level') else None,
-        validated.get('result').code if validated.get('result') else None,
-    )
 
     with transaction.atomic():
         document = Document.objects.create(
             user=user,
             status=status_obj,
-            score=score,
             semester=AcademicYear.get_current(),
             **validated,
         )
