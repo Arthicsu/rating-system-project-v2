@@ -1,19 +1,7 @@
-/** Совместим с Document из OpenAPI-типов (опциональность полей — как в схеме). */
-export interface Achievement {
-  id: number;
-  achievement: string;
-  status: number;
-  status_display: string;
-  category_display: string;
-  sub_type_display: string;
-  level_display: string | null;
-  result_display: string | null;
-  date_received?: string;
-  uploaded_at: string;
-  score?: number;
-  rejection_reason?: string | null;
-  files: Array<{ id: number; original_file_name?: string }>;
-}
+import type { DocumentDto } from '@/lib/api';
+
+/** Серверный DTO заявки студента — генерат OpenAPI (lib/api.ts). */
+export type Achievement = DocumentDto;
 
 export interface AchievementItemProps {
   doc?: Achievement;

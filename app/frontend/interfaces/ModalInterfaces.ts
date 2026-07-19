@@ -1,3 +1,5 @@
+import type { PendingDocumentDto } from '@/lib/api';
+
 export interface ModalApproveProps {
   isOpen: boolean;
   targetScore: number;
@@ -21,24 +23,8 @@ export interface ModalRejectProps {
   onSubmit: (e: React.FormEvent) => void;
 }
 
-/** Совместим с PendingDocument из OpenAPI-типов (опциональность полей — как в схеме). */
-export interface PreviewDocument {
-  id: number;
-  student_id: number;
-  student_name: string;
-  record_book: string;
-  achievement: string;
-  category_display: string;
-  doc_type_display: string;
-  sub_type_display: string;
-  level_display: string | null;
-  result_display: string | null;
-  date_received?: string;
-  uploaded_at: string;
-  score?: number;
-  files: Array<{ id: number; original_file_name?: string }>;
-  rejection_reason?: string | null;
-}
+/** Серверный DTO заявки на рассмотрении — генерат OpenAPI (lib/api.ts). */
+export type PreviewDocument = PendingDocumentDto;
 
 export interface ModalPreviewProps {
   isOpen: boolean;
