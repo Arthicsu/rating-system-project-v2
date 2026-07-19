@@ -338,15 +338,10 @@ CELERY_BEAT_SCHEDULE = {
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-MEDIA_URL = 'media/'
-CONFIG_FILE_ROOT = os.path.join(BASE_DIR, 'config-files')
 # Пароли и данные для листочков со студентами пишем в общий каталог /shared/import_passwords.
 IMPORT_PASSWORDS_DIR = os.getenv('IMPORT_PASSWORDS_DIR', str(SHARED_DIR / 'import_passwords'))
 
 AUTH_USER_MODEL = 'users.User'
-
-SCORING_CONFIG_PATH = os.path.join(CONFIG_FILE_ROOT, 'scoring_json/' ,'scoring_config.json')
 
 AWS_ACCESS_KEY_ID = os.getenv('SEAWEEDFS_ACCESS_KEY')
 AWS_SECRET_ACCESS_KEY = os.getenv('SEAWEEDFS_SECRET_KEY')
