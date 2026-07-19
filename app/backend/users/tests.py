@@ -39,7 +39,9 @@ from students.models import (
     DocumentStatus,
     Student,
 )
-from university_structure.models import Staff, Faculty, Department
+from django.utils import timezone
+
+from university_structure.models import Staff, Faculty, Department, Specialty, Group as StudyGroup
 
 User = get_user_model()
 
@@ -698,7 +700,28 @@ class PendingCountTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["pending_docs_count"], 2)
 
-    def _student_with_scope(self, username, faculty=None, department=None):
+    def _student_with_scope(self, username, faculty=None, department=None, archived=False):
+        """
+        Студент в scope сотрудника. Кафедра видит студента через цепочку
+        группа -> специальность -> кафедра (как в core/scoping.scope_queryset),
+        поэтому для department здесь строится полная цепочка, а не прямой FK.
+        """
+        group = None
+        if department is not None:
+            specialty = Specialty.objects.create(
+                external_id=f"SP-{username}",
+                code_fgos="09.03.01",
+                name=f"Специальность {username}",
+                faculty=faculty or department.faculty,
+                department=department,
+            )
+            group = StudyGroup.objects.create(
+                external_id=f"G-{username}", name=f"Гр-{username}", specialty=specialty,
+                course=1, academic_year="2025-2026",
+                education_level="-", education_level_decode="",
+                education_form="-", education_form_decode="",
+            )
+
         user = User.objects.create_user(username=username, password="pass12345")
         Student.objects.create(
             user=user,
@@ -706,7 +729,8 @@ class PendingCountTests(APITestCase):
             full_name=username,
             record_book=f"RB-{username}",
             faculty=faculty,
-            department=department,
+            group=group,
+            archived_at=timezone.now() if archived else None,
         )
         return user
 
@@ -740,8 +764,23 @@ class PendingCountTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["pending_docs_count"], 1)
 
+    def test_archived_student_not_counted(self):
+        """Заявки архивного студента в счётчик не попадают (scope только по активным)."""
+        self._doc_for(self._student_with_scope("act@uni.ru"), self.approved)
+        self._doc_for(self._student_with_scope("arch@uni.ru", archived=True), self.approved)
+
+        rector = User.objects.create_user(username="rector2@uni.ru", password="pass12345")
+        rector.groups.add(Group.objects.create(name="Rectorate"))
+        Staff.objects.create(user=rector)
+        self.client.force_authenticate(rector)
+
+        resp = self.client.get(self.url)
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["pending_docs_count"], 1)
+
     def test_dept_counts_only_their_department_pending(self):
-        """Кафедра считает 'pending' напрямую по student.department своей кафедры."""
+        """Кафедра считает 'pending' студентов своей кафедры (через группу и специальность)."""
         fac = Faculty.objects.create(external_id="F1", name="Факультет 1", short_name="Ф1")
         dep = Department.objects.create(external_id="D1", name="Кафедра 1", short_name="К1", faculty=fac)
         other = Department.objects.create(external_id="D2", name="Кафедра 2", short_name="К2", faculty=fac)
