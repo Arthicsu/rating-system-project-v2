@@ -1,27 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
-import ErrorState from '@/components/ErrorState';
+import RouteErrorFallback from '@/components/RouteErrorFallback';
 
-type ErrorPageProps = {
-  error: Error & { digest?: string };
-  reset: () => void;
-};
-
-export default function ErrorPage({ error, reset }: ErrorPageProps) {
-  useEffect(() => {
-    console.error('React error boundary triggered:', error);
-  }, [error]);
-
+/** Корневой error boundary приложения (внутри layout — Header жив). */
+export default function ErrorPage(props: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <main className="px-5 pt-25">
-      <ErrorState
-        code={500}
-        title="Ошибка приложения"
-        description="Произошла непредвиденная ошибка. Попробуйте обновить страницу."
-        message={error.message}
-        onReset={reset}
-      />
-    </main>
+    <RouteErrorFallback
+      label="App"
+      title="Ошибка приложения"
+      description="Произошла непредвиденная ошибка. Попробуйте обновить страницу."
+      {...props}
+    />
   );
 }
