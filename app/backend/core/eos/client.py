@@ -1,7 +1,7 @@
 """
 Ручки ЭОС: имя -> (path, unwrap_key, needs_auth)
 unwrap_key=None -> ответ используется как есть (голый массив либо {"data": ...})
-needs_auth=True -> к запросу добавляется
+needs_auth=True -> к запросу добавляется заголовок Authorization: bearer <EOS_AUTH_TOKEN>
 Можно применить токен EOS_AUTH_TOKEN (не выдавали)
 base_url + этого конфига, без правки методов и синхронизаторов. Переопределяется через settings.EOS_ENDPOINTS.
 допускаются кортежи из 2 или 3 элементов
@@ -15,7 +15,7 @@ DEFAULT_ENDPOINTS = {
     "departments": ("Kafs", "listKafs", False),
     "groups": ("GroupsList", "listGroups", False),
     "form_study": ("ListFormStudy", "listFormStudy", False),
-    "students": ("students/list", True),
+    "students": ("students/list", None, True),
 }
 
 
