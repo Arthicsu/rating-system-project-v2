@@ -9,14 +9,14 @@ interface RatingTabsProps {
   onChange: (id: string) => void;
 }
 
-/** Переключатель вида рейтинга: на узких экранах селект, на широких ряд кнопок. */
+/** Переключатель категории рейтинга: на узких экранах селект, на широких ряд кнопок. */
 export default function RatingTabs({ tabs, activeTab, onChange }: RatingTabsProps) {
   return (
     <div className="mb-5">
       <div className="block sm:hidden">
         <CustomSelect
           id="tab-select"
-          label="Фильтры рейтинга"
+          label="Категория рейтинга"
           value={activeTab}
           labelClassName="block text-[11px] font-medium text-slate-500"
           triggerClassName="text-xs"

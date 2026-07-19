@@ -365,12 +365,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Рейтинг студентов, всегда текущий семестр. Доступ только сотрудникам:
-         *     ФИО и баллы всех студентов - не для любого авторизованного.
+         * @description Рейтинг студентов за выбранный семестр (по умолчанию текущий). Доступ
+         *     только сотрудникам: ФИО и баллы всех студентов - не для любого
+         *     авторизованного.
          *
-         *     - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
+         *     - list — пагинированный рейтинг с фильтрами, выбором семестра и
+         *       сортировкой по категории/направлению;
          *     - filters — данные для построения фильтров (кэш 2 часа);
-         *     - export — выгрузка рейтинга в Excel.
+         *     - export — выгрузка рейтинга в Excel (те же параметры, что и list).
          */
         get: operations["v1_rating_list"];
         put?: never;
@@ -390,12 +392,14 @@ export interface paths {
         };
         /**
          * Экспорт рейтинга в Excel
-         * @description Рейтинг студентов, всегда текущий семестр. Доступ только сотрудникам:
-         *     ФИО и баллы всех студентов - не для любого авторизованного.
+         * @description Рейтинг студентов за выбранный семестр (по умолчанию текущий). Доступ
+         *     только сотрудникам: ФИО и баллы всех студентов - не для любого
+         *     авторизованного.
          *
-         *     - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
+         *     - list — пагинированный рейтинг с фильтрами, выбором семестра и
+         *       сортировкой по категории/направлению;
          *     - filters — данные для построения фильтров (кэш 2 часа);
-         *     - export — выгрузка рейтинга в Excel.
+         *     - export — выгрузка рейтинга в Excel (те же параметры, что и list).
          */
         get: operations["v1_rating_export_retrieve"];
         put?: never;
@@ -414,12 +418,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Рейтинг студентов, всегда текущий семестр. Доступ только сотрудникам:
-         *     ФИО и баллы всех студентов - не для любого авторизованного.
+         * @description Рейтинг студентов за выбранный семестр (по умолчанию текущий). Доступ
+         *     только сотрудникам: ФИО и баллы всех студентов - не для любого
+         *     авторизованного.
          *
-         *     - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
+         *     - list — пагинированный рейтинг с фильтрами, выбором семестра и
+         *       сортировкой по категории/направлению;
          *     - filters — данные для построения фильтров (кэш 2 часа);
-         *     - export — выгрузка рейтинга в Excel.
+         *     - export — выгрузка рейтинга в Excel (те же параметры, что и list).
          */
         get: operations["v1_rating_filters_retrieve"];
         put?: never;
@@ -951,7 +957,11 @@ export interface components {
             readonly documents: components["schemas"]["Document"][];
             readonly semester_history: components["schemas"]["SemesterScore"][];
         };
-        /** @description Строка публичного рейтинга: живые баллы текущего семестра из кэша Student. */
+        /**
+         * @description Строка публичного рейтинга: живые баллы текущего семестра из кэша Student.
+         *     Ручка доступна только сотрудникам, поэтому зачётка в выдаче допустима
+         *     (по ней работает поиск и колонка в таблице кабинета).
+         */
         StudentRating: {
             readonly id: number;
             readonly user_id: number | null;
@@ -976,6 +986,8 @@ export interface components {
             cultural_score?: number;
             /** @default 0 */
             readonly faculty_id: number;
+            /** Зачетка */
+            record_book?: string | null;
         };
         UserResponse: {
             readonly id: number;
@@ -1543,9 +1555,13 @@ export interface operations {
     v1_rating_list: {
         parameters: {
             query?: {
+                /** @description ID семестра (по умолчанию — текущий) */
+                academic_year?: number;
                 /** @description Категория сортировки: common (по умолчанию) | academic | research | sport | social | cultural */
                 category?: string;
                 course?: string;
+                /** @description Направление сортировки: desc (по умолчанию) | asc */
+                direction?: string;
                 faculty_id?: string;
                 group_id?: string;
                 /** @description A page number within the paginated result set. */
@@ -1554,6 +1570,8 @@ export interface operations {
                 page_size?: number;
                 /** @description A search term. */
                 search?: string;
+                /** @description Синоним academic_year */
+                semester?: number;
             };
             header?: never;
             path?: never;
@@ -1573,7 +1591,16 @@ export interface operations {
     };
     v1_rating_export_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description ID семестра (по умолчанию — текущий) */
+                academic_year?: number;
+                /** @description Категория сортировки: common (по умолчанию) | academic | research | sport | social | cultural */
+                category?: string;
+                /** @description Направление сортировки: desc (по умолчанию) | asc */
+                direction?: string;
+                /** @description Синоним academic_year */
+                semester?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;

@@ -177,13 +177,15 @@ class RatingRowMixin(serializers.Serializer):
 class StudentRatingSerializer(RatingRowMixin, serializers.ModelSerializer):
     """
     Строка публичного рейтинга: живые баллы текущего семестра из кэша Student.
+    Ручка доступна только сотрудникам, поэтому зачётка в выдаче допустима
+    (по ней работает поиск и колонка в таблице кабинета).
     """
     faculty_id = serializers.IntegerField(source='faculty.id', read_only=True, default=0)
     total_score = serializers.ReadOnlyField()
 
     class Meta:
         model = Student
-        fields = RatingRowMixin.BASE_FIELDS + ['faculty_id']
+        fields = RatingRowMixin.BASE_FIELDS + ['faculty_id', 'record_book']
 
 class SemesterScoreSerializer(serializers.ModelSerializer):
     """Строка истории баллов студента за один семестр."""

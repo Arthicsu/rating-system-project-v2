@@ -100,12 +100,14 @@ export function useGroups(params: FilterParams, enabled = true) {
 
 // --- Рейтинг и кабинет сотрудника -------------------------------------------
 
-export function useRating(params: RatingParams) {
+export function useRating(params: RatingParams, enabled = true) {
   return useQuery({
     queryKey: qk.rating(params),
     queryFn: () => userApi.getRating(params).then((r) => r.data),
     // При смене страницы/фильтра показываем прежние строки (существующий UX opacity-40).
     placeholderData: keepPreviousData,
+    // Staff-ручка: пока фильтры кабинета не готовы (нет семестра) — не запрашиваем.
+    enabled,
   });
 }
 

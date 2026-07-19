@@ -10,6 +10,7 @@ from django.db.models import Avg, Count, IntegerField, Max, Min, OuterRef, Q, Su
 from django.db.models.functions import Coalesce
 
 from core import scoping
+from core.students_manager import CATEGORY_SCORE_FIELDS
 from students.models import Category, Document, SemesterScore, Student
 from university_structure.models import AcademicYear
 
@@ -26,6 +27,10 @@ def get_requested_semester(request):
     иначе — из живого кэша Student.
     """
     semester_id = request.query_params.get('academic_year') or request.query_params.get('semester')
+    # Нечисловое значение молча приравниваем к «параметр не передан», иначе
+    # фильтр по semester_id уронит запрос на этапе выполнения (500).
+    if semester_id and not str(semester_id).isdigit():
+        semester_id = None
     current = AcademicYear.get_current()
     if not semester_id:
         return (current.id if current else None), False
@@ -35,10 +40,7 @@ def get_requested_semester(request):
 
 def requested_semester_filter(request):
     """Фильтр-словарь по семестру для Document (по умолчанию — текущий семестр)."""
-    semester_id = request.query_params.get('semester') or request.query_params.get('academic_year')
-    if not semester_id:
-        current = AcademicYear.get_current()
-        semester_id = current.id if current else None
+    semester_id, _ = get_requested_semester(request)
     return {'semester_id': semester_id} if semester_id else {}
 
 
@@ -48,12 +50,15 @@ def semester_score_annotations(semester_id):
     коррелированному подзапросу на категорию + итог), с дефолтом 0. Позволяет
     показывать ВСЕХ отфильтрованных студентов за прошлый семестр (0 у тех, у
     кого нет строки SemesterScore). Ключи: `sem_<code>_score`, `sem_total_score`.
+
+    Набор полей фиксирован (CATEGORY_SCORE_FIELDS), а не берётся из таблицы
+    Category: сериализаторы и Excel-экспорт ожидают все пять sem_*-полей.
     """
     base = SemesterScore.objects.filter(student=OuterRef('pk'), semester_id=semester_id)
     annotations = {}
-    for code in Category.objects.values_list('code', flat=True):
-        annotations[f'sem_{code}_score'] = Coalesce(
-            Subquery(base.values(f'{code}_score')[:1], output_field=IntegerField()), Value(0)
+    for field in CATEGORY_SCORE_FIELDS:
+        annotations[f'sem_{field}'] = Coalesce(
+            Subquery(base.values(field)[:1], output_field=IntegerField()), Value(0)
         )
     annotations['sem_total_score'] = Coalesce(
         Subquery(base.values('total_score')[:1], output_field=IntegerField()), Value(0)
@@ -101,11 +106,25 @@ def filtered_students(user, request):
 
 def rating_queryset(request):
     """
-    Базовый queryset публичного рейтинга — всегда ТЕКУЩИЙ семестр (живой кэш
-    Student, только активные). Сортировка — по категории из параметра `category`.
+    Базовый queryset рейтинга за выбранный семестр (только активные студенты).
+
+    Текущий семестр (по умолчанию) — живой кэш баллов Student; прошлый —
+    аннотации sem_* из истории SemesterScore (0 у студентов без строки).
+    Сортировка — по категории из `category`, направление — `direction`
+    (asc|desc, по умолчанию desc).
     """
     category = request.query_params.get('category', 'common')
-    return Student.objects.active().select_related('group', 'faculty', 'user').by_category(category)
+    direction = request.query_params.get('direction', 'desc')
+
+    queryset = Student.objects.active().select_related('group', 'faculty', 'user')
+
+    semester_id, is_past = get_requested_semester(request)
+    prefix = ''
+    if is_past and semester_id:
+        queryset = queryset.annotate(**semester_score_annotations(semester_id))
+        prefix = 'sem_'
+
+    return queryset.by_category(category, direction=direction, prefix=prefix)
 
 
 # --- Профиль студента -------------------------------------------------------

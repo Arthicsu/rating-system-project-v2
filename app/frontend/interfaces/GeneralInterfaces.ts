@@ -12,12 +12,9 @@ export default interface ApiError {
   message?: string;
 }
 
-export interface ExportExcelButtonProps {
-  filters: {
-    faculty_id?: string;
-    course?: string;
-    group_id?: string;
-  };
-  category?: string;
-  page?: number;
-}
+/**
+ * Пропсы кнопки выгрузки — параметры текущего среза рейтинга
+ * (см. ExportExcelParams): фильтры, категория, семестр, направление.
+ * Сентинелы 'all'/'common' кнопка отбрасывает сама.
+ */
+export type { ExportExcelParams as ExportExcelButtonProps } from '@/interfaces/RatingInterfaces';

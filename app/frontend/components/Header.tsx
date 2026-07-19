@@ -11,7 +11,7 @@ type NavItem = {
   href: string;
   label: string;
   icon: string;
-  /** tab - значение ?tab= текущего URL: обе staff-ссылки ведут в /staff-profile и различаются только вкладкой. */
+  /** tab - значение ?tab= текущего URL: ссылка «Заявки» ведёт на конкретную вкладку /staff-profile. */
   isActive: (path: string, tab: string | null) => boolean;
   cta?: boolean;
   badge?: number;
@@ -24,26 +24,21 @@ export default function Header() {
 
   const profileHref = user?.is_staff ? '/staff-profile' : '/profile';
 
+  // В меню только то, чего нет по клику на имя (кабинет): у сотрудника прямая
+  // ссылка на заявки, у студента кнопка загрузки достижения.
   const navItems: NavItem[] = !user
     ? []
     : user.is_staff
       ? [
           {
-            href: '/staff-profile?tab=rating',
-            label: 'Рейтинг',
-            icon: 'fa-solid fa-trophy',
-            isActive: (p, tab) => p.startsWith('/staff-profile') && tab === 'rating',
-          },
-          {
             href: '/staff-profile?tab=pending-requests',
             label: 'Заявки',
             icon: 'fa-solid fa-inbox',
-            isActive: (p, tab) => p.startsWith('/staff-profile') && tab !== 'rating',
+            isActive: (p, tab) => p.startsWith('/staff-profile') && tab === 'pending-requests',
             badge: pendingCount ?? 0,
           },
         ]
       : [
-          { href: '/profile', label: 'Портфолио', icon: 'fa-solid fa-folder-open', isActive: (p) => p.startsWith('/profile') },
           { href: '/upload-achievement', label: 'Загрузить', icon: 'fa-solid fa-circle-plus', isActive: (p) => p.startsWith('/upload-achievement'), cta: true },
         ];
 

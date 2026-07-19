@@ -5,9 +5,11 @@ import Link from 'next/link';
 import SearchInput from '@/components/SearchInput';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import Pagination from '@/components/Pagination';
+import RatingTabs from './RatingTabs';
+import type { ExportExcelParams, Tab } from '@/interfaces/RatingInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
 
-interface MyGroupTabProps {
+interface StudentsTabProps {
   students: Student[];
   loading: boolean;
   totalStudents: number;
@@ -15,14 +17,27 @@ interface MyGroupTabProps {
   pageSize: number;
   isRectorate: boolean;
   selectedGroupId: string;
-  selectedCourse: string;
   currentGroupName: string;
+  /** Подвкладки категорий рейтинга («Общий рейтинг» + категории достижений). */
+  categoryTabs: Tab[];
+  activeCategory: string;
+  /** Ключ поля с баллами: total_score либо <категория>_score по активной подвкладке. */
+  scoreKey: string;
+  direction: 'asc' | 'desc';
+  /** Текущий срез таблицы для выгрузки в Excel (семестр/фильтры/категория/направление). */
+  exportParams: ExportExcelParams;
+  onCategoryChange: (id: string) => void;
+  onDirectionToggle: () => void;
   onSearch: (value: string) => void;
   onPageChange: (page: number) => void;
 }
 
-/** Вкладка «Группа»: таблица студентов. */
-export default function MyGroupTab({
+/**
+ * Вкладка «Студенты»: рейтинг за выбранный в фильтрах семестр с подвкладками
+ * категорий, сортировкой по баллам и выгрузкой в Excel. Заменяет прежние
+ * отдельные вкладки «Группа» и «Рейтинг».
+ */
+export default function StudentsTab({
   students,
   loading,
   totalStudents,
@@ -30,13 +45,21 @@ export default function MyGroupTab({
   pageSize,
   isRectorate,
   selectedGroupId,
-  selectedCourse,
   currentGroupName,
+  categoryTabs,
+  activeCategory,
+  scoreKey,
+  direction,
+  exportParams,
+  onCategoryChange,
+  onDirectionToggle,
   onSearch,
   onPageChange,
-}: MyGroupTabProps) {
+}: StudentsTabProps) {
   return (
     <div className="mt-5 animate-fade-in">
+      <RatingTabs tabs={categoryTabs} activeTab={activeCategory} onChange={onCategoryChange} />
+
       <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.10)] sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
@@ -47,13 +70,7 @@ export default function MyGroupTab({
           </h2>
           <div className="flex items-center gap-2">
             <SearchInput onSearch={onSearch} placeholder="Поиск по ФИО или зачетке" />
-            <ExportExcelButton
-              filters={{
-                group_id: selectedGroupId,
-                course: selectedCourse
-              }}
-              page={currentPage}
-            />
+            <ExportExcelButton {...exportParams} />
           </div>
         </div>
 
@@ -81,8 +98,20 @@ export default function MyGroupTab({
                     <th className="w-[14%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
                       Группа
                     </th>
-                    <th className="w-20 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
-                      Общий балл
+                    <th className="w-24 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                      {/* Клик по заголовку переключает направление сортировки по баллам. */}
+                      <button
+                        type="button"
+                        onClick={onDirectionToggle}
+                        title={direction === 'asc' ? 'По возрастанию' : 'По убыванию'}
+                        className="cursor-pointer inline-flex items-center gap-1 bg-transparent text-inherit hover:opacity-80"
+                      >
+                        Баллы
+                        <i
+                          className={`fa-solid ${direction === 'asc' ? 'fa-arrow-up-short-wide' : 'fa-arrow-down-wide-short'} text-[10px] sm:text-xs`}
+                          aria-hidden="true"
+                        />
+                      </button>
                     </th>
                     <th className="w-20 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-right text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-r-lg">
                       Действия
@@ -122,7 +151,7 @@ export default function MyGroupTab({
                           {student.group}
                         </td>
                         <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm font-bold text-sky-700">
-                          {student.total_score}
+                          {Number(student[scoreKey])}
                         </td>
                         <td className="p-1 sm:p-2 md:px-4 md:py-3 text-right text-xs md:text-sm">
                           <Link

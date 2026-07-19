@@ -53,6 +53,11 @@ export interface RatingParams {
   category: string;
   page: number;
   page_size: number;
+  search?: string;
+  /** ID семестра; без него backend отдаёт текущий. */
+  academic_year?: string;
+  /** Направление сортировки по баллам, по умолчанию desc. */
+  direction?: 'asc' | 'desc';
 }
 
 export interface FilterParams {
@@ -66,4 +71,6 @@ export interface ExportExcelParams {
   group_id?: string;
   category?: string;
   page?: number;
+  academic_year?: string;
+  direction?: 'asc' | 'desc';
 }

@@ -4,10 +4,30 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { universityApi } from '@/lib/apiRequests';
 import { saveBlob } from '@/hooks/useDownloadFile';
-import type {ExportExcelButtonProps} from '@/interfaces/GeneralInterfaces'
+import type { ExportExcelButtonProps } from '@/interfaces/GeneralInterfaces';
 
+/** Имя файла из Content-Disposition: сперва RFC 5987 (filename*, кириллица), затем обычный filename. */
+function fileNameFromDisposition(disposition?: string) {
+  const utf8 = disposition?.match(/filename\*=utf-8''([^;]+)/i)?.[1];
+  if (utf8) {
+    try {
+      return decodeURIComponent(utf8);
+    } catch {
+      // Некорректная кодировка в заголовке: используем запасное имя.
+    }
+  }
+  return disposition?.match(/filename="?([^";]+)"?/)?.[1];
+}
 
-export default function ExportExcelButton({ filters, category = 'common', page = 1 }: ExportExcelButtonProps) {
+export default function ExportExcelButton({
+  faculty_id,
+  course,
+  group_id,
+  category = 'common',
+  academic_year,
+  direction,
+  page = 1,
+}: ExportExcelButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleExportToExcel = async () => {
@@ -15,15 +35,16 @@ export default function ExportExcelButton({ filters, category = 'common', page =
     try {
       // undefined-параметры axios не отправляет: 'all'/'common' — это «без фильтра».
       const response = await universityApi.exportRatingToExcel({
-        faculty_id: filters.faculty_id !== 'all' ? filters.faculty_id : undefined,
-        course: filters.course !== 'all' ? filters.course : undefined,
-        group_id: filters.group_id !== 'all' ? filters.group_id : undefined,
+        faculty_id: faculty_id !== 'all' ? faculty_id : undefined,
+        course: course !== 'all' ? course : undefined,
+        group_id: group_id !== 'all' ? group_id : undefined,
         category: category !== 'common' ? category : undefined,
+        academic_year,
+        direction,
         page,
       });
 
-      const disposition = response.headers['content-disposition'];
-      const fileNameFromHeader = disposition?.match(/filename="?([^"]+)"?/)?.[1];
+      const fileNameFromHeader = fileNameFromDisposition(response.headers['content-disposition']);
       saveBlob(response.data, fileNameFromHeader || 'rating.xlsx');
     } catch (error) {
       console.error('Ошибка при выгрузке Excel:', error);

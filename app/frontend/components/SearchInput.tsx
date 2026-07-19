@@ -9,23 +9,25 @@ interface SearchInputProps {
 
 export default function SearchInput({ onSearch, placeholder = 'Поиск...', debounceMs = 200 }: SearchInputProps) {
   const [value, setValue] = useState('');
-  const firstRender = useRef(true);
 
   // onSearch живёт в ref, а не в зависимостях debounce-эффекта: родители передают
   // его инлайн-функцией, и новая ссылка на каждый рендер перезапускала бы таймер.
-  // Перезапуск с пустым value вызывал onSearch('') и сбрасывал пагинацию списка
-  // на первую страницу сразу после перехода на другую.
   const onSearchRef = useRef(onSearch);
   useEffect(() => {
     onSearchRef.current = onSearch;
   });
 
+  // Родитель узнаёт только о реально изменившемся значении. Сравнение с последним
+  // отправленным (а не флаг первого рендера) переживает двойной прогон эффектов
+  // в StrictMode: иначе на маунте улетал onSearch('') и сбрасывал пагинацию,
+  // в т.ч. страницу из ?page= при открытии по прямой ссылке.
+  const lastSent = useRef('');
   useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    const timer = setTimeout(() => onSearchRef.current(value), debounceMs);
+    if (lastSent.current === value) return;
+    const timer = setTimeout(() => {
+      lastSent.current = value;
+      onSearchRef.current(value);
+    }, debounceMs);
     return () => clearTimeout(timer);
   }, [value, debounceMs]);
 

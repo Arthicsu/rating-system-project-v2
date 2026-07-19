@@ -16,18 +16,15 @@ from contextlib import contextmanager
 
 from django.db import transaction
 
+from core.cache_utils import invalidate_view_cache
 from core.exceptions import InvalidDocumentState
+from core.students_manager import CATEGORY_SCORE_FIELDS
 from university_structure.models import AcademicYear
 from students.models import Document, DocumentFile, DocumentStatus, Student, SemesterScore
 
 logger = logging.getLogger(__name__)
 # Решения по заявкам — в аудит-лог (SHARED_DIR/logs/audit.log, см. LOGGING).
 audit_logger = logging.getLogger('audit')
-
-
-CATEGORY_SCORE_FIELDS = (
-    'academic_score', 'research_score', 'sport_score', 'social_score', 'cultural_score',
-)
 
 # Подавление автосинхронизации кэша (используется во время rollover_semester, который
 # сам пересобирает кэш один раз в конце — чтобы сигнал не делал это на каждом save()).
@@ -71,6 +68,10 @@ def apply_score_delta(student, semester, category_code, delta):
     if current is not None and semester.pk == current.pk and hasattr(student, field):
         setattr(student, field, max(0, getattr(student, field) + delta))
         student.save(update_fields=[field])
+
+    # Баллы изменились — страницы рейтинга (cache_page) устарели. Сброс после
+    # коммита, чтобы параллельный запрос не закэшировал старые данные заново.
+    transaction.on_commit(lambda: invalidate_view_cache('rating-list'))
 
 
 def _resolve_semester(doc):

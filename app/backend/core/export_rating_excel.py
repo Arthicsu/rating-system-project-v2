@@ -18,8 +18,16 @@ COLUMNS = [
 ]
 
 
-def generate_rating_excel(queryset) -> bytes:
-    fields = [field for field, _ in COLUMNS]
+def generate_rating_excel(queryset, score_prefix='', semester_label='') -> bytes:
+    """
+    Excel-выгрузка рейтинга. `score_prefix='sem_'` переключает балльные колонки
+    на аннотации прошлого семестра (sem_*_score), `semester_label` добавляет
+    строку-заголовок с меткой выгруженного периода.
+    """
+    fields = [
+        f"{score_prefix}{field}" if field.endswith('_score') else field
+        for field, _ in COLUMNS
+    ]
     headers = [title for _, title in COLUMNS]
     rows = list(queryset.values(*fields))
 
@@ -34,11 +42,17 @@ def generate_rating_excel(queryset) -> bytes:
     })
     worksheet = workbook.add_worksheet('Рейтинг')
 
-    worksheet.write_row(0, 0, headers)
+    # Строка с меткой периода, чтобы в файле было видно, какой срез выгружен.
+    header_row = 0
+    if semester_label:
+        worksheet.write(0, 0, f'Рейтинг за период: {semester_label}')
+        header_row = 1
+
+    worksheet.write_row(header_row, 0, headers)
 
     # Ширина колонки по самому длинному значению против заголовка, потолок 50.
     widths = [len(h) for h in headers]
-    for row_idx, row in enumerate(rows, start=1):
+    for row_idx, row in enumerate(rows, start=header_row + 1):
         for col_idx, field in enumerate(fields):
             value = row[field]
             if value is None:

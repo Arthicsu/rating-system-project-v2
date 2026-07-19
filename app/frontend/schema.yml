@@ -747,13 +747,20 @@ paths:
     get:
       operationId: v1_rating_list
       description: |-
-        Рейтинг студентов, всегда текущий семестр. Доступ только сотрудникам:
-        ФИО и баллы всех студентов - не для любого авторизованного.
+        Рейтинг студентов за выбранный семестр (по умолчанию текущий). Доступ
+        только сотрудникам: ФИО и баллы всех студентов - не для любого
+        авторизованного.
 
-        - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
+        - list — пагинированный рейтинг с фильтрами, выбором семестра и
+          сортировкой по категории/направлению;
         - filters — данные для построения фильтров (кэш 2 часа);
-        - export — выгрузка рейтинга в Excel.
+        - export — выгрузка рейтинга в Excel (те же параметры, что и list).
       parameters:
+      - in: query
+        name: academic_year
+        schema:
+          type: integer
+        description: ID семестра (по умолчанию — текущий)
       - in: query
         name: category
         schema:
@@ -764,6 +771,11 @@ paths:
         name: course
         schema:
           type: string
+      - in: query
+        name: direction
+        schema:
+          type: string
+        description: 'Направление сортировки: desc (по умолчанию) | asc'
       - in: query
         name: faculty_id
         schema:
@@ -790,6 +802,11 @@ paths:
         description: A search term.
         schema:
           type: string
+      - in: query
+        name: semester
+        schema:
+          type: integer
+        description: Синоним academic_year
       tags:
       - rating
       security:
@@ -805,13 +822,37 @@ paths:
     get:
       operationId: v1_rating_export_retrieve
       description: |-
-        Рейтинг студентов, всегда текущий семестр. Доступ только сотрудникам:
-        ФИО и баллы всех студентов - не для любого авторизованного.
+        Рейтинг студентов за выбранный семестр (по умолчанию текущий). Доступ
+        только сотрудникам: ФИО и баллы всех студентов - не для любого
+        авторизованного.
 
-        - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
+        - list — пагинированный рейтинг с фильтрами, выбором семестра и
+          сортировкой по категории/направлению;
         - filters — данные для построения фильтров (кэш 2 часа);
-        - export — выгрузка рейтинга в Excel.
+        - export — выгрузка рейтинга в Excel (те же параметры, что и list).
       summary: Экспорт рейтинга в Excel
+      parameters:
+      - in: query
+        name: academic_year
+        schema:
+          type: integer
+        description: ID семестра (по умолчанию — текущий)
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: 'Категория сортировки: common (по умолчанию) | academic | research
+          | sport | social | cultural'
+      - in: query
+        name: direction
+        schema:
+          type: string
+        description: 'Направление сортировки: desc (по умолчанию) | asc'
+      - in: query
+        name: semester
+        schema:
+          type: integer
+        description: Синоним academic_year
       tags:
       - rating
       security:
@@ -828,12 +869,14 @@ paths:
     get:
       operationId: v1_rating_filters_retrieve
       description: |-
-        Рейтинг студентов, всегда текущий семестр. Доступ только сотрудникам:
-        ФИО и баллы всех студентов - не для любого авторизованного.
+        Рейтинг студентов за выбранный семестр (по умолчанию текущий). Доступ
+        только сотрудникам: ФИО и баллы всех студентов - не для любого
+        авторизованного.
 
-        - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
+        - list — пагинированный рейтинг с фильтрами, выбором семестра и
+          сортировкой по категории/направлению;
         - filters — данные для построения фильтров (кэш 2 часа);
-        - export — выгрузка рейтинга в Excel.
+        - export — выгрузка рейтинга в Excel (те же параметры, что и list).
       tags:
       - rating
       security:
@@ -1937,8 +1980,10 @@ components:
       - user_id
     StudentRating:
       type: object
-      description: 'Строка публичного рейтинга: живые баллы текущего семестра из кэша
-        Student.'
+      description: |-
+        Строка публичного рейтинга: живые баллы текущего семестра из кэша Student.
+        Ручка доступна только сотрудникам, поэтому зачётка в выдаче допустима
+        (по ней работает поиск и колонка в таблице кабинета).
       properties:
         id:
           type: integer
@@ -1997,6 +2042,11 @@ components:
           type: integer
           readOnly: true
           default: 0
+        record_book:
+          type: string
+          nullable: true
+          title: Зачетка
+          maxLength: 50
       required:
       - course
       - faculty

@@ -2,6 +2,8 @@
 Тесты посеместрового учёта баллов: начисление/списание в разрезе семестра,
 ролловер (обнуление + сохранение истории), исторический рейтинг и привязка заявки к семестру.
 """
+import io
+import zipfile
 from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
@@ -152,17 +154,52 @@ class SemesterScoringTests(APITestCase):
         me = next(r for r in resp.data["results"] if r["id"] == self.student.id)
         self.assertEqual(me["total_score"], 10)
 
-    def test_rating_api_always_current_ignores_semester_param(self):
+    def test_rating_api_past_semester_returns_history(self):
         credit_document(self._doc(self.fall))
         rollover_semester()  # осень -> история, весна текущая, кэш обнулён
         cache.clear()
         self.client.force_authenticate(self.staff_user)
 
-        # Рейтинг всегда за текущий семестр (весна) — параметр semester игнорируется.
+        # Прошлый семестр: баллы из истории SemesterScore, а не из живого кэша.
         resp = self.client.get(reverse("api:rating-list"), {"semester": self.fall.id})
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         me = next(r for r in resp.data["results"] if r["id"] == self.student.id)
+        self.assertEqual(me["total_score"], 10)
+
+        # Без параметра — текущий семестр (весна), баллов ещё нет.
+        resp = self.client.get(reverse("api:rating-list"))
+        me = next(r for r in resp.data["results"] if r["id"] == self.student.id)
         self.assertEqual(me["total_score"], 0)
+
+    def test_rating_api_direction_asc(self):
+        credit_document(self._doc(self.fall))  # у первого студента 10 баллов
+        user2 = User.objects.create_user(username="stud2@uni.ru", password="pass12345")
+        Student.objects.create(user=user2, external_id="EXT-2", full_name="Второй", record_book="RB-2")
+        self.client.force_authenticate(self.staff_user)
+
+        resp = self.client.get(reverse("api:rating-list"), {"direction": "asc"})
+        scores = [r["total_score"] for r in resp.data["results"]]
+        self.assertEqual(scores, sorted(scores))
+
+        resp = self.client.get(reverse("api:rating-list"))
+        scores = [r["total_score"] for r in resp.data["results"]]
+        self.assertEqual(scores, sorted(scores, reverse=True))
+
+    def test_rating_export_past_semester_contains_history(self):
+        credit_document(self._doc(self.fall))
+        rollover_semester()  # живой кэш обнулён — в файле должна быть история
+        self.client.force_authenticate(self.staff_user)
+
+        resp = self.client.get(reverse("api:rating-export"), {"semester": self.fall.id})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn("student_rating_", resp["Content-Disposition"])
+
+        # Внутри xlsx: метка периода в строках, балл 10 из истории в данных листа.
+        with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
+            shared = zf.read("xl/sharedStrings.xml").decode("utf-8")
+            sheet = zf.read("xl/worksheets/sheet1.xml").decode("utf-8")
+        self.assertIn(self.fall.label, shared)
+        self.assertIn(">10<", sheet)
 
     def test_upload_stamps_current_semester(self):
         self.client.force_authenticate(self.user)

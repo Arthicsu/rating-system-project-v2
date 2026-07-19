@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import toast from 'react-hot-toast';
 import type { AxiosError } from 'axios';
 
 import { useMySession } from '@/context/AuthContext';
@@ -11,29 +12,28 @@ import MobileFilterToggle from '@/components/MobileFilterToggle';
 
 import FilterPanel from './_components/FilterPanel';
 import TabsNav from './_components/TabsNav';
-import MyGroupTab from './_components/MyGroupTab';
+import StudentsTab from './_components/StudentsTab';
 import PendingRequestsTab from './_components/PendingRequestsTab';
 import ReviewedRequestsTab from './_components/ReviewedRequestsTab';
 import StatisticsTab from './_components/StatisticsTab';
-import RatingTab from './_components/RatingTab';
 import ModalApprove from './_components/ModalApprove';
 import ModalReject from './_components/ModalReject';
 
 import { useStaffFilters } from '@/hooks/useStaffFilters';
-import { useDashboard, useStudents } from '@/hooks/queries';
+import { useCategories, useDashboard, useRating } from '@/hooks/queries';
 import { useTabParam } from '@/hooks/useTabParam';
 import { useReviewActions } from '@/hooks/useReviewActions';
 
 import type {
   DashboardStats,
   DashboardStatsParams,
-  FilterStudentsParams,
 } from '@/interfaces/StaffInterfaces';
+import type { RatingParams, Tab } from '@/interfaces/RatingInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
 
 const EMPTY_STATS: DashboardStats = { total_students: 0, avg_score: 0, max_score: 0, min_score: 0, categories: {} };
 
-const TAB_IDS = ['my-group', 'pending-requests', 'reviewed-requests', 'statistics', 'rating'] as const;
+const TAB_IDS = ['my-group', 'pending-requests', 'reviewed-requests', 'statistics'] as const;
 
 /**
  * Guard кабинета сотрудника: пока роль не подтверждена — не рендерим и не
@@ -67,6 +67,7 @@ export default function StaffProfilePage() {
 /** Кабинет сотрудника; монтируется только после подтверждения роли (см. guard выше). */
 function StaffDashboard() {
   const { user } = useMySession();
+  const router = useRouter();
   const isRectorate = !!user?.roles?.includes('Rectorate');
 
   const { activeTab, changeTab } = useTabParam(TAB_IDS, 'my-group', '/staff-profile');
@@ -80,18 +81,49 @@ function StaffDashboard() {
   const [pendingSearchValue, setPendingSearchValue] = useState('');
   const [reviewedSearchValue, setReviewedSearchValue] = useState('');
 
+  // Подвкладка категории и направление сортировки таблицы студентов.
+  const [category, setCategory] = useState('common');
+  const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
+
   const pageSize = 20;
   const requestsPageSize = 6;
 
+  // Страница таблицы студентов живёт и в ?page= — ссылку на конкретную
+  // страницу можно сохранить/переслать. Чтение после гидрации, как в useTabParam.
+  useEffect(() => {
+    const page = Number(new URLSearchParams(window.location.search).get('page'));
+    if (Number.isInteger(page) && page > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- синхронизация с URL после гидрации
+      setCurrentPage(page);
+    }
+  }, []);
+
+  const changeStudentsPage = (page: number) => {
+    setCurrentPage(page);
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', String(page));
+    router.replace(`/staff-profile?${params.toString()}`, { scroll: false });
+  };
+
   // Смена фильтров сбрасывает страницу списка студентов (как прежние handle*Change).
   // Роль сотрудника гарантирована guard-обёрткой StaffProfilePage.
-  const filters = useStaffFilters(() => setCurrentPage(1));
+  const filters = useStaffFilters(() => changeStudentsPage(1));
   const { groupId, semesterId, semesterLabel, groupsList } = filters;
 
   // Поиск сбрасывает пагинацию соответствующего списка (обработчики вместо эффектов).
   const handleGroupSearch = (value: string) => {
     setGroupSearchValue(value);
-    setCurrentPage(1);
+    changeStudentsPage(1);
+  };
+
+  const handleCategoryChange = (id: string) => {
+    setCategory(id);
+    changeStudentsPage(1);
+  };
+
+  const handleDirectionToggle = () => {
+    setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    changeStudentsPage(1);
   };
 
   const handlePendingSearch = (value: string) => {
@@ -107,19 +139,42 @@ function StaffDashboard() {
   // Прежний guard: без выбранной группы/семестра запросы не выполняются.
   const ready = !!groupId && !!semesterId;
 
-  const studentsParams = useMemo<FilterStudentsParams>(
+  // Подвкладки категорий рейтинга («Общий рейтинг» + категории достижений).
+  const { data: categoriesData, error: categoriesError } = useCategories();
+  useEffect(() => {
+    if (categoriesError) toast.error('Ошибка: ' + categoriesError);
+  }, [categoriesError]);
+
+  const categoryTabs = useMemo<Tab[]>(
+    () => [
+      { id: 'common', label: 'Общий рейтинг' },
+      ...(categoriesData ?? []).map((cat) => ({
+        id: cat.code,
+        label: cat.label.endsWith('рейтинг') ? cat.label : `${cat.label} деятельность`,
+      })),
+    ],
+    [categoriesData]
+  );
+
+  const scoreKey = category === 'common' ? 'total_score' : `${category}_score`;
+
+  // Таблица студентов — ручка рейтинга: семестр из фильтров кабинета,
+  // категория/направление сортировки и поиск по ФИО/зачётке.
+  const ratingParams = useMemo<RatingParams>(
     () => ({
-      group_id: groupId,
+      category,
+      direction,
       page: currentPage,
       page_size: pageSize,
       search: groupSearchValue || undefined,
       academic_year: String(semesterId),
+      group_id: groupId,
       ...filters.filterParams,
     }),
-    [groupId, currentPage, groupSearchValue, semesterId, filters.filterParams]
+    [category, direction, currentPage, groupSearchValue, semesterId, groupId, filters.filterParams]
   );
 
-  const studentsQuery = useStudents(studentsParams, ready);
+  const studentsQuery = useRating(ratingParams, ready);
   const studentsData = (studentsQuery.data?.results ?? []) as Student[];
   const totalStudents = studentsQuery.data?.count ?? 0;
   // Как раньше: индикатор при первой загрузке и смене параметров, но не при фоновом поллинге.
@@ -173,11 +228,10 @@ function StaffDashboard() {
     : (groupsList.find(g => String(g.id) === groupId)?.name || 'Все группы');
 
   const tabs = [
-    { id: 'my-group', label: 'Группа' },
+    { id: 'my-group', label: 'Студенты' },
     { id: 'pending-requests', label: 'Заявки на подтверждение', badge: totalRequests },
     { id: 'reviewed-requests', label: 'Рассмотренные заявки' },
     { id: 'statistics', label: 'Статистика' },
-    { id: 'rating', label: 'Рейтинг' },
   ];
 
   // ErrorState вместо вкладки — только когда данных нет совсем (5xx/сеть);
@@ -193,21 +247,16 @@ function StaffDashboard() {
     <>
       <main className="min-h-screen bg-slate-50 pt-24 pb-10">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
-          {/* Панель группы/семестра относится к спискам кабинета; у рейтинга свои фильтры. */}
-          {activeTab !== 'rating' && (
-            <>
-              <MobileFilterToggle onClick={() => setMobileFiltersOpen((prev) => !prev)} visibleAt="max-[640px]:flex" />
+          <MobileFilterToggle onClick={() => setMobileFiltersOpen((prev) => !prev)} visibleAt="max-[640px]:flex" />
 
-              <FilterPanel filters={filters} isRectorate={isRectorate} mobileFiltersOpen={mobileFiltersOpen} />
-            </>
-          )}
+          <FilterPanel filters={filters} isRectorate={isRectorate} mobileFiltersOpen={mobileFiltersOpen} />
 
           <TabsNav tabs={tabs} activeTab={activeTab} onChange={changeTab} />
 
           {activeTab === 'my-group' && (studentsErrorCode ? (
             <ErrorState code={studentsErrorCode} onReset={() => { void studentsQuery.refetch(); }} />
           ) : (
-            <MyGroupTab
+            <StudentsTab
               students={studentsData}
               loading={studentsLoading}
               totalStudents={totalStudents}
@@ -215,10 +264,24 @@ function StaffDashboard() {
               pageSize={pageSize}
               isRectorate={isRectorate}
               selectedGroupId={groupId}
-              selectedCourse={filters.course}
               currentGroupName={currentGroupName}
+              categoryTabs={categoryTabs}
+              activeCategory={category}
+              scoreKey={scoreKey}
+              direction={direction}
+              exportParams={{
+                faculty_id: filters.facultyId,
+                course: filters.course,
+                group_id: groupId,
+                category,
+                direction,
+                academic_year: String(semesterId),
+                page: currentPage,
+              }}
+              onCategoryChange={handleCategoryChange}
+              onDirectionToggle={handleDirectionToggle}
               onSearch={handleGroupSearch}
-              onPageChange={setCurrentPage}
+              onPageChange={changeStudentsPage}
             />
           ))}
 
@@ -258,8 +321,6 @@ function StaffDashboard() {
               onReject={(doc) => openModal('reject', doc)}
             />
           ))}
-
-          {activeTab === 'rating' && <RatingTab />}
 
           {activeTab === 'statistics' && (pendingErrorCode ? (
             <ErrorState code={pendingErrorCode} onReset={() => { void pendingQuery.refetch(); }} />

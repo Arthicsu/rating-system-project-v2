@@ -17,6 +17,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.http import HttpResponse, StreamingHttpResponse
 from django.utils.decorators import method_decorator
+from django.utils.http import content_disposition_header
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 
@@ -54,8 +55,12 @@ from core.serializers import ErrorDetailSerializer, MessageSerializer
 from core.throttling import LoginRateThrottle
 
 from students.models import Category, DocumentFile
-from students.serializers import CategorySerializer, StudentRatingSerializer
-from university_structure.models import Faculty, Group
+from students.serializers import (
+    CategorySerializer,
+    SemesterStudentListSerializer,
+    StudentRatingSerializer,
+)
+from university_structure.models import AcademicYear, Faculty, Group
 from university_structure.serializers import RatingFiltersResponseSerializer
 
 from .serializers import (
@@ -194,19 +199,32 @@ class AuthViewSet(viewsets.ViewSet):
         return Response({"message": neutral_message})
 
 
+_RATING_PARAMS = [
+    OpenApiParameter('category', OpenApiTypes.STR,
+                     description="Категория сортировки: common (по умолчанию) | academic | research | sport | social | cultural"),
+    OpenApiParameter('direction', OpenApiTypes.STR,
+                     description="Направление сортировки: desc (по умолчанию) | asc"),
+    OpenApiParameter('academic_year', OpenApiTypes.INT, description='ID семестра (по умолчанию — текущий)'),
+    OpenApiParameter('semester', OpenApiTypes.INT, description='Синоним academic_year'),
+]
+
+
 @extend_schema(tags=['rating'])
 class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
     """
-    Рейтинг студентов, всегда текущий семестр. Доступ только сотрудникам:
-    ФИО и баллы всех студентов - не для любого авторизованного.
+    Рейтинг студентов за выбранный семестр (по умолчанию текущий). Доступ
+    только сотрудникам: ФИО и баллы всех студентов - не для любого
+    авторизованного.
 
-    - list — пагинированный рейтинг с фильтрами и сортировкой по категории;
+    - list — пагинированный рейтинг с фильтрами, выбором семестра и
+      сортировкой по категории/направлению;
     - filters — данные для построения фильтров (кэш 2 часа);
-    - export — выгрузка рейтинга в Excel.
+    - export — выгрузка рейтинга в Excel (те же параметры, что и list).
     """
     authentication_classes = [SessionAuthentication]
     # Кэш list/filters остаётся общим: rating_queryset не зависит от пользователя
     # (scope тут нет), а permissions отрабатывают в dispatch до cache_page.
+    # При изменении баллов кэш списка сбрасывается (см. services.apply_score_delta).
     permission_classes = [IsStaffProfile]
     serializer_class = StudentRatingSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter]
@@ -219,11 +237,16 @@ class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
             return Student.objects.none()
         return querysets.rating_queryset(self.request)
 
+    def get_serializer_class(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return StudentRatingSerializer
+
+        # Прошлый семестр — баллы из аннотаций sem_* (история SemesterScore).
+        _, is_past = querysets.get_requested_semester(self.request)
+        return SemesterStudentListSerializer if is_past else StudentRatingSerializer
+
     @extend_schema(
-        parameters=[
-            OpenApiParameter('category', OpenApiTypes.STR,
-                             description="Категория сортировки: common (по умолчанию) | academic | research | sport | social | cultural"),
-        ],
+        parameters=_RATING_PARAMS,
         responses={200: StudentRatingSerializer(many=True)},
     )
     @method_decorator(cache_page(60 * 5, key_prefix='rating-list'))
@@ -246,18 +269,29 @@ class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
         })
         return Response(serializer.data)
 
-    @extend_schema(summary="Экспорт рейтинга в Excel", responses={200: OpenApiTypes.BINARY})
+    @extend_schema(summary="Экспорт рейтинга в Excel", parameters=_RATING_PARAMS,
+                   responses={200: OpenApiTypes.BINARY})
     @action(detail=False, methods=['get'])
     def export(self, request):
-        # Экспорт всегда по текущему семестру (генератор ожидает объекты Student).
-        queryset = self.filter_queryset(self.get_queryset())
-        excel_bytes = generate_rating_excel(queryset)
+        # Выгружается ровно тот срез, что виден в таблице: семестр, фильтры,
+        # категория и направление сортировки берутся из тех же параметров.
+        semester_id, is_past = querysets.get_requested_semester(request)
+        semester = AcademicYear.objects.filter(pk=semester_id).first() if semester_id else None
 
+        queryset = self.filter_queryset(self.get_queryset())
+        excel_bytes = generate_rating_excel(
+            queryset,
+            score_prefix='sem_' if is_past else '',
+            semester_label=semester.label if semester else '',
+        )
+
+        filename = f"student_rating_{semester.label}.xlsx" if semester else "student_rating.xlsx"
         response = HttpResponse(
             excel_bytes,
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         )
-        response['Content-Disposition'] = 'attachment; filename="student_rating.xlsx"'
+        # content_disposition_header кодирует кириллицу метки семестра в filename*.
+        response['Content-Disposition'] = content_disposition_header(True, filename)
         return response
 
 
