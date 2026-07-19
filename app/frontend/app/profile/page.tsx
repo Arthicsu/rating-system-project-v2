@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 import StudentProfile from '@/app/profile/_components/StudentProfile';
-import { useMyProfile } from '@/hooks/queries/useProfile';
+import { useMyProfile } from '@/hooks/queries';
 import { useRedirectIfStaff } from '@/hooks/useRedirectIfStaff';
 import type { Profile } from '@/interfaces/ProfileInterfaces';
 

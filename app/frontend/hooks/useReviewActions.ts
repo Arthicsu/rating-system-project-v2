@@ -6,8 +6,7 @@ import toast from 'react-hot-toast';
 import type { AxiosError } from 'axios';
 
 import { useMySession } from '@/context/AuthContext';
-import { useRejectionReasons } from '@/hooks/queries/useLookups';
-import { useReviewDocument } from '@/hooks/queries/useReviewDocument';
+import { useRejectionReasons, useReviewDocument } from '@/hooks/queries';
 import type { Document, ModalState } from '@/interfaces/StaffInterfaces';
 
 const EMPTY_MODAL: ModalState = { type: null, targetId: null, targetScore: 0, targetStudentId: null };

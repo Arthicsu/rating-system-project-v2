@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useMySession } from '@/context/AuthContext';
-import { usePendingCount } from '@/hooks/queries/usePendingCount';
+import { usePendingCount } from '@/hooks/queries';
 
 type NavItem = {
   href: string;

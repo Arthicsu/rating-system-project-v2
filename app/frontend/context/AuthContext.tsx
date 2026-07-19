@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchUser();
   }, [fetchUser]);
 
-  // Поллинг счётчика заявок живёт в hooks/queries/usePendingCount.ts
+  // Поллинг счётчика заявок живёт в hooks/queries.ts (usePendingCount)
   // (TanStack Query: refetchInterval 15с + пауза на скрытой вкладке); badge читает Header.
 
   const registerUser = async (formData: RegisterFormData) => {

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { AxiosError } from 'axios';
 
-import { useAchievement } from '@/hooks/queries/useAchievement';
+import { useAchievement } from '@/hooks/queries';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
 import FilePreviewPanel from '@/components/preview/FilePreviewPanel';
 import ModalPreview from '@/components/modals/ModalPreview';

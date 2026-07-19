@@ -20,8 +20,7 @@ import ModalApprove from './_components/ModalApprove';
 import ModalReject from './_components/ModalReject';
 
 import { useStaffFilters } from '@/hooks/useStaffFilters';
-import { useStudents } from '@/hooks/queries/useStudents';
-import { useDashboard } from '@/hooks/queries/useDashboard';
+import { useDashboard, useStudents } from '@/hooks/queries';
 import { useTabParam } from '@/hooks/useTabParam';
 import { useReviewActions } from '@/hooks/useReviewActions';
 

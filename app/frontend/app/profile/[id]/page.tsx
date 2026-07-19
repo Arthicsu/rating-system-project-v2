@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 import StudentProfile from '@/app/profile/_components/StudentProfile';
-import { useProfileById } from '@/hooks/queries/useProfile';
+import { useProfileById } from '@/hooks/queries';
 import { useRedirectIfStaff } from '@/hooks/useRedirectIfStaff';
 import type { Profile } from '@/interfaces/ProfileInterfaces';
 

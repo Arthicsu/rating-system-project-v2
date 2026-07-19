@@ -12,7 +12,7 @@ import { AxiosError } from 'axios';
 
 import FileDropZone from '@/components/upload/FileDropZone';
 import CustomSelect from '@/components/CustomSelect';
-import { useAchievementConfig } from '@/hooks/queries/useAchievementConfig';
+import { useAchievementConfig } from '@/hooks/queries';
 import { useUploadAchievement } from '@/hooks/mutations/useAchievementMutations';
 import { apiErrorMessage } from '@/lib/apiError';
 import {

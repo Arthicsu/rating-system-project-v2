@@ -7,8 +7,7 @@ import MobileFilterToggle from '@/components/MobileFilterToggle';
 import RatingTabs from './RatingTabs';
 import RatingMobileFilters from './RatingMobileFilters';
 import RatingTable from './RatingTable';
-import { useCategories, useRatingFilters } from '@/hooks/queries/useLookups';
-import { useRating } from '@/hooks/queries/useRating';
+import { useCategories, useRating, useRatingFilters } from '@/hooks/queries';
 import type { FilterOptions, RatingFilterConfig, RatingParams, Tab } from '@/interfaces/RatingInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
 

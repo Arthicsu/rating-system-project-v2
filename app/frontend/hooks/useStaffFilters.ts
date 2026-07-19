@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import { useGroups } from '@/hooks/queries/useGroups';
-import { useAcademicYears, useRatingFilters } from '@/hooks/queries/useLookups';
+import { useAcademicYears, useGroups, useRatingFilters } from '@/hooks/queries';
 import type { Faculty, Group, Semester } from '@/interfaces/StaffInterfaces';
 
 export interface StaffFilters {

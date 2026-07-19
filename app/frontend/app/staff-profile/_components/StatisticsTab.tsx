@@ -1,6 +1,6 @@
 'use client';
 
-import { useCategories } from '@/hooks/queries/useLookups';
+import { useCategories } from '@/hooks/queries';
 import type { DashboardStats, StudentSimple } from '@/interfaces/StaffInterfaces';
 
 interface StatisticsTabProps {
