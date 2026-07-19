@@ -11,8 +11,8 @@ interface FilterPanelProps {
 }
 
 /**
- * Фильтры staff-профиля: мобильный блок + десктопная панель.
- *
+ * Фильтры staff-профиля: один конфиг селектов, который рендерят и мобильный
+ * блок, и десктопная панель (различаются только обёрткой и классами).
  */
 export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }: FilterPanelProps) {
   const {
@@ -29,11 +29,6 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
     changeSemester,
   } = filters;
 
-  const semesterSelectOptions = semesterOptions.map((opt) => ({
-    value: String(opt.id),
-    label: opt.label,
-  }));
-
   const handleSemesterChange = (value: string) => {
     const selected = semesterOptions.find((opt) => opt.id === Number(value));
     if (selected) {
@@ -41,58 +36,68 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
     }
   };
 
+  const selects = [
+    ...(isRectorate
+      ? [{
+          id: 'faculty',
+          label: 'Факультет',
+          value: facultyId,
+          options: [
+            { value: 'all', label: 'Все факультеты' },
+            ...facultiesList.map((f) => ({ value: String(f.id), label: f.short_name })),
+          ],
+          onChange: changeFaculty,
+        }]
+      : []),
+    {
+      id: 'course',
+      label: 'Курс',
+      value: course,
+      options: [
+        { value: 'all', label: 'Все курсы' },
+        ...[1, 2, 3, 4, 5].map((c) => ({ value: String(c), label: `${c} курс` })),
+      ],
+      onChange: changeCourse,
+    },
+    {
+      id: 'group',
+      label: 'Группа',
+      value: groupId,
+      options:
+        groupsList.length > 0
+          ? [
+              { value: 'all', label: 'Все группы' },
+              ...groupsList.map((g) => ({ value: String(g.id), label: g.name })),
+            ]
+          : [{ value: 'all', label: 'Нет групп' }],
+      onChange: changeGroup,
+    },
+    {
+      id: 'semester',
+      label: 'Период',
+      value: String(semesterId),
+      options: semesterOptions.map((opt) => ({ value: String(opt.id), label: opt.label })),
+      onChange: handleSemesterChange,
+    },
+  ];
+
   return (
     <>
       {mobileFiltersOpen && (
         <div className="mb-3 max-[640px]:block hidden rounded-lg bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.08)] text-[11px] text-sky-700">
           <div className="space-y-2">
-            {isRectorate && (
-            <CustomSelect
-              id="m-faculty"
-              label="Факультет"
-              value={facultyId}
-              labelClassName="text-[10px] uppercase tracking-wide text-sky-700"
-              triggerClassName="text-[11px] py-1 px-2"
-              options={[
-                { value: 'all', label: 'Все' },
-                ...facultiesList.map((f) => ({ value: String(f.id), label: f.short_name })),
-              ]}
-              onChange={changeFaculty}
-            />
-            )}
-            <CustomSelect
-              id="m-course"
-              label="Курс"
-              value={course}
-              labelClassName="text-[10px] uppercase tracking-wide text-sky-700"
-              triggerClassName="text-[11px] py-1 px-2"
-              options={[
-                { value: 'all', label: 'Все' },
-                ...[1, 2, 3, 4, 5].map((c) => ({ value: String(c), label: `${c} курс` })),
-              ]}
-              onChange={changeCourse}
-            />
-            <CustomSelect
-              id="m-group"
-              label="Группа"
-              value={groupId}
-              labelClassName="text-[10px] uppercase tracking-wide text-sky-700"
-              triggerClassName="text-[11px] py-1 px-2"
-              options={[
-                { value: 'all', label: 'Все' },
-                ...groupsList.map((g) => ({ value: String(g.id), label: g.name })),
-              ]}
-              onChange={changeGroup}
-            />
-            <CustomSelect
-              id="m-semester"
-              label="Период"
-              value={String(semesterId)}
-              labelClassName="text-[10px] uppercase tracking-wide text-sky-700"
-              triggerClassName="text-[11px] py-1 px-2"
-              options={semesterSelectOptions}
-              onChange={handleSemesterChange}
-            />
+            {selects.map((s) => (
+              <CustomSelect
+                key={s.id}
+                id={`m-${s.id}`}
+                label={s.label}
+                value={s.value}
+                labelClassName="text-[10px] uppercase tracking-wide text-sky-700"
+                triggerClassName="text-[11px] py-1 px-2"
+                options={s.options}
+                onChange={s.onChange}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -102,57 +107,18 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
           Фильтры
         </p>
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 sm:gap-4">
-          {isRectorate && (
-          <CustomSelect
-            id="faculty-select"
-            label="Факультет"
-            value={facultyId}
-            labelClassName="block text-[11px] font-medium text-sky-700"
-            triggerClassName="text-xs sm:text-sm"
-            options={[
-              { value: 'all', label: 'Все факультеты' },
-              ...facultiesList.map((f) => ({ value: String(f.id), label: f.short_name })),
-            ]}
-            onChange={changeFaculty}
-          />
-          )}
-          <CustomSelect
-            id="course-select"
-            label="Курс"
-            value={course}
-            labelClassName="block text-[11px] font-medium text-sky-700"
-            triggerClassName="text-xs sm:text-sm"
-            options={[
-              { value: 'all', label: 'Все курсы' },
-              ...[1, 2, 3, 4, 5].map((c) => ({ value: String(c), label: `${c} курс` })),
-            ]}
-            onChange={changeCourse}
-          />
-          <CustomSelect
-            id="group-select"
-            label="Группа"
-            value={groupId}
-            labelClassName="block text-[11px] font-medium text-sky-700"
-            triggerClassName="text-xs sm:text-sm"
-            options={
-              groupsList.length > 0
-                ? [
-                    { value: 'all', label: 'Все группы' },
-                    ...groupsList.map((g) => ({ value: String(g.id), label: g.name })),
-                  ]
-                : [{ value: 'all', label: 'Нет групп' }]
-            }
-            onChange={changeGroup}
-          />
-          <CustomSelect
-            id="semester-select"
-            label="Период"
-            value={String(semesterId)}
-            labelClassName="block text-[11px] font-medium text-sky-700"
-            triggerClassName="text-xs sm:text-sm"
-            options={semesterSelectOptions}
-            onChange={handleSemesterChange}
-          />
+          {selects.map((s) => (
+            <CustomSelect
+              key={s.id}
+              id={`${s.id}-select`}
+              label={s.label}
+              value={s.value}
+              labelClassName="block text-[11px] font-medium text-sky-700"
+              triggerClassName="text-xs sm:text-sm"
+              options={s.options}
+              onChange={s.onChange}
+            />
+          ))}
         </div>
       </div>
     </>
