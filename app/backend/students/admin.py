@@ -65,7 +65,8 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
         self.message_user(request, f"Возвращено из архива: {updated}.", messages.SUCCESS)
 
     def process_import(self, request, data):
-        new_credentials = []
+        new_credentials = []  # НЕ ЗАДЕЙСТВОВАНО: см. блок про CSV с паролями ниже
+        created_students = 0
         skipped_no_group = []
         archived_terminal = 0          # переведено в архив по статусу 3/4/6
         active_processed = 0           # создано/обновлено активных студентов
@@ -185,31 +186,40 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                     user.email = email
                     user.save(update_fields=['first_name', 'last_name', 'patronymic', 'email'])
                 else:
-                    # Если студента нет, создаем/обновляем юзера по username
+                    # Если студента нет, создаем/обновляем юзера по username.
+                    # Пароль не задаём (неиспользуемый): студент получает его сам на почту
+                    # («Регистрация» на странице входа). Заодно импорт не хэширует пароль
+                    # на каждого нового студента - PBKDF2 ~0,45 с, на 3600 строк это 15-20 минут.
                     username = email if email else f"student_{external_id}@bgitu.ru"
-                    password = generate_password()
                     user = User.objects.create_user(
                         username=username,
                         email=email,
-                        password=password,
+                        password=None,
                         first_name=first_name,
                         last_name=last_name,
                         patronymic=patronymic,
                     )
                     user.groups.add(g_student)
-                    new_credentials.append({
-                        'full_name': f"{last_name} {first_name} {patronymic}".strip(),
-                        'email': email,
-                        'faculty': faculty.short_name if faculty else '-',
-                        'department': department.short_name if department else '-',
-                        'course': group.course,
-                        'group': group.name,
-                        'group_code': group_code,
-                        'record_book': record_book or '-',
-                        'admission_year': admission_year,
-                        'login': username,
-                        'password': password
-                    })
+                    created_students += 1
+                    # НЕ ЗАДЕЙСТВОВАНО: пароли студентов выдаются по почте через «Регистрацию» /
+                    # «Восстановить пароль», CSV для раздачи «на листочках» больше не пишется
+                    # (решение 2026-10-20).
+                    # password = generate_password()
+                    # user.set_password(password)
+                    # user.save(update_fields=['password'])
+                    # new_credentials.append({
+                    #     'full_name': f"{last_name} {first_name} {patronymic}".strip(),
+                    #     'email': email,
+                    #     'faculty': faculty.short_name if faculty else '-',
+                    #     'department': department.short_name if department else '-',
+                    #     'course': group.course,
+                    #     'group': group.name,
+                    #     'group_code': group_code,
+                    #     'record_book': record_book or '-',
+                    #     'admission_year': admission_year,
+                    #     'login': username,
+                    #     'password': password
+                    # })
 
                 # сохраняем студента через update_or_create.
                 # archived_at=None: активный статус разархивирует вернувшегося (академ/восстановление).
@@ -283,12 +293,20 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 f"(в рамках {len(seen_group_ids)} групп из файла).",
                 messages.WARNING,
             )
-        if new_credentials:
-            filename, _ = log_generated_passwords(new_credentials, prefix="students")
+        # НЕ ЗАДЕЙСТВОВАНО: CSV с паролями новых студентов (см. выше, решение 2026-10-20).
+        # if new_credentials:
+        #     filename, _ = log_generated_passwords(new_credentials, prefix="students")
+        #     self.message_user(
+        #         request,
+        #         f"Файл с паролями для новых студентов: {filename} (в shared/import_passwords).",
+        #         messages.SUCCESS
+        #     )
+        if created_students:
             self.message_user(
                 request,
-                f"Файл с паролями для новых студентов: {filename} (в shared/import_passwords).",
-                messages.SUCCESS
+                f"Новых студентов: {created_students}. Пароль они получают сами на почту: "
+                f"«Регистрация» на странице входа.",
+                messages.SUCCESS,
             )
         else:
             self.message_user(request, "Данные обновлены. Новых пользователей не создано.", messages.SUCCESS)
