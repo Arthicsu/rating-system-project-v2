@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/lib/apiRequests';
 import { useRouter } from 'next/navigation';
 
@@ -12,6 +13,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const fetchUser = useCallback(() => {
     return authApi.checkAuth()
@@ -45,7 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginUser = async (formData: LoginFormData) => {
     const res = await authApi.login(formData);
-    setUser(res.data); 
+    // Ключи запросов не содержат id пользователя: без очистки новый пользователь
+    // до 30 с (staleTime) видел бы закэшированные списки предыдущего, например
+    // кафедра - очередь заявок ректората, пока поллинг не перезапросит данные.
+    queryClient.clear();
+    setUser(res.data);
     return res.data;
   };
 
@@ -58,6 +64,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setUser(null);
     router.push('/login');
+    // Данные вышедшего пользователя не должны остаться в памяти вкладки
+    // (общий компьютер кафедры). Полная перезагрузка, как в интерсепторе
+    // axios, тоже сбросила бы кэш, но выход остаётся SPA-навигацией.
+    queryClient.clear();
   };
 
   return (
