@@ -17,10 +17,35 @@ class StaffInline(admin.StackedInline):
     raw_id_fields = ('department', 'faculty')
 
 
+class EmployeeFilter(admin.SimpleListFilter):
+    """Сотрудник вуза - есть профиль Staff. Не путать с is_staff: тот только открывает админку."""
+    title = 'сотрудник вуза'
+    parameter_name = 'employee'
+
+    def lookups(self, request, model_admin):
+        return (('yes', 'Да'), ('no', 'Нет'))
+
+    def queryset(self, request, queryset):
+        if self.value() in ('yes', 'no'):
+            return queryset.filter(staff_profile__isnull=self.value() == 'no')
+        return queryset
+
+
+class AdminAccessFilter(admin.BooleanFieldListFilter):
+    """
+    Фильтр по is_staff. Django зовёт поле «статус персонала», и его принимали за признак
+    сотрудника вуза; на деле это доступ в админку - по нему видно, кому его выдали по ошибке.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.title = 'доступ в админку'
+
+
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'last_name', 'first_name', 'patronymic', 'get_roles', 'is_active', 'is_staff', 'is_superuser', 'get_student_profile', 'get_staff_profile')
-    list_filter = ('is_active', 'is_staff', 'is_superuser', 'groups')
+    list_display = ('username', 'email', 'last_name', 'first_name', 'patronymic', 'get_roles', 'is_active', 'get_admin_access', 'is_superuser', 'get_student_profile', 'get_staff_profile')
+    list_filter = ('is_active', EmployeeFilter, ('is_staff', AdminAccessFilter), 'is_superuser', 'groups')
     search_fields = ('username', 'last_name', 'first_name', 'patronymic', 'email')
     inlines = [StaffInline]
     actions = ['generate_passwords_csv']
@@ -44,6 +69,10 @@ class CustomUserAdmin(UserAdmin):
     def generate_passwords_csv(self, request, queryset):
         # Студенты и суперпользователи среди выбранных пропускаются.
         return staff_passwords_action(self, request, queryset)
+
+    @admin.display(description='Доступ в админку', boolean=True, ordering='is_staff')
+    def get_admin_access(self, obj):
+        return obj.is_staff
 
     @admin.display(description='Роли')
     def get_roles(self, obj):

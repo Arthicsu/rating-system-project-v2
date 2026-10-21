@@ -84,3 +84,32 @@ class StaffImportAdminAccessTests(TestCase):
 
         for role in ("Dean", "Rectorate", "Department", "Student"):
             self.assertFalse(AuthGroup.objects.get(name=role).permissions.exists(), role)
+
+
+@override_settings(**TEST_SETTINGS)
+class UserAdminFiltersTests(TestCase):
+    """
+    is_staff теперь только у суперпользователей, поэтому фильтр «статус персонала»
+    сотрудников вуза не находил. Сотрудник вуза - отдельный фильтр (есть профиль Staff).
+    """
+
+    def setUp(self):
+        self.client.force_login(User.objects.create_superuser("oi-admin", password="x"))
+        make_staff("kaf-it", "Department", department=make_department("ИТ"))
+        make_student("stud@uni.ru")
+
+    def _usernames(self, query):
+        resp = self.client.get(reverse("admin:users_user_changelist"), query)
+        return sorted(u.username for u in resp.context["cl"].result_list)
+
+    def test_employee_filter(self):
+        self.assertEqual(self._usernames({"employee": "yes"}), ["kaf-it"])
+        self.assertEqual(self._usernames({"employee": "no"}), ["oi-admin", "stud@uni.ru"])
+
+    def test_filters_do_not_call_admin_access_staff_status(self):
+        resp = self.client.get(reverse("admin:users_user_changelist"))
+
+        titles = [spec.title for spec in resp.context["cl"].filter_specs]
+        self.assertIn("сотрудник вуза", titles)
+        self.assertIn("доступ в админку", titles)
+        self.assertNotIn("статус персонала", titles)
