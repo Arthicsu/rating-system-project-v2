@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.db import transaction
 from django.contrib.auth.models import Group as DjangoGroup
 from django.contrib import messages
+from django.template.response import TemplateResponse
 from django.utils import timezone
 
 from core.admin_password_generator import generate_password
@@ -13,6 +14,7 @@ from core.eos.syncers import StudentSyncer
 from university_structure.models import Faculty, Department, Group, Staff
 from users.models import User
 
+from .import_cleaning import REASON_LABELS, build_import_report_csv, clean_student_rows
 from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus, DocumentFile, SemesterScore
 
 import logging
@@ -27,9 +29,17 @@ class StudentCsvImportForm(ImportForm):
         required=False,
         initial=False,
         label="Архивировать студентов, отсутствующих в файле",
-        help_text="Отмечайте ТОЛЬКО при загрузке полной выгрузки. Студенты из групп, "
-                  "присутствующих в файле, но без своей строки, будут переведены в архив. "
-                  "Студентов из других групп это не затронет.",
+        help_text="(отмечайте ТОЛЬКО при загрузке полной выгрузки вуза. Если группа есть в файле, "
+                  "а студента этой группы в файле нет (например, отчислен, но статус не пришёл), "
+                  "он уйдёт в архив. Студентов групп, которых в файле нет совсем, это не затронет).",
+    )
+    clean_duplicates = forms.BooleanField(
+        required=False,
+        initial=True,
+        label="Очистить дубликаты перед импортом",
+        help_text="(из строк с одной почтой (без учёта "
+                  "регистра) остаётся последняя, удалённые - в отчёте после импорта. Отчисленные "
+                  "(статусы 3/4/6) не вырезаются - по ним студенты уходят в архив).",
     )
 
 
@@ -75,6 +85,17 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
         total_rows = len(data)
         # Архивация отсутствующих — только при загрузке ПОЛНОЙ выгрузки (галочка в форме).
         archive_absent = request.POST.get('archive_absent') in ('on', 'true', 'True', '1')
+        # Очистка дублей до импорта: иначе два новых студента с одной почтой роняли весь
+        # импорт (IntegrityError по username), а почта становилась неоднозначной для входа.
+        rows_in_file = len(data)
+        # Строки, не попавшие в БД, с причиной - для страницы итогов и CSV-отчёта
+        # (раньше часть причин была только в логе, который сотрудник ОИ не видит).
+        report = []
+        if request.POST.get('clean_duplicates') in ('on', 'true', 'True', '1'):
+            cleaning = clean_student_rows(data)
+            data = cleaning.rows
+            total_rows = len(data)
+            report.extend(cleaning.removed)
         now = timezone.now()
         logger.info(f"Начало обработки: {total_rows} строк. archive_absent={archive_absent}")
 
@@ -97,6 +118,10 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 s.external_id: s
                 for s in Student.objects.select_related('user').all()
             }
+            # Занятые логины без учёта регистра (одним запросом): новая строка с почтой,
+            # которая уже есть в БД у другого аккаунта, роняла весь импорт (IntegrityError)
+            # или плодила второй аккаунт на тот же ящик (Ivanov@ / ivanov@).
+            taken_usernames = {u.lower() for u in User.objects.values_list('username', flat=True)}
 
             for index, row in enumerate(data, 1):
                 def clean_val(key):
@@ -143,6 +168,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 if status_raw not in Student.ACTIVE_STATUSES:
                     # Неизвестный код статуса — не трогаем запись.
                     logger.warning(f"Импорт: студент {external_id} — неизвестный статус '{status_raw}', строка пропущена.")
+                    report.append((row, 'unknown_status'))
                     continue
 
                 group_code = clean_val('Код_Группы')
@@ -161,6 +187,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                     logger.warning(
                         f"Импорт: студент {external_id} ({full_name}) пропущен - группа с кодом '{group_code}' не найдена в БД. Сначала синхронизируйте структуру (факультеты/кафедры/группы)."
                     )
+                    report.append((row, 'no_group'))
                     continue
 
                 # Группа реально присутствует в файле — попадает в scope архивации отсутствующих.
@@ -188,9 +215,13 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 else:
                     # Если студента нет, создаем/обновляем юзера по username.
                     # Пароль не задаём (неиспользуемый): студент получает его сам на почту
-                    # («Регистрация» на странице входа). Заодно импорт не хэширует пароль
-                    # на каждого нового студента - PBKDF2 ~0,45 с, на 3600 строк это 15-20 минут.
+                    # ("Регистрация" на странице входа). Заодно импорт не хэширует пароль.
                     username = email if email else f"student_{external_id}@bgitu.ru"
+                    if username.lower() in taken_usernames:
+                        logger.warning(f"Импорт: студент {external_id} не создан - логин {username} уже занят.")
+                        report.append((row, 'email_taken'))
+                        continue
+                    taken_usernames.add(username.lower())
                     user = User.objects.create_user(
                         username=username,
                         email=email,
@@ -201,9 +232,8 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                     )
                     user.groups.add(g_student)
                     created_students += 1
-                    # НЕ ЗАДЕЙСТВОВАНО: пароли студентов выдаются по почте через «Регистрацию» /
-                    # «Восстановить пароль», CSV для раздачи «на листочках» больше не пишется
-                    # (решение 2026-10-20).
+                    # НЕ ЗАДЕЙСТВОВАНО: пароли студентов выдаются по почте через "Регистрацию" /
+                    # "Восстановить пароль", CSV для раздачи больше не пишется
                     # password = generate_password()
                     # user.set_password(password)
                     # user.save(update_fields=['password'])
@@ -277,7 +307,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
             )
             self.message_user(
                 request,
-                f"Пропущено {len(skipped_no_group)} строк(и): группа не найдена в БД. Синхронизируйте структуру (факультеты/кафедры/группы) и повторите импорт. Подробности - в логах бэкенда.",
+                f"Пропущено {len(skipped_no_group)} строк(и): группа не найдена в БД. Синхронизируйте структуру (факультеты/кафедры/группы) и повторите импорт. Список строк - в отчёте на этой странице («Скачать CSV»).",
                 messages.WARNING,
             )
         if archived_terminal:
@@ -293,7 +323,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 f"(в рамках {len(seen_group_ids)} групп из файла).",
                 messages.WARNING,
             )
-        # НЕ ЗАДЕЙСТВОВАНО: CSV с паролями новых студентов (см. выше, решение 2026-10-20).
+        # НЕ ЗАДЕЙСТВОВАНО: CSV с паролями новых студентов
         # if new_credentials:
         #     filename, _ = log_generated_passwords(new_credentials, prefix="students")
         #     self.message_user(
@@ -311,7 +341,44 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
         else:
             self.message_user(request, "Данные обновлены. Новых пользователей не создано.", messages.SUCCESS)
 
+        if report:
+            return self._import_result_page(request, rows_in_file, report, active_processed)
         return active_processed
+
+    def _import_result_page(self, request, rows_in_file, report, processed):
+        """
+        Итоги импорта: сколько строк и почему не попало в БД. CSV отчёта отдаётся ссылкой
+        data: прямо со страницы и на сервере не хранится (в нём ФИО и почты).
+        shortcut: data:-ссылка надёжна в браузерах примерно до 2 МБ (отчёт на 3600 строк - ~90 КБ),
+        при отчётах в тысячи строк с пропусками - отдавать CSV отдельным ответом.
+        """
+        counts = {code: 0 for code in REASON_LABELS}
+        for _, reason in report:
+            counts[reason] += 1
+        preview = [
+            {
+                'code': row.get('Код', ''),
+                'full_name': ' '.join(str(row.get(k, '')).strip() for k in ('Фамилия', 'Имя', 'Отчество')).strip(),
+                'email': row.get('E_Mail', ''),
+                'group': row.get('Код_Группы', ''),
+                'reason': REASON_LABELS[reason],
+                'reason_code': reason,
+            }
+            for row, reason in report[:50]
+        ]
+        return TemplateResponse(request, 'admin/student_import_result.html', {
+            **self.admin_site.each_context(request),
+            'title': 'Итоги импорта студентов',
+            'opts': self.model._meta,
+            'rows_in_file': rows_in_file,
+            'processed': processed,
+            'counts': counts,
+            'count_rows': [(REASON_LABELS[code], n) for code, n in counts.items() if n],
+            'removed_total': len(report),
+            'preview': preview,
+            'report_csv': build_import_report_csv(report),
+            'report_filename': f"students_import_report_{timezone.localtime():%Y-%m-%d_%H-%M}.csv",
+        })
 
 @admin.register(Level)
 class LevelAdmin(admin.ModelAdmin):

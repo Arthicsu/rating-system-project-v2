@@ -7,6 +7,7 @@
 """
 from django import forms
 from django.contrib import messages
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import path
 import csv
@@ -49,6 +50,9 @@ class BaseImport:
                 try:
                     data = self.parse_import_file(request.FILES['file'])
                     count = self.process_import(request, data)
+                    # Наследник может вернуть свою страницу итогов (отчёт очистки студентов).
+                    if isinstance(count, HttpResponse):
+                        return count
                     imported = count if isinstance(count, int) else len(data)
                     self.message_user(request, f"Импортировано {imported} из {len(data)} строк.", messages.SUCCESS)
                 except Exception as e:

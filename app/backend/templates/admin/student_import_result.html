@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h2>Итоги импорта</h2>
+<ul>
+    <li>Строк в файле: {{ rows_in_file }}</li>
+    <li>Обработано активных студентов (создано или обновлено): {{ processed }}</li>
+    <li>Не попало в БД: {{ removed_total }}
+        <ul>
+            {% for label, count in count_rows %}
+            <li>{{ label }}: {{ count }}</li>
+            {% endfor %}
+        </ul>
+    </li>
+</ul>
+
+<p>
+    {# Отчёт формируется из данных этого импорта и на сервере не хранится: в нём ФИО и почты. #}
+    <a class="button" download="{{ report_filename }}"
+       href="data:text/csv;charset=utf-8,{{ report_csv|urlencode:'' }}">Скачать CSV</a>
+    полный отчёт о строках, не попавших в БД.
+</p>
+
+<table>
+    <thead>
+        <tr><th>Код</th><th>ФИО</th><th>E-mail</th><th>Код группы</th><th>Причина</th></tr>
+    </thead>
+    <tbody>
+        {% for item in preview %}
+        <tr>
+            <td>{{ item.code }}</td>
+            <td>{{ item.full_name }}</td>
+            <td>{{ item.email }}</td>
+            <td>{{ item.group }}</td>
+            <td>{{ item.reason }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% if removed_total > preview|length %}
+<p>Показаны первые {{ preview|length }} из {{ removed_total }} - остальные в CSV.</p>
+{% endif %}
+
+<p><a href="{% url 'admin:students_student_changelist' %}">К списку студентов</a></p>
+{% endblock %}
