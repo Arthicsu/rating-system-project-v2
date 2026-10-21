@@ -7,6 +7,7 @@ import zipfile
 from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group as AuthGroup
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
@@ -67,7 +68,9 @@ class SemesterScoringTests(APITestCase):
             user=self.user, external_id="EXT-1", full_name="Студент", record_book="RB-1",
         )
         # Рейтинг доступен только сотрудникам — API-проверки ходят от этого пользователя.
+        # Ректорат: рейтинг ограничен scope сотрудника, а здесь проверяются семестры, не scope.
         self.staff_user = User.objects.create_user(username="staff@uni.ru", password="pass12345")
+        self.staff_user.groups.add(AuthGroup.objects.get_or_create(name="Rectorate")[0])
         Staff.objects.create(user=self.staff_user)
 
     def _doc(self, semester, status_obj=None):

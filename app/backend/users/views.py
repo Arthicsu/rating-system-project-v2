@@ -222,9 +222,11 @@ class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
     - export — выгрузка рейтинга в Excel (те же параметры, что и list).
     """
     authentication_classes = [SessionAuthentication]
-    # Кэш list/filters остаётся общим: rating_queryset не зависит от пользователя
-    # (scope тут нет), а permissions отрабатывают в dispatch до cache_page.
-    # При изменении баллов кэш списка сбрасывается (см. services.apply_score_delta).
+    # list ограничен scope сотрудника (rating_queryset), поэтому его cache_page
+    # разделён по Cookie (vary_on_headers): у каждой сессии свой ключ кэша.
+    # filters - общий справочник факультетов/курсов/групп, кэш один на всех.
+    # Permissions отрабатывают в dispatch до cache_page; при изменении баллов
+    # кэш списка сбрасывается (см. services.apply_score_delta).
     permission_classes = [IsStaffProfile]
     serializer_class = StudentRatingSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter]

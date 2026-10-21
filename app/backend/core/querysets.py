@@ -106,7 +106,8 @@ def filtered_students(user, request):
 
 def rating_queryset(request):
     """
-    Базовый queryset рейтинга за выбранный семестр (только активные студенты).
+    Базовый queryset рейтинга за выбранный семестр (только активные студенты
+    в области видимости сотрудника: кафедра - своя, декан - факультет, ректорат - все).
 
     Текущий семестр (по умолчанию) — живой кэш баллов Student; прошлый —
     аннотации sem_* из истории SemesterScore (0 у студентов без строки).
@@ -116,7 +117,10 @@ def rating_queryset(request):
     category = request.query_params.get('category', 'common')
     direction = request.query_params.get('direction', 'desc')
 
-    queryset = Student.objects.active().select_related('group', 'faculty', 'user')
+    # Без scope кафедра видела в таблице весь вуз (а профили чужих не открывались).
+    queryset = scoping.scope_queryset(
+        request.user, Student.objects.active().select_related('group', 'faculty', 'user')
+    )
 
     semester_id, is_past = get_requested_semester(request)
     prefix = ''
