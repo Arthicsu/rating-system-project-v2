@@ -12,10 +12,11 @@ import type { DashboardStatsParams, FilterStudentsParams } from '@/interfaces/St
 
 // --- Профиль и достижения студента -----------------------------------------
 
-export function useMyProfile() {
+export function useMyProfile(enabled = true) {
   return useQuery({
     queryKey: qk.profile(),
     queryFn: () => studentApi.getProfile().then((r) => r.data),
+    enabled,
   });
 }
 
