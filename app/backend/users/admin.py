@@ -3,6 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.urls import reverse
 from django.utils.html import format_html
 
+from core.admin_staff_passwords import staff_passwords_action
 from university_structure.models import Staff
 
 from .models import User
@@ -22,6 +23,7 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('is_active', 'is_staff', 'is_superuser', 'groups')
     search_fields = ('username', 'last_name', 'first_name', 'patronymic', 'email')
     inlines = [StaffInline]
+    actions = ['generate_passwords_csv']
 
     fieldsets = UserAdmin.fieldsets + (
         ('Дополнительно', {'fields': ('patronymic',)}),
@@ -37,6 +39,11 @@ class CustomUserAdmin(UserAdmin):
     def get_queryset(self, request):
         # Колонки-ссылки на профили читают связи в списке — без select_related это N+1.
         return super().get_queryset(request).select_related('student_profile', 'staff_profile')
+
+    @admin.action(description="Сгенерировать новые пароли сотрудникам и скачать CSV")
+    def generate_passwords_csv(self, request, queryset):
+        # Студенты и суперпользователи среди выбранных пропускаются.
+        return staff_passwords_action(self, request, queryset)
 
     @admin.display(description='Роли')
     def get_roles(self, obj):

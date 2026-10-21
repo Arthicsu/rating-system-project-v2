@@ -3,6 +3,7 @@ from django.db import transaction
 from django.contrib.auth.models import Group as DjangoGroup
 
 from core.admin_import import CsvImport
+from core.admin_staff_passwords import staff_passwords_action
 from core.eos.admin_mixin import EosSyncActionsMixin
 from core.eos.syncers import FacultySyncer, DepartmentSyncer, GroupSyncer
 
@@ -18,11 +19,15 @@ class StaffAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
     search_fields = ('email', 'department__name', 'faculty__name')
     raw_id_fields = ('user', 'department', 'faculty')
     change_list_template = "admin/import_actions.html"
-    actions = []
+    actions = ['generate_passwords_csv']
 
     def get_roles(self, obj):
         return ", ".join([group.name for group in obj.user.groups.all()])
     get_roles.short_description = 'Роли (Группы)'
+
+    @admin.action(description="Сгенерировать новые пароли и скачать CSV")
+    def generate_passwords_csv(self, request, queryset):
+        return staff_passwords_action(self, request, User.objects.filter(staff_profile__in=queryset))
 
     def get_urls(self):
         return self.get_import_urls() + self.get_eos_urls() + super().get_urls()
