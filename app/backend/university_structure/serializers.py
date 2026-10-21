@@ -134,7 +134,6 @@ class StaffProfileResponseSerializer(serializers.Serializer):
     faculty_name = serializers.CharField()
     roles = serializers.ListField(child=serializers.CharField())
     is_own_profile = serializers.BooleanField()
-    is_staff = serializers.BooleanField()
     type = serializers.CharField()
 
 

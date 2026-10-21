@@ -37,6 +37,9 @@ class UserResponseSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     short_name = serializers.SerializerMethodField()
     roles = serializers.SerializerMethodField()
+    # Сотрудник вуза (есть профиль Staff)
+    # Не путать с Django is_staff - тот открывает админку и есть только у суперпользователей
+    is_employee = serializers.SerializerMethodField()
     # pending_docs_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -46,12 +49,16 @@ class UserResponseSerializer(serializers.ModelSerializer):
             'username',
             'record_book',
             'isAuthenticated',
-            'is_staff',
+            'is_employee',
             'full_name',
             'short_name',
             'roles',
             # 'pending_docs_count',
         ]
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_employee(self, obj):
+        return hasattr(obj, 'staff_profile')
 
     @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_roles(self, obj):

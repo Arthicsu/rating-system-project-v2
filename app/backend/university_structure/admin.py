@@ -46,7 +46,6 @@ class StaffAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                         "first_name": row.get('first_name', ''),
                         "last_name": row.get('last_name', ''),
                         "patronymic": row.get('patronymic', ''),
-                        "is_staff": True,
                     }
                 )
                 if created:

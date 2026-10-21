@@ -9,17 +9,25 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         roles = ['Student', 'Department', 'Dean', 'Rectorate']
         
-        student_ct = ContentType.objects.get_for_model(Student)
-        document_ct = ContentType.objects.get_for_model(Document)
+        # Нужны только закомментированному назначению прав ниже.
+        # student_ct = ContentType.objects.get_for_model(Student)
+        # document_ct = ContentType.objects.get_for_model(Document)
 
         for role_name in roles:
             group, created = Group.objects.get_or_create(name=role_name)
             if created:
                 self.stdout.write(f'Группа "{role_name}" создана.')
             
-            if role_name in ['Dean', 'Rectorate']:
-                perms = Permission.objects.filter(content_type=student_ct, codename='view_student')
-                doc_perms = Permission.objects.filter(content_type=document_ct, codename__in=['view_document'])
-                group.permissions.set(list(perms) + list(doc_perms))
+            # Роли работают через API и scope (core/scoping.py), Django-права им не нужны:
+            # в админку ходят только суперпользователи ОИ. Права очищаются и у групп,
+            # которым их выдавали раньше.
+            group.permissions.set([])
+
+            # НЕ ЗАДЕЙСТВОВАНО: права на чтение в админке для Dean/Rectorate давали обход
+            # scope - декан видел в /admin/ всех студентов и заявки вуза.
+            # if role_name in ['Dean', 'Rectorate']:
+            #     perms = Permission.objects.filter(content_type=student_ct, codename='view_student')
+            #     doc_perms = Permission.objects.filter(content_type=document_ct, codename__in=['view_document'])
+            #     group.permissions.set(list(perms) + list(doc_perms))
 
         self.stdout.write(self.style.SUCCESS('Роли успешно настроены!'))

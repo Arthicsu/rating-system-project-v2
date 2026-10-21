@@ -269,7 +269,7 @@ class CheckAuthAPIViewTests(UsersAPITestCase):
         self.assertEqual(data["username"], "me@uni.ru")
         self.assertTrue(data["isAuthenticated"])
         # Контракт UserResponseSerializer
-        for field in ("id", "is_staff", "full_name", "short_name", "roles"):
+        for field in ("id", "is_employee", "full_name", "short_name", "roles"):
             self.assertIn(field, data)
 
     def test_session_response_is_not_cacheable(self):

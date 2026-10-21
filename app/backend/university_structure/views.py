@@ -51,7 +51,6 @@ class StaffViewSet(viewsets.ViewSet):
         data.update({
             "roles": list(staff.user.groups.values_list('name', flat=True)) if staff.user else [],
             "is_own_profile": True,
-            "is_staff": staff.user.is_staff if staff.user else False,
             "type": "staff",
         })
         return Response(data)
