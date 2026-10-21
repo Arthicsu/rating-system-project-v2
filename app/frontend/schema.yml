@@ -503,8 +503,8 @@ paths:
       operationId: v1_auth_forgot_password_create
       description: |-
         Аутентификация: login / logout / session (ex check-auth) / forgot-password.
-
-        Регистрация отключена намеренно (см. RegistrationAPIView — код сохранён,
+        "Получить пароль" студентом: "регистрация" (это первый вход) и "забыл пароль" (services.request_password). 
+        Привычная регистрация с заполнением большой формы отключена намеренно (см. RegistrationAPIView — код сохранён,
         маршрут не подключён).
       tags:
       - auth
@@ -529,12 +529,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
-          description: ''
-        '500':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorDetail'
           description: ''
   /api/v1/auth/login/:
     post:

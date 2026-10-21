@@ -16,3 +16,14 @@ class LoginRateThrottle(SimpleRateThrottle):
             'scope': self.scope,
             'ident': username.strip().lower(),
         }
+
+
+class LoginIpRateThrottle(SimpleRateThrottle):
+    """
+    Троттлинг входа по IP: перебор разных логинов с одного адреса
+    (LoginRateThrottle выше считает попытки только на один логин).
+    """
+    scope = 'login_ip'
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {'scope': self.scope, 'ident': self.get_ident(request)}

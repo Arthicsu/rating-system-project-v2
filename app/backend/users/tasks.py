@@ -10,7 +10,12 @@ import logging
 from celery import shared_task
 from django.contrib.auth import get_user_model
 
-from .services import reset_user_password, send_password_email
+from .services import (
+    is_active_student,
+    reset_user_password,
+    send_archived_notice_email,
+    send_password_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +32,15 @@ def send_recovery_password_email(self, user_id: int):
     Каждый ретрай генерирует пароль заново, так что действителен тот,
     который ушёл в последнем успешном письме.
     """
-    user = get_user_model().objects.filter(pk=user_id).first()
+    user = get_user_model().objects.filter(pk=user_id).select_related('student_profile').first()
     if user is None:
         # Пользователя могли удалить, пока задача ждала в очереди
         logger.warning("recovery email skipped: user id=%s not found", user_id)
+        return
+    # Повторная проверка в воркере: пока задача ждала, студента могли архивировать,
+    # а сотрудникам пароль по почте не выдаётся вовсе (его выдаёт ОИ).
+    if not is_active_student(user):
+        logger.warning("recovery email skipped: user id=%s is not an active student", user_id)
         return
 
     try:
@@ -41,8 +51,28 @@ def send_recovery_password_email(self, user_id: int):
 
     new_password = reset_user_password(user)
     try:
-        send_password_email(user.email, user_name, new_password)
+        send_password_email(user.email, user_name, user.username, new_password)
         logger.info("recovery password email sent to user id=%s", user_id)
     except Exception as exc:
         logger.warning("recovery password email failed for user id=%s: %s", user_id, exc)
+        raise self.retry(exc=exc)
+
+
+@shared_task(
+    name="users.tasks.send_archived_account_email",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=30,
+)
+def send_archived_account_email(self, user_id: int):
+    """Письмо архивному студенту «аккаунт в архиве» вместо пароля; пароль не меняется."""
+    user = get_user_model().objects.filter(pk=user_id).first()
+    if user is None:
+        logger.warning("archived notice skipped: user id=%s not found", user_id)
+        return
+    try:
+        send_archived_notice_email(user.email, user.get_user_display_name())
+        logger.info("archived notice email sent to user id=%s", user_id)
+    except Exception as exc:
+        logger.warning("archived notice email failed for user id=%s: %s", user_id, exc)
         raise self.retry(exc=exc)

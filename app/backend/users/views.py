@@ -24,7 +24,6 @@ from django.views.decorators.vary import vary_on_headers
 from rest_framework import mixins, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
-from rest_framework.exceptions import APIException
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -52,7 +51,7 @@ from core.preview import (
     render_office_pdf,
 )
 from core.serializers import ErrorDetailSerializer, MessageSerializer
-from core.throttling import LoginRateThrottle
+from core.throttling import LoginIpRateThrottle, LoginRateThrottle
 
 from students.models import Category, DocumentFile
 from students.serializers import (
@@ -71,8 +70,7 @@ from .serializers import (
     StudentRegistrationSerializer,
     UserResponseSerializer,
 )
-from .services import get_pending_docs_count
-from .tasks import send_recovery_password_email
+from .services import get_pending_docs_count, request_password, resolve_login_username
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +125,7 @@ class AuthViewSet(viewsets.ViewSet):
 
     def get_throttles(self):
         if self.action == 'login':
-            return [LoginRateThrottle()]
+            return [LoginRateThrottle(), LoginIpRateThrottle()]
         if self.action == 'forgot_password':
             self.throttle_scope = 'forgot_password'
             return [ScopedRateThrottle()]
@@ -144,7 +142,8 @@ class AuthViewSet(viewsets.ViewSet):
 
         user = authenticate(
             request,
-            username=serializer.validated_data['username'],
+            # Почту студента принимаем без учёта регистра (см. resolve_login_username).
+            username=resolve_login_username(serializer.validated_data['username']),
             password=serializer.validated_data['password'],
         )
         if user is None:
@@ -172,31 +171,21 @@ class AuthViewSet(viewsets.ViewSet):
 
     @extend_schema(
         request=ForgotPasswordRequestSerializer,
-        responses={200: MessageSerializer, 500: ErrorDetailSerializer},
+        responses={200: MessageSerializer},
     )
     @action(detail=False, methods=['post'], url_path='forgot-password')
     def forgot_password(self, request):
+        """«Получить пароль» студентом: первый вход и «забыл пароль» (services.request_password)."""
         serializer = ForgotPasswordRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data['email']
 
-        # Ответ не раскрывает, существует ли аккаунт с такой почтой.
-        neutral_message = f"Если аккаунт с почтой {email} существует, на него отправлен новый пароль"
-
-        user = User.objects.filter(email__iexact=email).first()
-        if not user:
-            return Response({"message": neutral_message})
-
-        try:
-            # В очередь уходит только id: генерация пароля и отправка письма
-            # выполняются внутри задачи, открытый пароль через брокер не гоняем.
-            send_recovery_password_email.delay(user.pk)
-        except Exception:
-            # Деталь ошибки — только в лог: текст исключения может раскрывать внутренности (SMTP, хосты).
-            logger.exception("Ошибка при постановке письма восстановления в очередь")
-            raise APIException("Ошибка сервера при отправке письма")
-
-        return Response({"message": neutral_message})
+        # Ответ всегда один и тот же: по нему нельзя узнать, есть ли аккаунт с такой почтой.
+        # В очередь уходит только id - пароль генерируется в воркере, через брокер не идёт.
+        request_password(email)
+        return Response({
+            "message": f"Если студенческий аккаунт с почтой {email} существует, на неё отправлено письмо",
+        })
 
 
 _RATING_PARAMS = [

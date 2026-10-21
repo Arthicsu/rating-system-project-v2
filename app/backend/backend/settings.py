@@ -144,6 +144,8 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
     'DEFAULT_THROTTLE_RATES': {
         'login': os.getenv('THROTTLE_LOGIN', '5/min'),
+        'login_ip': os.getenv('THROTTLE_LOGIN_IP', '30/min'),
+        'change_password': os.getenv('THROTTLE_CHANGE_PASSWORD', '5/hour'),
         'register': os.getenv('THROTTLE_REGISTER', '60/hour'),
         'upload': os.getenv('THROTTLE_UPLOAD', '60/hour'),
         'forgot_password': os.getenv('THROTTLE_FORGOT_PASSWORD', '5/hour'),
@@ -358,6 +360,8 @@ AWS_QUERYSTRING_EXPIRE = int(os.getenv('SEAWEEDFS_QUERYSTRING_EXPIRE', 300))
 # Email settings
 
 
+# Пауза между письмами "Получить пароль" одному аккаунту (в секундах).
+PASSWORD_REQUEST_COOLDOWN = int(os.getenv('PASSWORD_REQUEST_COOLDOWN', 15 * 60))
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend') # Временно консольный бэкенд для тестирования
 # EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'  # Правильный бэкенд для прода
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')

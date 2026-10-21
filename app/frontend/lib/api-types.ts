@@ -189,12 +189,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * @description Аутентификация: login / logout / session (ex check-auth) / forgot-password.
-         *
-         *     Регистрация отключена намеренно (см. RegistrationAPIView — код сохранён,
-         *     маршрут не подключён).
-         */
+        /** @description «Получить пароль» студентом: первый вход и «забыл пароль» (services.request_password). */
         post: operations["v1_auth_forgot_password_create"];
         delete?: never;
         options?: never;
@@ -1330,14 +1325,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Message"];
-                };
-            };
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorDetail"];
                 };
             };
         };

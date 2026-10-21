@@ -6,8 +6,10 @@
 Кастомные классы ниже покрывают доменные случаи, которые раньше возвращались
 вручную через Response({"error"/"message"}, status=...).
 """
+import math
+
 from rest_framework import status
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, Throttled
 from rest_framework.views import exception_handler as drf_exception_handler
 
 
@@ -63,16 +65,30 @@ class DuplicateRequest(APIException):
     default_code = 'duplicate_request'
 
 
+def throttle_message(wait):
+    """Текст 429 для людей: стандартный текст DRF наполовину английский."""
+    if wait is None:
+        return "Слишком много попыток. Повторите позже."
+    seconds = math.ceil(wait)
+    if seconds < 60:
+        return f"Слишком много попыток. Повторите через {seconds} с."
+    return f"Слишком много попыток. Повторите через {math.ceil(seconds / 60)} мин."
+
+
 def api_exception_handler(exc, context):
     """
     Обёртка над стандартным DRF-хендлером:
     - проставляет Retry-After, если исключение несёт retry_after (PreviewBusy);
     - заворачивает "голый" список ValidationError в {"detail": [...]},
-      чтобы тело ошибки всегда было объектом.
+      чтобы тело ошибки всегда было объектом;
+    - даёт 429 (троттлинг) понятный русский текст с временем ожидания.
     """
     response = drf_exception_handler(exc, context)
     if response is None:
         return None
+
+    if isinstance(exc, Throttled):
+        response.data = {'detail': throttle_message(exc.wait)}
 
     retry_after = getattr(exc, 'retry_after', None)
     if retry_after is not None:
