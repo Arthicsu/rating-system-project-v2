@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,6 +25,8 @@ export default function LoginPage() {
   const { loginUser, user } = useMySession();
   const router = useRouter();
   const [sessionExpired, setSessionExpired] = useState(false);
+  // Ошибка входа - рядом с формой, а не исчезающим тостом: она не пропадает, пока пользователь исправляет поля
+  const [formError, setFormError] = useState<string | null>(null);
 
   const {
     register,
@@ -54,19 +55,15 @@ export default function LoginPage() {
   if (user) return null;
 
   const onSubmit = async (data: LoginFormValues) => {
+    setFormError(null);
     try {
       await loginUser(data);
       router.push(getNextPath());
     } catch (err) {
-      const error = err as Error | ApiError;
-
-      const errorData = (error as ApiError).response?.data;
-
-      if (errorData?.detail) {
-        toast.error(String(errorData.detail));
-      } else {
-        toast.error('Ошибка авторизации. Повторите попытку позже.');
-      }
+      const errorData = (err as ApiError).response?.data;
+      setFormError(
+        errorData?.detail ? String(errorData.detail) : 'Не удалось войти. Повторите попытку позже.'
+      );
     }
   };
 
@@ -94,6 +91,9 @@ export default function LoginPage() {
                 type="text"
                 id="username"
                 required
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
                 className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#0069a8] focus:ring-1 focus:ring-[#0069a8]"
                 {...register('username')}
               />
@@ -106,10 +106,17 @@ export default function LoginPage() {
               <PasswordInput
                 id="password"
                 required
+                autoComplete="current-password"
                 className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 pr-10 text-sm text-slate-900 outline-none focus:border-[#0069a8] focus:ring-1 focus:ring-[#0069a8]"
                 {...register('password')}
               />
             </div>
+
+            {formError && (
+              <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {formError}
+              </p>
+            )}
 
             <button
               type="submit"
@@ -120,16 +127,28 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm text-[#0069a8]">
+          <div className="mt-5 space-y-2 text-center text-sm">
             {/* <Link className="text-[#0069a8] hover:text-sky-900 underline underline-offset-2" href="/register">
               Зарегистрироваться
             </Link> */}
             {/* <span className="h-5 w-px bg-slate-300" /> */}
-            {/* пока коммитим */}
-            <Link className="text-sky-700 hover:text-sky-900 underline underline-offset-2" href="/reset-password">
-              Восстановить пароль
-            </Link>
-          </p>
+            {/* Обе ссылки ведут на одну форму "пароль на почту" */}
+            <p className="flex flex-wrap items-center justify-center gap-3">
+              <Link
+                className="inline-block py-1 font-medium text-sky-700 underline underline-offset-2 hover:text-sky-900"
+                href="/reset-password?mode=register"
+              >
+                Регистрация
+              </Link>
+              <span className="h-5 w-px bg-slate-300" aria-hidden="true" />
+              <Link
+                className="inline-block py-1 font-medium text-sky-700 underline underline-offset-2 hover:text-sky-900"
+                href="/reset-password"
+              >
+                Восстановить пароль
+              </Link>
+            </p>
+          </div>
         </div>
 
         {/* Информационный блок справа */}
