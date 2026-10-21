@@ -1853,8 +1853,6 @@ components:
             type: string
         is_own_profile:
           type: boolean
-        is_staff:
-          type: boolean
         type:
           type: string
       required:
@@ -1864,7 +1862,6 @@ components:
       - full_name
       - id
       - is_own_profile
-      - is_staff
       - phone
       - roles
       - type
@@ -2078,11 +2075,9 @@ components:
         isAuthenticated:
           type: boolean
           default: true
-        is_staff:
+        is_employee:
           type: boolean
-          title: Статус персонала
-          description: Отметьте, если пользователь может входить в административную
-            часть сайта.
+          readOnly: true
         full_name:
           type: string
           readOnly: true
@@ -2097,6 +2092,7 @@ components:
       required:
       - full_name
       - id
+      - is_employee
       - record_book
       - roles
       - short_name

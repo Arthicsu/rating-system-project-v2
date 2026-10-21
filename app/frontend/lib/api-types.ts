@@ -909,7 +909,6 @@ export interface components {
             faculty_name: string;
             roles: string[];
             is_own_profile: boolean;
-            is_staff: boolean;
             type: string;
         };
         StudentProfile: {
@@ -1000,11 +999,7 @@ export interface components {
             readonly record_book: string;
             /** @default true */
             isAuthenticated: boolean;
-            /**
-             * Статус персонала
-             * @description Отметьте, если пользователь может входить в административную часть сайта.
-             */
-            is_staff?: boolean;
+            readonly is_employee: boolean;
             readonly full_name: string;
             readonly short_name: string;
             readonly roles: string[];

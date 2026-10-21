@@ -20,15 +20,15 @@ type NavItem = {
 export default function Header() {
   const { logoutUser, user, loading } = useMySession();
   const pathname = usePathname() ?? '';
-  const { data: pendingCount } = usePendingCount(!!user?.is_staff);
+  const { data: pendingCount } = usePendingCount(!!user?.is_employee);
 
-  const profileHref = user?.is_staff ? '/staff-profile' : '/profile';
+  const profileHref = user?.is_employee ? '/staff-profile' : '/profile';
 
   // В меню только то, чего нет по клику на имя (кабинет): у сотрудника прямая
   // ссылка на заявки, у студента кнопка загрузки достижения.
   const navItems: NavItem[] = !user
     ? []
-    : user.is_staff
+    : user.is_employee
       ? [
           {
             href: '/staff-profile?tab=pending-requests',

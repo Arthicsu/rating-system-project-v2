@@ -34,6 +34,6 @@ export interface RegisterFormData {
 export interface AuthCheckResponse {
   isAuthenticated: boolean;
   username?: string;
-  is_staff?: boolean;
+  is_employee?: boolean;
   roles?: string[];
 }

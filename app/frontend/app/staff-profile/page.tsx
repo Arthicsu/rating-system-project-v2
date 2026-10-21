@@ -52,12 +52,12 @@ export default function StaffProfilePage() {
     if (loading) return;
     if (!user) {
       router.replace('/login');
-    } else if (!user.is_staff) {
+    } else if (!user.is_employee) {
       router.replace('/profile');
     }
   }, [user, loading, router]);
 
-  if (loading || !user?.is_staff) {
+  if (loading || !user?.is_employee) {
     return null;
   }
 
