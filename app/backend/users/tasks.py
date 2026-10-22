@@ -14,6 +14,7 @@ from .services import (
     is_active_student,
     reset_user_password,
     send_archived_notice_email,
+    send_password_changed_notice_email,
     send_password_email,
 )
 
@@ -75,4 +76,24 @@ def send_archived_account_email(self, user_id: int):
         logger.info("archived notice email sent to user id=%s", user_id)
     except Exception as exc:
         logger.warning("archived notice email failed for user id=%s: %s", user_id, exc)
+        raise self.retry(exc=exc)
+
+
+@shared_task(
+    name="users.tasks.send_password_changed_email",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=30,
+)
+def send_password_changed_email(self, user_id: int):
+    """Письмо изменения пароля после смены пароля студентом: если это был не он - увидит сразу."""
+    user = get_user_model().objects.filter(pk=user_id).first()
+    if user is None or not user.email:
+        logger.warning("password changed notice skipped: user id=%s not found or without email", user_id)
+        return
+    try:
+        send_password_changed_notice_email(user.email, user.get_user_display_name())
+        logger.info("password changed notice sent to user id=%s", user_id)
+    except Exception as exc:
+        logger.warning("password changed notice failed for user id=%s: %s", user_id, exc)
         raise self.retry(exc=exc)

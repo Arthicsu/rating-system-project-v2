@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 PASSWORD_EMAIL_SUBJECT = "Пароль для входа в Портфолио БГИТУ"
 ARCHIVED_EMAIL_SUBJECT = "Портфолио БГИТУ: аккаунт в архиве"
+PASSWORD_CHANGED_EMAIL_SUBJECT = "Портфолио БГИТУ: пароль изменён"
 
 
 @transaction.atomic
@@ -164,6 +165,19 @@ def send_archived_notice_email(email: str, user_name: str) -> None:
         "Если это ошибка - обратитесь в отдел информатизации."
     )
     _send_email(email, ARCHIVED_EMAIL_SUBJECT, text)
+
+
+def send_password_changed_notice_email(email: str, user_name: str) -> None:
+    """Уведомление о смене пароля самим студентом (пароля в письме нет). Вызывается из Celery-задачи."""
+    site = f"Сайт: {settings.EXTERNAL_SITE_URL}\n" if settings.EXTERNAL_SITE_URL else ""
+    text = (
+        f"{_greeting(user_name)}\n"
+        "\n"
+        "Пароль от Портфолио БГИТУ изменён.\n"
+        "Если это были не вы - получите новый пароль на странице входа («Восстановить пароль»).\n"
+        f"{site}"
+    )
+    _send_email(email, PASSWORD_CHANGED_EMAIL_SUBJECT, text)
 
 
 def get_pending_docs_count(user) -> int:

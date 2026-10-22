@@ -180,6 +180,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/change-password/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Смена пароля студентом: эта сессия остаётся, остальные гаснут (сменился хэш пароля). */
+        post: operations["v1_auth_change_password_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/forgot-password/": {
         parameters: {
             query?: never;
@@ -207,7 +224,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Аутентификация: login / logout / session (ex check-auth) / forgot-password.
+         * @description Аутентификация: login / logout / session (ex check-auth) / forgot-password / change-password.
          *
          *     Регистрация отключена намеренно (см. RegistrationAPIView — код сохранён,
          *     маршрут не подключён).
@@ -229,7 +246,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Аутентификация: login / logout / session (ex check-auth) / forgot-password.
+         * @description Аутентификация: login / logout / session (ex check-auth) / forgot-password / change-password.
          *
          *     Регистрация отключена намеренно (см. RegistrationAPIView — код сохранён,
          *     маршрут не подключён).
@@ -615,6 +632,15 @@ export interface components {
             /** Название */
             label: string;
             readonly sub_types: components["schemas"]["AchievementType"][];
+        };
+        /**
+         * @description Смена пароля студентом: текущий пароль и новый, прошедший AUTH_PASSWORD_VALIDATORS.
+         *     Пробелы по краям обрезаются, как у LoginRequestSerializer, - иначе сохранённый пароль
+         *     не совпал бы с тем, что придёт при входе.
+         */
+        ChangePassword: {
+            old_password: string;
+            new_password: string;
         };
         DocType: {
             /** Код */
@@ -1300,6 +1326,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AchievementConfig"];
+                };
+            };
+        };
+    };
+    v1_auth_change_password_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePassword"];
+                "application/x-www-form-urlencoded": components["schemas"]["ChangePassword"];
+                "multipart/form-data": components["schemas"]["ChangePassword"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Message"];
                 };
             };
         };

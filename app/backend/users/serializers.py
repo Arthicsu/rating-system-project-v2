@@ -1,9 +1,16 @@
+import logging
+
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from students.models import Student, DocumentFile
+from users.signals import _client_ip
 # from users.services import get_pending_docs_count
+
+audit_logger = logging.getLogger('audit')
 
 User = get_user_model()
 
@@ -119,6 +126,37 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
 
 class ForgotPasswordRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(help_text="Введите ваш email для восстановления пароля")
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """
+    Смена пароля студентом: текущий пароль и новый, прошедший AUTH_PASSWORD_VALIDATORS.
+    Пробелы по краям обрезаются, как у LoginRequestSerializer, - иначе сохранённый пароль
+    не совпал бы с тем, что придёт при входе.
+    """
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+
+    def validate_old_password(self, value):
+        request = self.context['request']
+        if not request.user.check_password(value):
+            # check_password не шлёт user_login_failed - без этой строки подбор из чужой сессии не виден.
+            audit_logger.warning(
+                "password change failed: wrong current password user=%s ip=%s",
+                request.user.pk, _client_ip(request),
+            )
+            raise serializers.ValidationError("Неверный текущий пароль")
+        return value
+
+    def validate(self, attrs):
+        new_password = attrs['new_password']
+        if new_password == attrs['old_password']:
+            raise serializers.ValidationError({'new_password': "Новый пароль совпадает с текущим"})
+        try:
+            validate_password(new_password, self.context['request'].user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({'new_password': list(exc.messages)})
+        return attrs
 
 
 class PendingCountSerializer(serializers.Serializer):

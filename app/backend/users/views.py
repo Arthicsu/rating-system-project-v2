@@ -14,7 +14,7 @@ import requests
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
-from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout, update_session_auth_hash
 from django.http import HttpResponse, StreamingHttpResponse
 from django.utils.decorators import method_decorator
 from django.utils.http import content_disposition_header
@@ -43,7 +43,7 @@ from core.exceptions import (
 )
 from core.export_rating_excel import generate_rating_excel
 from core.filters import StudentFilterSet
-from core.permissions import CanAccessDocumentFile, IsStaffProfile
+from core.permissions import CanAccessDocumentFile, IsStaffProfile, IsStudent
 from core.preview import (
     PreviewBusyError,
     PreviewConversionError,
@@ -63,6 +63,7 @@ from university_structure.models import AcademicYear, Faculty, Group
 from university_structure.serializers import RatingFiltersResponseSerializer
 
 from .serializers import (
+    ChangePasswordSerializer,
     DocumentFileAccessSerializer,
     ForgotPasswordRequestSerializer,
     LoginRequestSerializer,
@@ -71,8 +72,11 @@ from .serializers import (
     UserResponseSerializer,
 )
 from .services import get_pending_docs_count, request_password, resolve_login_username
+from .signals import _client_ip
+from .tasks import send_password_changed_email
 
 logger = logging.getLogger(__name__)
+audit_logger = logging.getLogger('audit')
 
 User = get_user_model()
 
@@ -111,7 +115,7 @@ class RegistrationAPIView(CreateAPIView):
 @extend_schema(tags=['auth'])
 class AuthViewSet(viewsets.ViewSet):
     """
-    Аутентификация: login / logout / session (ex check-auth) / forgot-password.
+    Аутентификация: login / logout / session (ex check-auth) / forgot-password / change-password.
 
     Регистрация отключена намеренно (см. RegistrationAPIView — код сохранён,
     маршрут не подключён).
@@ -121,13 +125,17 @@ class AuthViewSet(viewsets.ViewSet):
     def get_permissions(self):
         if self.action in ('login', 'session', 'forgot_password'):
             return [AllowAny()]
+        if self.action == 'change_password':
+            # Сотрудникам смены пароля нет: их общими учётками управляет ОИ.
+            return [IsStudent()]
         return [IsAuthenticated()]
 
     def get_throttles(self):
         if self.action == 'login':
             return [LoginRateThrottle(), LoginIpRateThrottle()]
-        if self.action == 'forgot_password':
-            self.throttle_scope = 'forgot_password'
+        if self.action in ('forgot_password', 'change_password'):
+            # change_password - по пользователю: подбор текущего пароля из чужой сессии упирается в лимит.
+            self.throttle_scope = self.action
             return [ScopedRateThrottle()]
         return []
 
@@ -186,6 +194,28 @@ class AuthViewSet(viewsets.ViewSet):
         return Response({
             "message": f"Если студенческий аккаунт с почтой {email} существует, на неё отправлено письмо",
         })
+
+    @extend_schema(
+        request=ChangePasswordSerializer,
+        responses={200: MessageSerializer},
+    )
+    @action(detail=False, methods=['post'], url_path='change-password')
+    def change_password(self, request):
+        """Смена пароля студентом: эта сессия остаётся, остальные гаснут (сменился хэш пароля)."""
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        user.set_password(serializer.validated_data['new_password'])
+        user.save(update_fields=['password'])
+        update_session_auth_hash(request, user)
+        audit_logger.info("password changed user=%s ip=%s", user.pk, _client_ip(request))
+
+        # Пароль уже сменён: сбой очереди писем не должен превращаться в 500.
+        try:
+            send_password_changed_email.delay(user.pk)
+        except Exception:
+            logger.exception("change password: cannot queue notice for user id=%s", user.pk)
+        return Response({"message": "Пароль изменён"})
 
 
 _RATING_PARAMS = [

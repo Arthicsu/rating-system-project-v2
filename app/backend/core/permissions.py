@@ -14,13 +14,19 @@ class IsStaffProfile(permissions.BasePermission):
 
 
 class IsStudent(permissions.BasePermission):
-    """Разрешает доступ только пользователям с профилем студента."""
+    """
+    Разрешает доступ только студентам. Учётка, у которой есть ещё и профиль сотрудника,
+    студентом не считается: фронт ведёт её как сотрудника (is_employee).
+    """
 
     message = 'Для этого действия необходима учетная запись студента.'
 
     def has_permission(self, request, view):
         user = request.user
-        return bool(user and user.is_authenticated and hasattr(user, 'student_profile'))
+        return bool(
+            user and user.is_authenticated
+            and hasattr(user, 'student_profile') and not hasattr(user, 'staff_profile')
+        )
 
 
 class HasStudentScope(permissions.BasePermission):

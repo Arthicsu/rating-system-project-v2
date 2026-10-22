@@ -498,14 +498,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/AchievementConfig'
           description: ''
+  /api/v1/auth/change-password/:
+    post:
+      operationId: v1_auth_change_password_create
+      description: 'Смена пароля студентом: эта сессия остаётся, остальные гаснут
+        (сменился хэш пароля).'
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
   /api/v1/auth/forgot-password/:
     post:
       operationId: v1_auth_forgot_password_create
-      description: |-
-        Аутентификация: login / logout / session (ex check-auth) / forgot-password.
-        "Получить пароль" студентом: "регистрация" (это первый вход) и "забыл пароль" (services.request_password). 
-        Привычная регистрация с заполнением большой формы отключена намеренно (см. RegistrationAPIView — код сохранён,
-        маршрут не подключён).
+      description: '«Получить пароль» студентом: первый вход и «забыл пароль» (services.request_password).'
       tags:
       - auth
       requestBody:
@@ -534,7 +558,7 @@ paths:
     post:
       operationId: v1_auth_login_create
       description: |-
-        Аутентификация: login / logout / session (ex check-auth) / forgot-password.
+        Аутентификация: login / logout / session (ex check-auth) / forgot-password / change-password.
 
         Регистрация отключена намеренно (см. RegistrationAPIView — код сохранён,
         маршрут не подключён).
@@ -572,7 +596,7 @@ paths:
     post:
       operationId: v1_auth_logout_create
       description: |-
-        Аутентификация: login / logout / session (ex check-auth) / forgot-password.
+        Аутентификация: login / logout / session (ex check-auth) / forgot-password / change-password.
 
         Регистрация отключена намеренно (см. RegistrationAPIView — код сохранён,
         маршрут не подключён).
@@ -1200,6 +1224,22 @@ components:
       - code
       - label
       - sub_types
+    ChangePassword:
+      type: object
+      description: |-
+        Смена пароля студентом: текущий пароль и новый, прошедший AUTH_PASSWORD_VALIDATORS.
+        Пробелы по краям обрезаются, как у LoginRequestSerializer, - иначе сохранённый пароль
+        не совпал бы с тем, что придёт при входе.
+      properties:
+        old_password:
+          type: string
+          writeOnly: true
+        new_password:
+          type: string
+          writeOnly: true
+      required:
+      - new_password
+      - old_password
     DocType:
       type: object
       properties:
