@@ -48,8 +48,8 @@ COPY . .
 # до app через setpriv - процессы приложения от root не работают.
 # setpriv --version в конце - страховка, что утилита есть в базовом образе.
 RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --create-home app \
-    && mkdir -p /backups /dumps /app/logs /app/staticfiles \
-    && chown -R app:app /backups /dumps /app/logs /app/staticfiles \
+    && mkdir -p /shared /app/staticfiles \
+    && chown app:app /shared /app/staticfiles \
     && chmod +x entrypoint.sh start-web.sh \
     && setpriv --version
 

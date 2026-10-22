@@ -1,6 +1,6 @@
 """
 Периодические бэкапы: дамп БД (gzip) и дамп хранилища достижений
-(объекты S3/SeaweedFS -> tar.gz). Пишутся в settings.BACKUPS_DIR (bind-mount ./backups), хранится settings.BACKUP_KEEP последних копий каждого вида.
+(объекты S3/SeaweedFS -> tar.gz). Пишутся в settings.BACKUPS_DIR (/shared/backups, на хосте <SHARED_HOST_DIR>/backups), хранится settings.BACKUP_KEEP последних копий каждого вида.
 Задачи можно запускать по отдельности (`backup_db`, `backup_storage`) или разом (`backup_all`- эта идёт в планировщик beat).
 """
 import gzip, tarfile, tempfile

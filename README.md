@@ -102,8 +102,8 @@ archive/
 Бэкапы снимает сервис `celery` (worker + встроенный beat) внутри стека - того же образа, что
 `backend`. Ежедневно в 03:00 (МСК) задача `core.tasks.backup_all`:
 
-1. `pg_dump` БД → `./backups/db/<POSTGRES_DB>_<YYYYMMDD_HHMMSS>.sql.gz` (plain SQL + gzip);
-2. все объекты bucket'а достижений → `./backups/seaweedfs/<bucket>_<...>.tar.gz`
+1. `pg_dump` БД → `./shared/backups/db/<POSTGRES_DB>_<YYYYMMDD_HHMMSS>.sql.gz` (plain SQL + gzip);
+2. все объекты bucket'а достижений → `./shared/backups/seaweedfs/<bucket>_<...>.tar.gz`
    (ключи `<record_book>/<uuid>.<ext>` сохраняются как есть);
 3. ротация - хранятся 3 последних копии каждого вида.
 
@@ -112,11 +112,11 @@ archive/
 docker compose exec celery celery -A backend call core.tasks.backup_all # разово через очередь
 docker compose exec celery celery -A backend inspect registered # видно core.tasks.backup_all
 ```
-Настройки: `BACKUPS_DIR` (по умолчанию `/backups`), `BACKUP_KEEP` (по умолчанию `3`).
+Настройки: `BACKUPS_DIR` (по умолчанию `/shared/backups`, на хосте - `<SHARED_HOST_DIR>/backups`), `BACKUP_KEEP` (по умолчанию `3`).
 
 ### Восстановление БД (заливка дампа обратно)
 ```bash
-gunzip -c backups/db/Project_<YYYYMMDD_HHMMSS>.sql.gz | docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+gunzip -c shared/backups/db/Project_<YYYYMMDD_HHMMSS>.sql.gz | docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 ```
 Либо распакованный файл положить как `dumps/dump_prod.sql` и развернуть с `HAS_DUMP=true`.
 
@@ -127,11 +127,25 @@ gunzip -c backups/db/Project_<YYYYMMDD_HHMMSS>.sql.gz | docker compose exec -T d
 docker compose exec -T celery python -c "import django,os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','backend.settings'); django.setup(); from core.tasks import restore_storage; print('restored', restore_storage())"
 ```
    Ключи в архиве совпадают с теми, что в `students_documentfile.file`, поэтому ссылки в БД
-   снова валидны. Конкретный архив можно передать: `restore_storage('/backups/seaweedfs/<файл>.tar.gz')`.
+   снова валидны. Конкретный архив можно передать: `restore_storage('/shared/backups/seaweedfs/<файл>.tar.gz')`.
 
 > Данные SeaweedFS хранятся в одном экземпляре (`replicaPlacement=000`).
 > Пересоздание контейнера данные не теряет (они в named volume), но потеря самого volume/диска - теряет.
 > нужно off-site копия + rsync
+
+## Права на каталог shared
+
+Каталог `SHARED_HOST_DIR` из `.env` (по умолчанию `./shared`) монтируется в контейнеры backend и celery как `/shared`. Туда приложение пишет логи (`logs/`), бэкапы (`backups/db`, `backups/seaweedfs`), CSV с паролями импорта (`import_passwords/`) и дампы (`dumps/`).
+
+- Процессы приложения работают от непривилегированного пользователя `app` (uid 1000). От root в контейнере выполняется только короткая подготовка при старте (`app/backend/entrypoint.sh`), затем привилегии сбрасываются.
+- При каждом старте entrypoint делает владельцем каталога uid 1000 и создаёт эти подкаталоги - даже если `./shared` создал docker или root на хосте.
+- В каталоге лежат CSV с паролями и дампы БД: закройте его от других пользователей хоста - `chmod 700 <SHARED_HOST_DIR>` (контейнерам это не мешает).
+- Если записать всё равно нельзя, в логе контейнера будет строка `ERR: /shared/... недоступен на запись для uid 1000`. Без записи в `logs/` backend не стартует. Починка на обычном хосте:
+   ```bash
+   sudo chown -R 1000:1000 <SHARED_HOST_DIR>
+   docker compose restart backend celery
+   ```
+  Сетевой диск с root_squash - то же самое, но на сервере NFS. При rootless docker или userns-remap uid 1000 контейнера на хосте - другой uid (начало диапазона из `/etc/subuid` + 1000): владельцем нужно сделать его.
 
 ## Документация
 
