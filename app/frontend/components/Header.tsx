@@ -45,7 +45,7 @@ export default function Header() {
   return (
     <>
       {/* Верхняя шапка */}
-      <header className="fixed inset-x-0 top-0 z-20 w-full bg-white shadow-[0px_20px_40px_-10px_rgba(34,60,80,0.15)]">
+      <header className="fixed inset-x-0 top-0 z-20 w-full bg-white pr-(--scrollbar-gap) shadow-[0px_20px_40px_-10px_rgba(34,60,80,0.15)]">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
           <div className="flex items-center justify-between gap-3 py-2 sm:py-2.5">
             {/* Лого + основная навигация (ПК) */}

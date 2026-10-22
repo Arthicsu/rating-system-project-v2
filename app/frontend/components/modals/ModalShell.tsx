@@ -68,6 +68,10 @@ export default function ModalShell({
     return () => clearTimeout(timer);
   }, [closing]);
 
+  // click уходит общему предку mousedown и mouseup: выделение текста в инпуте,
+  // отпущенное на бекдропе, иначе закрыло бы модалку. Закрываем, только если нажали на бекдроп.
+  const pressedOnBackdropRef = useRef(false);
+
   const handleClose = useCallback(() => {
     if (locked) return;
     setVisible(false);
@@ -77,6 +81,14 @@ export default function ModalShell({
   // Esc + блокировка прокрутки фона, пока модалка открыта.
   useEffect(() => {
     if (!isOpen) return;
+
+    // Без полосы прокрутки страница шире и центрированный контент съезжает вправо:
+    // её ширину возвращают отступом body и шапка (pr-(--scrollbar-gap)).
+    // Вложенная модалка меряет 0 и переменную не трогает.
+    const root = document.documentElement;
+    const prevGap = root.style.getPropertyValue('--scrollbar-gap');
+    const gap = window.innerWidth - root.clientWidth;
+    if (gap > 0) root.style.setProperty('--scrollbar-gap', `${gap}px`);
 
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -88,6 +100,7 @@ export default function ModalShell({
 
     return () => {
       document.body.style.overflow = prevOverflow;
+      root.style.setProperty('--scrollbar-gap', prevGap);
       window.removeEventListener('keydown', onKey);
     };
   }, [isOpen, handleClose]);
@@ -100,7 +113,8 @@ export default function ModalShell({
       className={`fixed inset-0 flex transition-all duration-200 ${overlayClassName} ${
         visible ? 'bg-slate-900/60' : 'bg-slate-900/0 pointer-events-none'
       }`}
-      onClick={closeOnBackdrop ? (e) => { if (e.target === e.currentTarget) handleClose(); } : undefined}
+      onMouseDown={(e) => { pressedOnBackdropRef.current = e.target === e.currentTarget; }}
+      onClick={closeOnBackdrop ? (e) => { if (pressedOnBackdropRef.current && e.target === e.currentTarget) handleClose(); } : undefined}
     >
       <div className={`transform transition-all duration-200 ${panelClassName} ${
         visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'

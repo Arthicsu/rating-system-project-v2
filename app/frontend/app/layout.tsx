@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     {/* <ThemeProvider attribute="class" defaultTheme="system" enableSystem> */}
       <head>
       </head>
-      <body className="bg-slate-100 pb-16 sm:pb-0">
+      <body className="bg-slate-100 pb-16 sm:pb-0 pr-(--scrollbar-gap)">
         <Providers>
           <AuthProvider>
             <Header />
