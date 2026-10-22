@@ -227,6 +227,20 @@ paths:
         schema:
           type: integer
         description: Синоним academic_year
+      - in: query
+        name: state
+        schema:
+          type: string
+          enum:
+          - approved
+          - new
+          - rejected
+          - returned
+        description: |-
+          * `new` - Новые
+          * `returned` - Повторные (были отклонены)
+          * `approved` - Подтверждённые
+          * `rejected` - Отклонённые
       tags:
       - achievements
       security:

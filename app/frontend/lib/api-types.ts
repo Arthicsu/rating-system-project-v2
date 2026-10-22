@@ -1104,6 +1104,13 @@ export interface operations {
                 search?: string;
                 /** @description Синоним academic_year */
                 semester?: number;
+                /**
+                 * @description * `new` - Новые
+                 *     * `returned` - Повторные (были отклонены)
+                 *     * `approved` - Подтверждённые
+                 *     * `rejected` - Отклонённые
+                 */
+                state?: "approved" | "new" | "rejected" | "returned";
             };
             header?: never;
             path?: never;

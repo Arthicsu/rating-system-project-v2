@@ -137,10 +137,10 @@ def update_achievement(document, validated_data, files=None):
     for attr, value in validated_data.items():
         setattr(document, attr, value)
 
-    # Повторная подача: отклонённая заявка снова уходит на рассмотрение.
+    # Повторная подача: отклонённая заявка снова уходит на рассмотрение. Причину не
+    # стираем - по ней кафедра видит, что заявку уже отклоняли и за что; очищается при одобрении.
     if document.status.code == 'rejected':
         document.status = DocumentStatus.objects.get(code='pending')
-        document.rejection_reason = ''
 
     with transaction.atomic():
         document.save()  # балл пересчитывается в Document.save()
