@@ -7,7 +7,7 @@
 Запуск:
     python manage.py test users # локально / в CI
     python manage.py test users --keepdb # быстрее при повторных прогонах
-    docker compose exec backend python manage.py test users # внутри контейнера
+    docker compose exec -u app backend python manage.py test users # внутри контейнера, от app (не root)
 
 Важно про окружение тестов:
 - В проекте сессии хранятся в кэше (SESSION_ENGINE = ...cache), а кэш - Redis, плюс на части ручек висит @cache_page.

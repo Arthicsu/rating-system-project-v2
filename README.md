@@ -90,11 +90,11 @@ archive/
    ```
 4. Если при развёртывании не используется дамп бд (в .env: HAS_DUMP=false), то необходимо создать роли пользователей:
    ```bash
-   docker compose exec backend python manage.py setup_roles
+   docker compose exec -u app backend python manage.py setup_roles
    ```
 5. Если при развёртывании не используется дамп бд (в .env: HAS_DUMP=false), то необходимо создать суперпользователя:
    ```bash
-   docker compose exec backend python manage.py createsuperuser
+   docker compose exec -u app backend python manage.py createsuperuser
    ```
    
 ## Резервное копирование и восстановление
@@ -109,8 +109,8 @@ archive/
 
 Ручной прогон / проверка планировщика:
 ```bash
-docker compose exec celery celery -A backend call core.tasks.backup_all # разово через очередь
-docker compose exec celery celery -A backend inspect registered # видно core.tasks.backup_all
+docker compose exec -u app celery celery -A backend call core.tasks.backup_all # разово через очередь
+docker compose exec -u app celery celery -A backend inspect registered # видно core.tasks.backup_all
 ```
 Настройки: `BACKUPS_DIR` (по умолчанию `/shared/backups`, на хосте - `<SHARED_HOST_DIR>/backups`), `BACKUP_KEEP` (по умолчанию `3`).
 
@@ -124,7 +124,7 @@ gunzip -c shared/backups/db/Project_<YYYYMMDD_HHMMSS>.sql.gz | docker compose ex
 1. Поднять чистый SeaweedFS (bucket создаётся автоматически в `entrypoint.sh`).
 2. Залить объекты из архива обратно (по умолчанию берётся самый свежий tar.gz):
 ```bash
-docker compose exec -T celery python -c "import django,os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','backend.settings'); django.setup(); from core.tasks import restore_storage; print('restored', restore_storage())"
+docker compose exec -T -u app celery python -c "import django,os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','backend.settings'); django.setup(); from core.tasks import restore_storage; print('restored', restore_storage())"
 ```
    Ключи в архиве совпадают с теми, что в `students_documentfile.file`, поэтому ссылки в БД
    снова валидны. Конкретный архив можно передать: `restore_storage('/shared/backups/seaweedfs/<файл>.tar.gz')`.
@@ -140,6 +140,7 @@ docker compose exec -T celery python -c "import django,os; os.environ.setdefault
 - Процессы приложения работают от непривилегированного пользователя `app` (uid 1000). От root в контейнере выполняется только короткая подготовка при старте (`app/backend/entrypoint.sh`), затем привилегии сбрасываются.
 - При каждом старте entrypoint делает владельцем каталога uid 1000 и создаёт эти подкаталоги - даже если `./shared` создал docker или root на хосте.
 - В каталоге лежат CSV с паролями и дампы БД: закройте его от других пользователей хоста - `chmod 700 <SHARED_HOST_DIR>` (контейнерам это не мешает).
+- Команды в контейнерах backend и celery запускайте от `app`: `docker compose exec -u app ...`. `exec` не проходит через entrypoint и по умолчанию работает от root, а Django от root пишет логи в `/shared/logs`, где приложение может подменить файл ссылкой - и root допишет строку куда угодно.
 - Если записать всё равно нельзя, в логе контейнера будет строка `ERR: /shared/... недоступен на запись для uid 1000`. Без записи в `logs/` backend не стартует. Починка на обычном хосте:
    ```bash
    sudo chown -R 1000:1000 <SHARED_HOST_DIR>
