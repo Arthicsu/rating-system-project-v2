@@ -25,8 +25,10 @@ export default function CookieConsentBanner() {
     setAccepted(true);
   };
 
+  // z-30: над шапкой и нижней навигацией (z-20), но под модалками (z-40/z-50) -
+  // иначе на телефоне баннер закрывал кнопки модалок до нажатия «Принять».
   return (
-    <div className="fixed right-4 bottom-20 left-4 z-50 flex flex-row items-center justify-between gap-6 m-2.5 p-5 px-6 rounded-lg bg-[#2b2b2b] text-white shadow-[0_8px_32px_rgba(0,0,0,0.24)] sm:bottom-4 max-md:flex-col max-md:items-stretch max-md:gap-4">
+    <div className="fixed right-4 bottom-20 left-4 z-30 flex flex-row items-center justify-between gap-6 m-2.5 p-5 px-6 rounded-lg bg-[#2b2b2b] text-white shadow-[0_8px_32px_rgba(0,0,0,0.24)] sm:bottom-4 max-md:flex-col max-md:items-stretch max-md:gap-4">
       <div className="flex-1 m-0 text-[13px] leading-relaxed text-white">
         <p className="m-0">
           Нажимая кнопку «Принять», Вы подтверждаете то, что Вы проинформированы об{' '}
