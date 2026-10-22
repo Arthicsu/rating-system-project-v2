@@ -13,6 +13,25 @@ export const resetPasswordSchema = z.object({
 
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
+// Сложность нового пароля (не только цифры, не из списка частых) проверяет сервер -
+// его тексты встают под поле; здесь только то, что видно сразу.
+export const changePasswordSchema = z
+  .object({
+    oldPassword: z.string().min(1, 'Введите текущий пароль'),
+    newPassword: z
+      .string()
+      .min(8, 'Пароль должен быть не короче 8 символов')
+      // Сервер это тоже отклонит, но каждая попытка тратит лимит (5 в час).
+      .regex(/\D/, 'Пароль не может состоять только из цифр'),
+    newPasswordConfirm: z.string(),
+  })
+  .refine((values) => values.newPassword === values.newPasswordConfirm, {
+    message: 'Пароли не совпадают',
+    path: ['newPasswordConfirm'],
+  });
+
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
+
 /** Регистрация отключена (страница скрыта в app/_register), схема сохранена для неё. */
 export const registerSchema = z
   .object({

@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import ModalChangePassword from '@/components/modals/ModalChangePassword';
 import ModalConfirm from '@/components/modals/ModalConfirm';
 import ModalEditAchievement from '@/components/modals/ModalEditAchievement';
+import { useMySession } from '@/context/AuthContext';
 import { useDeleteAchievement } from '@/hooks/mutations/useAchievementMutations';
 import { apiErrorMessage } from '@/lib/apiError';
 import type { StudentProfileProps } from '@/interfaces/ProfileInterfaces';
@@ -23,7 +25,9 @@ import ProfileSkeleton from './ProfileSkeleton';
 export default function StudentProfile({ profile, isOwner, loading = false }: StudentProfileProps) {
   const [editingDoc, setEditingDoc] = useState<Achievement | null>(null);
   const [deletingDoc, setDeletingDoc] = useState<Achievement | null>(null);
+  const [changingPassword, setChangingPassword] = useState(false);
   const deleteMutation = useDeleteAchievement();
+  const { user } = useMySession();
 
   const handleDeleteConfirm = async () => {
     if (!deletingDoc) return;
@@ -85,7 +89,10 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
       <section className="min-h-screen bg-slate-50 pt-24 pb-10">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
           <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:p-5">
-            <ProfileHeaderCard profile={profile} />
+            <ProfileHeaderCard
+              profile={profile}
+              onChangePassword={isOwner && !user?.is_employee ? () => setChangingPassword(true) : undefined}
+            />
             <ScoreBreakdown radarLabels={radarLabels} radarData={radarData} isOwner={isOwner} />
           </div>
 
@@ -130,6 +137,8 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
         onConfirm={handleDeleteConfirm}
         onClose={() => setDeletingDoc(null)}
       />
+
+      <ModalChangePassword isOpen={changingPassword} onClose={() => setChangingPassword(false)} />
     </>
   );
 }

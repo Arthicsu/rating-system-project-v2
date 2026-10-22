@@ -14,6 +14,8 @@ interface ModalShellProps {
   /** Стандартный крестик в правом верхнем углу панели. */
   closeButton?: boolean;
   id?: string;
+  /** id заголовка модалки - его читает скринридер при открытии диалога. */
+  labelledBy?: string;
   /** z-index и выравнивание панели внутри бекдропа. */
   overlayClassName?: string;
   /** Панель: ширина, скругление, фон; анимацию добавляет каркас. */
@@ -35,6 +37,7 @@ export default function ModalShell({
   closeOnBackdrop = true,
   closeButton = false,
   id,
+  labelledBy,
   overlayClassName = 'z-50 items-center justify-center px-4 py-6 sm:px-0',
   panelClassName = 'relative w-full max-w-md rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.35)] sm:p-6',
   children,
@@ -116,7 +119,12 @@ export default function ModalShell({
       onMouseDown={(e) => { pressedOnBackdropRef.current = e.target === e.currentTarget; }}
       onClick={closeOnBackdrop ? (e) => { if (pressedOnBackdropRef.current && e.target === e.currentTarget) handleClose(); } : undefined}
     >
-      <div className={`transform transition-all duration-200 ${panelClassName} ${
+      {/* aria-modal не ставим: фокус из панели не удерживается, и скринридер потерял бы
+          всё снаружи, включая тосты. */}
+      <div
+        role="dialog"
+        aria-labelledby={labelledBy}
+        className={`transform transition-all duration-200 ${panelClassName} ${
         visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
       }`}>
         {closeButton && (

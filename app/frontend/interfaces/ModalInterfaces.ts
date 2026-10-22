@@ -45,6 +45,11 @@ export interface ModalConfirmProps {
   onClose: () => void;
 }
 
+export interface ModalChangePasswordProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 export interface ModalEditAchievementProps {
   isOpen: boolean;
   doc: import('./AchievementInterfaces').Achievement | null;

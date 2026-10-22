@@ -40,6 +40,7 @@ export type StaffProfileResponseDto = ApiSchema<'StaffProfileResponse'>;
 export type ReviewDocumentRequestDto = ApiSchema<'ReviewDocumentRequest'>;
 export type PendingCountDto = ApiSchema<'PendingCount'>;
 export type MessageDto = ApiSchema<'Message'>;
+export type ChangePasswordDto = ApiSchema<'ChangePassword'>;
 export type ErrorDetailDto = ApiSchema<'ErrorDetail'>;
 export type LoginRequestDto = ApiSchema<'LoginRequest'>;
 

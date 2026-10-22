@@ -3,6 +3,7 @@ import type {
   AcademicYearDto,
   AuthUser,
   CategoryDto,
+  ChangePasswordDto,
   DashboardStatsResponse,
   GroupDto,
   MessageDto,
@@ -34,6 +35,9 @@ export const authApi = {
 
   forgotPassword: (data: { email: string }) =>
     api.post<MessageDto>('/api/v1/auth/forgot-password/', data),
+
+  changePassword: (data: ChangePasswordDto) =>
+    api.post<MessageDto>('/api/v1/auth/change-password/', data),
 
   getPendingCount: () =>
     api.get<PendingCountDto>('/api/v1/notifications/pending-count/', {
