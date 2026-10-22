@@ -7,6 +7,7 @@ import type { AxiosError } from 'axios';
 
 import { useMySession } from '@/context/AuthContext';
 import { useRejectionReasons, useReviewDocument } from '@/hooks/queries';
+import { apiErrorMessage } from '@/lib/apiError';
 import type { Document, ModalState } from '@/interfaces/StaffInterfaces';
 
 const EMPTY_MODAL: ModalState = { type: null, targetId: null, targetScore: 0, targetStudentId: null };
@@ -70,7 +71,9 @@ export function useReviewActions() {
         closeModal();
         return;
       }
-      toast.error("Ошибка: " + error);
+      // 403 тут бывает и при живой сессии («за пределами области модерации») - показываем
+      // текст сервера, а не сырой AxiosError; погасшую сессию уведёт на вход интерсептор.
+      toast.error(apiErrorMessage(error, 'Не удалось сохранить решение по заявке'));
     }
   };
 
@@ -112,7 +115,9 @@ export function useReviewActions() {
         closeModal();
         return;
       }
-      toast.error("Ошибка: " + error);
+      // 403 тут бывает и при живой сессии («за пределами области модерации») - показываем
+      // текст сервера, а не сырой AxiosError; погасшую сессию уведёт на вход интерсептор.
+      toast.error(apiErrorMessage(error, 'Не удалось сохранить решение по заявке'));
     }
   };
 

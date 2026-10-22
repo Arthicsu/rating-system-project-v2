@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { AxiosError } from 'axios';
 
+import { useMySession } from '@/context/AuthContext';
 import { useAchievement } from '@/hooks/queries';
+import { useRedirectIfLoggedOut } from '@/hooks/useRedirectIfLoggedOut';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
 import FilePreviewPanel from '@/components/preview/FilePreviewPanel';
 import ModalPreview from '@/components/modals/ModalPreview';
@@ -41,7 +43,11 @@ export default function AchievementDetailPage() {
     setPreviewOpen(false);
   }
 
-  const { data: doc, isPending, error } = useAchievement(id);
+  // Без сессии заявку не запрашиваем: после «Выйти» запрос получил бы 403, и интерсептор
+  // принял бы выход за истёкшую сессию. Пока идёт редирект на вход - скелетон (isPending).
+  const { user } = useMySession();
+  useRedirectIfLoggedOut(`/achievement/${id}`);
+  const { data: doc, isPending, error } = useAchievement(id, !!user);
 
   const errorStatus = (error as AxiosError | null)?.response?.status;
   const state: LoadState = isPending

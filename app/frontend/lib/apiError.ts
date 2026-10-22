@@ -1,6 +1,15 @@
 import type { AxiosError } from 'axios';
 
 /**
+ * 401/403 сами обрабатывает интерсептор axios (проверка сессии, переход на вход с
+ * плашкой «Сессия истекла»), поэтому страницы такие ошибки тостом не показывают.
+ */
+export function isAuthError(error: unknown): boolean {
+  const status = (error as AxiosError | null)?.response?.status;
+  return status === 401 || status === 403;
+}
+
+/**
  * Достаёт сообщение из ошибки DRF.
  * Формат ответа: либо { detail: "..." }, либо { field: ["..."] } от валидации.
  * Берём первое поле ответа (у DRF это и есть суть ошибки), иначе фолбэк.

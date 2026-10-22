@@ -12,19 +12,26 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  // Сервер не ответил на проверку сессии (сеть, 5xx, 429) - это не «не вошёл»:
+  // guard'ы не пишут «Сессия истекла», если сессия могла быть жива.
+  const [sessionCheckFailed, setSessionCheckFailed] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
 
   const fetchUser = useCallback(() => {
     return authApi.checkAuth()
       .then(res => {
+        setSessionCheckFailed(false);
         if (res.data.isAuthenticated) {
           setUser(res.data);
         } else {
           setUser(null);
         }
       })
-      .catch(() => setUser(null))
+      .catch(() => {
+        setSessionCheckFailed(true);
+        setUser(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -71,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, registerUser, loginUser, logoutUser, refreshUser: fetchUser, loading }}>
+    <AuthContext.Provider value={{ user, setUser, registerUser, loginUser, logoutUser, refreshUser: fetchUser, loading, sessionCheckFailed }}>
       {children}
     </AuthContext.Provider>
   );

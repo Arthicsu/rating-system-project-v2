@@ -20,19 +20,19 @@ export function useMyProfile(enabled = true) {
   });
 }
 
-export function useProfileById(id: string) {
+export function useProfileById(id: string, enabled = true) {
   return useQuery({
     queryKey: qk.profile(id),
     queryFn: () => studentApi.getProfileById(id).then((r) => r.data),
-    enabled: !!id,
+    enabled: !!id && enabled,
   });
 }
 
-export function useAchievement(id: string) {
+export function useAchievement(id: string, enabled = true) {
   return useQuery({
     queryKey: qk.achievement(id),
     queryFn: () => studentApi.getAchievementDetail(id).then((r) => r.data),
-    enabled: !!id,
+    enabled: !!id && enabled,
     // 403/404 — валидные исходы (нет доступа/нет заявки), без повторов.
     retry: false,
   });

@@ -19,7 +19,9 @@ import StatisticsTab from './_components/StatisticsTab';
 import ModalApprove from './_components/ModalApprove';
 import ModalReject from './_components/ModalReject';
 
+import { useRedirectIfLoggedOut } from '@/hooks/useRedirectIfLoggedOut';
 import { useStaffFilters } from '@/hooks/useStaffFilters';
+import { apiErrorMessage, isAuthError } from '@/lib/apiError';
 import { useCategories, useDashboard, useRating } from '@/hooks/queries';
 import { useTabParam } from '@/hooks/useTabParam';
 import { useReviewActions } from '@/hooks/useReviewActions';
@@ -47,15 +49,11 @@ const TAB_IDS = ['my-group', 'pending-requests', 'reviewed-requests', 'statistic
 export default function StaffProfilePage() {
   const { user, loading } = useMySession();
   const router = useRouter();
+  useRedirectIfLoggedOut('/staff-profile');
 
   useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      router.replace('/login');
-    } else if (!user.is_employee) {
-      router.replace('/profile');
-    }
-  }, [user, loading, router]);
+    if (user && !user.is_employee) router.replace('/profile');
+  }, [user, router]);
 
   if (loading || !user?.is_employee) {
     return null;
@@ -142,7 +140,9 @@ function StaffDashboard() {
   // Подвкладки категорий рейтинга («Общий рейтинг» + категории достижений).
   const { data: categoriesData, error: categoriesError } = useCategories();
   useEffect(() => {
-    if (categoriesError) toast.error('Ошибка: ' + categoriesError);
+    if (categoriesError && !isAuthError(categoriesError)) {
+      toast.error(apiErrorMessage(categoriesError, 'Не удалось загрузить категории достижений'));
+    }
   }, [categoriesError]);
 
   const categoryTabs = useMemo<Tab[]>(

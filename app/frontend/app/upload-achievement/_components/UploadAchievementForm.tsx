@@ -14,7 +14,7 @@ import FileDropZone from '@/components/upload/FileDropZone';
 import CustomSelect from '@/components/CustomSelect';
 import { useAchievementConfig } from '@/hooks/queries';
 import { useUploadAchievement } from '@/hooks/mutations/useAchievementMutations';
-import { apiErrorMessage } from '@/lib/apiError';
+import { apiErrorMessage, isAuthError } from '@/lib/apiError';
 import {
   uploadAchievementSchema,
   type UploadAchievementValues,
@@ -45,7 +45,9 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
 
   const { data: config, error: configError, isPending: configLoading } = useAchievementConfig();
   useEffect(() => {
-    if (configError) toast.error("Ошибка: " + configError);
+    if (configError && !isAuthError(configError)) {
+      toast.error(apiErrorMessage(configError, 'Не удалось загрузить справочник достижений'));
+    }
   }, [configError]);
 
   const dataStructure = config?.structure ?? EMPTY_STRUCTURE;

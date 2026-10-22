@@ -14,6 +14,8 @@ export interface AuthContextValue {
   logoutUser: () => Promise<void>;
   refreshUser: () => Promise<void>;
   loading: boolean;
+  /** Проверка сессии не дошла до ответа (сеть, 5xx, 429): user=null ещё не значит «вышел». */
+  sessionCheckFailed: boolean;
 }
 
 export interface LoginFormData {

@@ -50,8 +50,11 @@ export const studentApi = {
 
   getProfileById: (id: string) => api.get<Profile>(`/api/v1/students/${id}/`),
 
+  // Без skipGlobalErrorHandling: на 403 интерсептор проверяет сессию. Погасшая - на вход,
+  // живая - страница сама покажет «нет доступа». Иначе 403 от погасшей сессии навсегда
+  // оставлял «У вас нет доступа к этой заявке».
   getAchievementDetail: (id: string | number) =>
-    api.get<PendingDocumentDto>(`/api/v1/achievements/${id}/`, { skipGlobalErrorHandling: true }),
+    api.get<PendingDocumentDto>(`/api/v1/achievements/${id}/`),
 
   getAchievementConfig: () => api.get<AchievementConfigResponse>('/api/v1/achievements/config/'),
 

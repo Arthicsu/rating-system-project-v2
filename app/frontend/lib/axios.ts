@@ -67,7 +67,8 @@ const redirectToLoginIfSessionDead = () => {
   sessionProbe = api
     .get<{ isAuthenticated?: boolean }>('/api/v1/auth/session/', { skipGlobalErrorHandling: true })
     .then((r) => {
-      if (!r.data?.isAuthenticated) {
+      // Уже на /login (обычный «Выйти» успел увести, пока шла проба) - не перебиваем его «истекла».
+      if (!r.data?.isAuthenticated && window.location.pathname !== '/login') {
         // Сессия истекла посреди работы. Полная навигация вместо router.push:
         // axios живёт вне React, а перезагрузка заодно сбрасывает кэш TanStack
         // и AuthContext. Сообщение показывает страница логина по ?expired=1,

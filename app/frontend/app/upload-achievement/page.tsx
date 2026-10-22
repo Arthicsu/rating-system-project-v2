@@ -1,6 +1,7 @@
 'use client';
 
 import { useMySession } from '@/context/AuthContext';
+import { useRedirectIfLoggedOut } from '@/hooks/useRedirectIfLoggedOut';
 import { Skeleton } from 'boneyard-js/react';
 import UploadAchievementForm from './_components/UploadAchievementForm';
 
@@ -10,8 +11,10 @@ import UploadAchievementForm from './_components/UploadAchievementForm';
  */
 export default function UploadAchievement() {
   const { user, loading: authLoading } = useMySession();
+  useRedirectIfLoggedOut('/upload-achievement');
 
-  if (authLoading) {
+  // Без сессии - тот же скелетон, пока useRedirectIfLoggedOut уводит на вход.
+  if (authLoading || !user) {
     return (
       <section className="min-h-screen bg-slate-50 pt-24 pb-10">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
@@ -40,16 +43,6 @@ export default function UploadAchievement() {
           </Skeleton>
         </div>
       </section>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-slate-50">
-        <p className="rounded-full bg-rose-50 px-4 py-2 text-sm text-rose-700">
-          Нужно войти в систему
-        </p>
-      </div>
     );
   }
 
