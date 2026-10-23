@@ -183,7 +183,7 @@ function StaffDashboard() {
   // Как раньше: индикатор при первой загрузке и смене параметров, но не при фоновом поллинге.
   const studentsLoading = studentsQuery.isPending || studentsQuery.isPlaceholderData;
 
-  const { openModal, canApprove, modalApproveProps, modalRejectProps } = useReviewActions();
+  const { openModal, canApprove, actionsFor, modalApproveProps, modalRejectProps } = useReviewActions();
 
   const pendingParams = useMemo<DashboardStatsParams>(
     () => ({
@@ -311,14 +311,13 @@ function StaffDashboard() {
               requestsPageSize={requestsPageSize}
               currentGroupName={currentGroupName}
               semesterLabel={semesterLabel}
-              canApprove={canApprove}
               showStateFilter={canApprove}
               stateValue={pendingState}
               onStateChange={(value) => { setPendingState(value); setRequestsPage(1); }}
               onSearch={handlePendingSearch}
               onPageChange={setRequestsPage}
-              onApprove={(doc) => openModal('approve', doc)}
-              onReject={(doc) => openModal('reject', doc)}
+              actionsFor={actionsFor}
+              onAction={openModal}
             />
           ))}
 
@@ -337,8 +336,8 @@ function StaffDashboard() {
               onStateChange={(value) => { setReviewedState(value); setReviewedPage(1); }}
               onSearch={handleReviewedSearch}
               onPageChange={setReviewedPage}
-              onApprove={(doc) => openModal('approve', doc)}
-              onReject={(doc) => openModal('reject', doc)}
+              actionsFor={actionsFor}
+              onAction={openModal}
             />
           ))}
 

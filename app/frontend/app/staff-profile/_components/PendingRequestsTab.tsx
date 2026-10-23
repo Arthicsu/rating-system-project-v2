@@ -5,12 +5,12 @@ import Pagination from '@/components/Pagination';
 import RequestCard from './RequestCard';
 import RequestCardsSkeleton from './RequestCardsSkeleton';
 import StateFilter from './StateFilter';
-import type { Document } from '@/interfaces/StaffInterfaces';
+import type { Document, ReviewAction } from '@/interfaces/StaffInterfaces';
 
 const STATE_OPTIONS = [
   { value: 'all', label: 'Все' },
   { value: 'new', label: 'Новые' },
-  { value: 'returned', label: 'Повторные (были отклонены)' },
+  { value: 'returned', label: 'Повторные и возвращённые' },
 ];
 
 interface PendingRequestsTabProps {
@@ -21,15 +21,14 @@ interface PendingRequestsTabProps {
   requestsPageSize: number;
   currentGroupName: string;
   semesterLabel: string;
-  canApprove: boolean;
   /** Новые/повторные - только у кафедры: у декана и ректората здесь лишь подтверждённые кафедрой. */
   showStateFilter: boolean;
   stateValue: string;
   onStateChange: (value: string) => void;
   onSearch: (value: string) => void;
   onPageChange: (page: number) => void;
-  onApprove: (doc: Document) => void;
-  onReject: (doc: Document) => void;
+  actionsFor: (doc: Document) => ReviewAction[];
+  onAction: (action: ReviewAction, doc: Document) => void;
 }
 
 /** Вкладка «Заявки на подтверждение». */
@@ -41,14 +40,13 @@ export default function PendingRequestsTab({
   requestsPageSize,
   currentGroupName,
   semesterLabel,
-  canApprove,
   showStateFilter,
   stateValue,
   onStateChange,
   onSearch,
   onPageChange,
-  onApprove,
-  onReject,
+  actionsFor,
+  onAction,
 }: PendingRequestsTabProps) {
   const filtered = showStateFilter && stateValue !== 'all';
   return (
@@ -75,9 +73,8 @@ export default function PendingRequestsTab({
               key={doc.id}
               doc={doc}
               variant="pending"
-              canApprove={canApprove}
-              onApprove={onApprove}
-              onReject={onReject}
+              actions={actionsFor(doc)}
+              onAction={onAction}
             />
           ))}
         </div>

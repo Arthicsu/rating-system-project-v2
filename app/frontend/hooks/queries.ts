@@ -181,8 +181,10 @@ export function useReviewDocument() {
       universityApi.reviewDocument(documentId, data, idempotencyKey).then((r) => r.data),
     onSuccess: invalidate,
     onError: (error) => {
-      // 409: решение уже принято этим же ключом (двойной клик) - списки освежаем.
-      if ((error as AxiosError).response?.status === 409) invalidate();
+      // 409: решение уже принято этим же ключом (двойной клик); 400: заявку успел решить другой
+      // модератор - в обоих случаях карточки и кнопки устарели, списки освежаем.
+      const code = (error as AxiosError).response?.status;
+      if (code === 400 || code === 409) invalidate();
     },
   });
 }

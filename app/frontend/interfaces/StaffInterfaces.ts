@@ -62,14 +62,18 @@ export interface DashboardStatsParams {
   state?: 'new' | 'returned' | 'approved' | 'rejected';
 }
 
+export type ReviewAction = 'approve' | 'reject' | 'return';
+
 export type ReviewDocumentData =
   | { action: 'approve' }
-  | { action: 'reject'; reasons: string[] };
+  | { action: 'reject' | 'return'; reasons: string[] };
 
 export interface ModalState {
-  type: string | null;
+  type: ReviewAction | null;
   targetId: number | null;
   targetScore: number;
+  /** Статус заявки на момент открытия окна: с подтверждённой при отклонении/возврате баллы списываются. */
+  targetStatus: string | null;
   targetStudentId: number | null;
 }
 

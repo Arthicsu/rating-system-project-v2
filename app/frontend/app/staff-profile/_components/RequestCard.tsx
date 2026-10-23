@@ -2,19 +2,42 @@
 
 import Link from 'next/link';
 
-import type { Document } from '@/interfaces/StaffInterfaces';
+import type { Document, ReviewAction } from '@/interfaces/StaffInterfaces';
 
 interface RequestCardProps {
   doc: Document;
   variant: 'pending' | 'reviewed';
-  /** pending: показывать ли кнопку «Одобрить» (роль Department или не-руководство). */
-  canApprove?: boolean;
-  onApprove: (doc: Document) => void;
-  onReject: (doc: Document) => void;
+  /** Решения, доступные сотруднику для этой заявки (useReviewActions.actionsFor). */
+  actions: ReviewAction[];
+  onAction: (action: ReviewAction, doc: Document) => void;
+}
+
+const ACTION_BUTTONS: Record<ReviewAction, { label: string; className: string }> = {
+  approve: { label: 'Одобрить', className: 'bg-emerald-600 hover:bg-emerald-700' },
+  reject: { label: 'Отклонить', className: 'bg-rose-600 hover:bg-rose-700' },
+  return: { label: 'Вернуть кафедре', className: 'bg-amber-700 hover:bg-amber-800' },
+};
+
+function ActionButtons({ doc, actions, onAction }: Pick<RequestCardProps, 'doc' | 'actions' | 'onAction'>) {
+  if (actions.length === 0) return null;
+  return (
+    <div className="mt-3 flex gap-2">
+      {actions.map((action) => (
+        <button
+          key={action}
+          type="button"
+          onClick={() => onAction(action, doc)}
+          className={`cursor-pointer flex-1 rounded-lg px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition sm:text-xs sm:px-3 sm:py-2 ${ACTION_BUTTONS[action].className}`}
+        >
+          {ACTION_BUTTONS[action].label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 /** Карточка заявки. */
-export default function RequestCard({ doc, variant, canApprove, onApprove, onReject }: RequestCardProps) {
+export default function RequestCard({ doc, variant, actions, onAction }: RequestCardProps) {
   if (variant === 'reviewed') {
     const isApproved = doc.status_display === 'approved';
 
@@ -78,26 +101,7 @@ export default function RequestCard({ doc, variant, canApprove, onApprove, onRej
           </Link>
         </div>
 
-        <div className="mt-3 flex gap-2">
-          {!isApproved && (
-            <button
-              type="button"
-              onClick={() => onApprove(doc)}
-              className="cursor-pointer flex-1 rounded-lg bg-emerald-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:text-xs"
-            >
-              Одобрить
-            </button>
-          )}
-          {isApproved && (
-            <button
-              type="button"
-              onClick={() => onReject(doc)}
-              className="cursor-pointer flex-1 rounded-lg bg-rose-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-rose-700 sm:text-xs sm:px-3 sm:py-2"
-            >
-              Отклонить
-            </button>
-          )}
-        </div>
+        <ActionButtons doc={doc} actions={actions} onAction={onAction} />
       </div>
     );
   }
@@ -119,8 +123,17 @@ export default function RequestCard({ doc, variant, canApprove, onApprove, onRej
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-1">
             {/* Причина прошлого отклонения сохраняется при повторной подаче: заявку уже отклоняли.
-                Сам текст причины - на странице заявки, в карточке только компактная метка. */}
-            {doc.rejection_reason && (
+                Сам текст причины - на странице заявки, в карточке только компактная метка.
+                Возврат руководством - своя метка: решение кафедры отменили сверху. */}
+            {doc.returned_by ? (
+              <span
+                title="Руководство вернуло заявку на повторное рассмотрение"
+                className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 sm:text-xs"
+              >
+                <i className="fa-solid fa-reply" aria-hidden="true" />
+                {doc.returned_by === 'Dean' ? 'Возвращена деканатом' : 'Возвращена ректоратом'}
+              </span>
+            ) : doc.rejection_reason && (
               <span
                 title="Заявка уже отклонялась"
                 className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 sm:text-xs"
@@ -158,24 +171,7 @@ export default function RequestCard({ doc, variant, canApprove, onApprove, onRej
         </Link>
       </div>
 
-      <div className="mt-3 flex gap-2">
-        {canApprove && (
-          <button
-            type="button"
-            onClick={() => onApprove(doc)}
-            className="cursor-pointer flex-1 rounded-lg bg-emerald-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:text-xs"
-          >
-            Одобрить
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => onReject(doc)}
-          className="cursor-pointer flex-1 rounded-lg bg-rose-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition hover:bg-rose-700 sm:text-xs sm:px-3 sm:py-2"
-        >
-          Отклонить
-        </button>
-      </div>
+      <ActionButtons doc={doc} actions={actions} onAction={onAction} />
     </div>
   );
 }

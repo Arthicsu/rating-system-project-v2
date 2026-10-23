@@ -14,6 +14,11 @@ export interface RejectionReason {
 
 export interface ModalRejectProps {
   isOpen: boolean;
+  /** reject — студенту на исправление; return — руководство возвращает кафедре. */
+  action: 'reject' | 'return';
+  targetScore: number;
+  /** Заявка подтверждена: решение спишет её баллы. */
+  debitsScore: boolean;
   rejectionReasons: RejectionReason[];
   selectedReasons: number[];
   customReason: string;

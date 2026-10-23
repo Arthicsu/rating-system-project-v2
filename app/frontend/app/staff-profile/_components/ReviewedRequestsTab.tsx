@@ -5,7 +5,7 @@ import Pagination from '@/components/Pagination';
 import RequestCard from './RequestCard';
 import RequestCardsSkeleton from './RequestCardsSkeleton';
 import StateFilter from './StateFilter';
-import type { Document } from '@/interfaces/StaffInterfaces';
+import type { Document, ReviewAction } from '@/interfaces/StaffInterfaces';
 
 const STATE_OPTIONS = [
   { value: 'all', label: 'Все' },
@@ -25,8 +25,8 @@ interface ReviewedRequestsTabProps {
   onStateChange: (value: string) => void;
   onSearch: (value: string) => void;
   onPageChange: (page: number) => void;
-  onApprove: (doc: Document) => void;
-  onReject: (doc: Document) => void;
+  actionsFor: (doc: Document) => ReviewAction[];
+  onAction: (action: ReviewAction, doc: Document) => void;
 }
 
 /** Вкладка «Рассмотренные заявки». */
@@ -42,8 +42,8 @@ export default function ReviewedRequestsTab({
   onStateChange,
   onSearch,
   onPageChange,
-  onApprove,
-  onReject,
+  actionsFor,
+  onAction,
 }: ReviewedRequestsTabProps) {
   return (
     <div className="mt-5 space-y-4 animate-fade-in">
@@ -67,8 +67,8 @@ export default function ReviewedRequestsTab({
               key={doc.id}
               doc={doc}
               variant="reviewed"
-              onApprove={onApprove}
-              onReject={onReject}
+              actions={actionsFor(doc)}
+              onAction={onAction}
             />
           ))}
         </div>

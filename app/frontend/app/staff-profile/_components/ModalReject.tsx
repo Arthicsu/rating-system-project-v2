@@ -4,6 +4,9 @@ import type { ModalRejectProps } from '@/interfaces/ModalInterfaces'
 
 export default function ModalReject({
   isOpen,
+  action,
+  targetScore,
+  debitsScore,
   rejectionReasons,
   selectedReasons,
   customReason,
@@ -26,6 +29,9 @@ export default function ModalReject({
     }
   };
 
+  const isReturn = action === 'return';
+  const score = <b className="font-semibold text-slate-900">{targetScore}</b>;
+
   return (
     <ModalShell
       isOpen={isOpen}
@@ -36,9 +42,16 @@ export default function ModalReject({
     >
       {(close) => (
         <>
-          <h2 className="mb-3 text-base font-semibold text-slate-900">
-            Укажите причину отказа
+          <h2 className="mb-2 text-base font-semibold text-slate-900">
+            {isReturn ? 'Вернуть заявку кафедре?' : 'Отклонить заявку?'}
           </h2>
+          {/* Последствия решения - до выбора причин, чтобы не было сюрпризов с баллами. */}
+          <p className="mb-3 text-sm text-slate-700">
+            {debitsScore && <>Будет списано {score} балл(-ов). </>}
+            {isReturn
+              ? 'Заявка вернётся кафедре на повторное рассмотрение.'
+              : 'Заявка уйдёт студенту на исправление, он увидит причину.'}
+          </p>
           <p className="mt-1 mb-2 text-base text-slate-500">
             Выберите причину(-ы) из представленных ниже или напишите собственную.
           </p>
@@ -77,9 +90,13 @@ export default function ModalReject({
             <div className="mt-3 flex gap-2">
               <button
                 type="submit"
-                className="cursor-pointer inline-flex flex-1 items-center justify-center rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-1"
+                className={`cursor-pointer inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+                  isReturn
+                    ? 'bg-amber-700 hover:bg-amber-800 focus:ring-amber-700'
+                    : 'bg-rose-500 hover:bg-rose-600 focus:ring-rose-500'
+                }`}
               >
-                Отправить
+                {isReturn ? 'Вернуть' : 'Отклонить'}
               </button>
               <button
                 type="button"
