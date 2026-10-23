@@ -15,6 +15,7 @@ import threading
 from contextlib import contextmanager
 
 from django.db import transaction
+from rest_framework.exceptions import PermissionDenied
 
 from core.cache_utils import invalidate_view_cache
 from core.exceptions import InvalidDocumentState
@@ -134,15 +135,27 @@ def update_achievement(document, validated_data, files=None):
     Если переданы файлы — старые заменяются, а из хранилища удаляются только
     после коммита транзакции. Вызывается из AchievementUpdateSerializer.update().
     """
-    for attr, value in validated_data.items():
-        setattr(document, attr, value)
-
-    # Повторная подача: отклонённая заявка снова уходит на рассмотрение. Причину не
-    # стираем - по ней кафедра видит, что заявку уже отклоняли и за что; очищается при одобрении.
-    if document.status.code == 'rejected':
-        document.status = DocumentStatus.objects.get(code='pending')
-
     with transaction.atomic():
+        # Статус и решение — из БД под блокировкой строки: модератор мог решить, пока студент
+        # правил заявку, и правка вернула бы в pending уже одобренную, с начисленными баллами.
+        locked = Document.objects.select_for_update().get(pk=document.pk)
+        if locked.status.code == 'approved':
+            raise PermissionDenied("Нельзя редактировать подтверждённое достижение.")
+        document.status = locked.status
+        document.verified_by_id = locked.verified_by_id
+        document.rejection_reason = locked.rejection_reason
+
+        for attr, value in validated_data.items():
+            setattr(document, attr, value)
+
+        # Повторная подача: отклонённая заявка снова уходит на рассмотрение. Причину не
+        # стираем - по ней кафедра видит, что заявку уже отклоняли и за что; очищается при одобрении.
+        if document.status.code == 'rejected':
+            document.status = DocumentStatus.objects.get(code='pending')
+            # Теперь это повторная подача студента, а не возврат руководством: verified_by
+            # руководителя дал бы метку «Возвращена деканатом» (кто отклонил — в аудит-логе).
+            document.verified_by = None
+
         document.save()  # балл пересчитывается в Document.save()
 
         if files is not None:
@@ -157,81 +170,109 @@ def update_achievement(document, validated_data, files=None):
                     order=order,
                 )
 
-            def _cleanup_old_files(files_to_remove=old_files):
-                for old_file in files_to_remove:
-                    try:
-                        old_file.file.delete(save=False)
-                    except Exception:
-                        logger.exception("Не удалось удалить старый файл достижения из хранилища")
-
-            transaction.on_commit(_cleanup_old_files)
+            transaction.on_commit(lambda: _delete_stored_files(old_files))
 
     return document
+
+
+def delete_achievement(document):
+    """
+    Удаление заявки студентом. Подтверждённую удалить нельзя — баллы уже начислены; статус
+    проверяется под блокировкой строки (модератор мог одобрить, пока студент удалял).
+    Файлы из хранилища удаляются только после коммита.
+    """
+    with transaction.atomic():
+        document = Document.objects.select_for_update().get(pk=document.pk)
+        if document.status.code == 'approved':
+            raise PermissionDenied("Нельзя удалить подтверждённое достижение.")
+
+        files = list(document.files.all())
+        document.delete()
+        transaction.on_commit(lambda: _delete_stored_files(files))
+
+
+def _delete_stored_files(document_files):
+    for document_file in document_files:
+        try:
+            document_file.file.delete(save=False)
+        except Exception:
+            logger.exception("Не удалось удалить файл достижения из хранилища")
+
+
+# Вариант А (спек 2д): кафедра решает, руководство контролирует.
+# (роль, действие) -> {исходный статус: новый статус}; чего нет в таблице — запрещено (400).
+_REVIEW_RULES = {
+    ('department', 'approve'): {'pending': 'approved', 'rejected': 'approved'},
+    ('department', 'reject'): {'pending': 'rejected', 'approved': 'rejected'},
+    ('leadership', 'reject'): {'approved': 'rejected'},
+    ('leadership', 'return'): {'approved': 'pending', 'rejected': 'pending'},
+}
+_ACTION_VERBS = {'approve': 'одобрить', 'reject': 'отклонить', 'return': 'вернуть кафедре'}
 
 
 @transaction.atomic
 def review_document(*, document, reviewer, action, reasons=()):
     """
-    Модерация заявки сотрудником. Возвращает текст сообщения для ответа.
+    Модерация заявки сотрудником по таблице _REVIEW_RULES. Возвращает текст сообщения для ответа.
 
-    Правила:
-    - кафедра обрабатывает только новые заявки (pending): approve — начисляет
-      баллы (credit_document), reject — отклоняет с причинами;
-    - декан/ректорат могут только отклонить: с approved списываются баллы
-      (debit_document), заявка возвращается на рассмотрение (pending).
+    Одобрение начисляет баллы и очищает причину, уход из approved списывает баллы.
+    Возврат кафедре — снова pending с причиной и verified_by руководителя: по нему кабинет
+    кафедры ставит метку «Возвращена деканатом/ректоратом».
 
     Проверка области видимости — забота permission-класса CanReviewDocument.
-    При нарушении правил статусов поднимает InvalidDocumentState (HTTP 400).
+    При нарушении правил поднимает InvalidDocumentState (HTTP 400).
     """
+    if reviewer.is_leadership:
+        role = 'leadership'
+    elif reviewer.is_dept_staff:
+        role = 'department'
+    else:
+        raise InvalidDocumentState("У сотрудника нет роли модератора")
+
+    transitions = _REVIEW_RULES.get((role, action))
+    if transitions is None:
+        raise InvalidDocumentState(
+            "Одобряет заявки кафедра; руководство может отклонить заявку или вернуть её кафедре"
+            if role == 'leadership' else "Вернуть заявку кафедре может только деканат или ректорат"
+        )
+
+    # Статус — из БД под блокировкой строки: два модератора одновременно не спишут баллы дважды.
+    document = Document.objects.select_for_update().get(pk=document.pk)
+    old_code = document.status.code
+    if old_code not in transitions:
+        if role == 'leadership' and old_code == 'pending':
+            raise InvalidDocumentState("Новую заявку сначала рассматривает кафедра")
+        raise InvalidDocumentState(f"Нельзя {_ACTION_VERBS[action]} заявку в статусе «{document.status.label}»")
+    new_code = transitions[old_code]
+
+    # Баллы — в семестр заявки (текущий — так же обновит кэш Student). Списание до save():
+    # save() пересчитывает балл, а списать нужно ровно начисленное.
+    points = 0
+    if old_code == 'approved':
+        debit_document(document)
+        points = -document.score
+
     reason_text = "; ".join(reasons) if isinstance(reasons, (list, tuple)) else str(reasons)
+    document.status = DocumentStatus.objects.get(code=new_code)
+    document.rejection_reason = '' if action == 'approve' else reason_text
+    document.verified_by = reviewer
+    document.save()
 
-    if reviewer.is_dept_staff:
-        if document.status.code != 'pending':
-            raise InvalidDocumentState("Кафедра может обрабатывать только новые заявки (pending)")
+    if new_code == 'approved':
+        credit_document(document)
+        points = document.score
 
-        if action == 'approve':
-            document.status = DocumentStatus.objects.get(code='approved')
-            document.rejection_reason = ''
-            document.verified_by = reviewer
-            document.save()
+    audit_logger.info(
+        "review doc=%s reviewer=%s action=%s from=%s to=%s points=%+d reasons=%s",
+        document.id, reviewer.pk, action, old_code, new_code, points, reason_text,
+    )
 
-            # Баллы начисляются в семестр заявки (текущий — так же обновит кэш Student).
-            credit_document(document)
-            audit_logger.info(
-                "review doc=%s reviewer=%s action=approve result=approved score=%s",
-                document.id, reviewer.pk, document.score,
-            )
-            return "Документ подтвержден кафедрой, баллы начислены"
-
-        document.status = DocumentStatus.objects.get(code='rejected')
-        document.rejection_reason = reason_text
-        document.verified_by = reviewer
-        document.save()
-        audit_logger.info(
-            "review doc=%s reviewer=%s action=reject result=rejected reasons=%s",
-            document.id, reviewer.pk, reason_text,
-        )
-        return "Документ отклонен кафедрой"
-
-    if reviewer.is_dean or reviewer.is_rectorate:
-        if action != 'reject':
-            raise InvalidDocumentState("Руководство может только отклонять заявки")
-
-        if document.status.code == 'approved':
-            # Списываем баллы из семестра заявки (текущий — так же обновит кэш Student).
-            debit_document(document)
-
-        document.status = DocumentStatus.objects.get(code='pending')
-        document.rejection_reason = reason_text
-        document.verified_by = reviewer
-        document.save()
-        audit_logger.info(
-            "review doc=%s reviewer=%s action=reject result=returned_to_pending reasons=%s",
-            document.id, reviewer.pk, reason_text,
-        )
-        return "Решение отменено руководством. Заявка возвращена на рассмотрение, баллы вычтены."
-
-    raise InvalidDocumentState("Неизвестная ошибка")
+    if action == 'approve':
+        return "Заявка одобрена, баллы начислены"
+    debited = ", баллы списаны" if old_code == 'approved' else ""
+    if action == 'reject':
+        return f"Заявка отклонена{debited}. Студент увидит причину и сможет исправить заявку"
+    return f"Заявка возвращена кафедре на повторное рассмотрение{debited}"
 
 
 @transaction.atomic

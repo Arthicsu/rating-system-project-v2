@@ -6,6 +6,7 @@ filter backends на уровне ViewSet (core/filters.py + SearchFilter). Зд
 то, что на django-filter не ложится: scope-фильтрация, выбор семестра с
 аннотациями истории, агрегаты дашборда и сборка полного профиля студента.
 """
+from django.contrib.auth.models import Group as AuthGroup
 from django.db.models import Avg, Count, IntegerField, Max, Min, OuterRef, Q, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 
@@ -247,7 +248,7 @@ def pending_documents(user, request):
     кафедра видит 'pending', декан/ректорат — 'approved' (на утверждение).
     Параметрические фильтры и поиск применяет ViewSet (filter backends).
     """
-    doc_status = 'pending' if user.is_dept_staff else 'approved'
+    doc_status = 'approved' if user.is_leadership else 'pending'
     return (
         Document.objects.filter(
             user__student_profile__in=allowed_students(user),
@@ -256,6 +257,12 @@ def pending_documents(user, request):
         )
         .select_related(*_DOCUMENT_LIST_RELATED)
         .prefetch_related('files')
+        # Метка «Возвращена деканатом/ректоратом»: последнее решение по заявке на рассмотрении
+        # принял руководитель (повторная подача студента сбрасывает verified_by).
+        .annotate(returned_by=Subquery(
+            AuthGroup.objects.filter(user=OuterRef('verified_by'), name__in=('Dean', 'Rectorate'))
+            .order_by('-name').values('name')[:1]  # Rectorate раньше Dean - самая широкая роль
+        ))
         # Добор по -id: у пачки заявок с одинаковым uploaded_at порядок иначе
         # не определён, и страницы пагинации перекрываются (одни и те же карточки).
         .order_by('-uploaded_at', '-id')

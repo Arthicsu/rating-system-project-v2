@@ -302,9 +302,14 @@ class PendingDocumentSerializer(DocumentSerializer):
     group = serializers.CharField(source='user.student_profile.group.name', read_only=True, default="Без группы")
     group_id = serializers.IntegerField(source='user.student_profile.group.id', read_only=True)
     record_book = serializers.CharField(source='user.student_profile.record_book', read_only=True, default="—")
+    # Аннотация pending_documents; в остальных выборках её нет — тогда null.
+    returned_by = serializers.ChoiceField(
+        choices=['Dean', 'Rectorate'], read_only=True, allow_null=True, default=None,
+        help_text="Кто вернул заявку кафедре на повторное рассмотрение",
+    )
 
     class Meta(DocumentSerializer.Meta):
-        fields = DocumentSerializer.Meta.fields + ['user_id', 'student_id', 'student_name', 'group', 'group_id', 'course', 'faculty', 'record_book']
+        fields = DocumentSerializer.Meta.fields + ['user_id', 'student_id', 'student_name', 'group', 'group_id', 'course', 'faculty', 'record_book', 'returned_by']
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     group = serializers.CharField(source='group.name', read_only=True, default="Без группы")

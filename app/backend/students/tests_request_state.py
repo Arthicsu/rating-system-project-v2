@@ -117,7 +117,7 @@ class RequestStateTests(APITestCase):
     def test_dean_return_is_returned(self):
         dean = make_staff("dean-f", "Dean", faculty=self.staff.staff_profile.department.faculty)
 
-        resp = self._review(dean, self.approved, action="reject", reasons=["Не тот семестр"])
+        resp = self._review(dean, self.approved, action="return", reasons=["Не тот семестр"])
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         self.assertIn(self.approved.pk, self._ids(list_type="pending", state="returned"))

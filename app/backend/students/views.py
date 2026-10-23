@@ -5,8 +5,6 @@ ViewSets приложения students (API /api/v1/, router — backend/api_url
 core/scoping.py), фильтрация — FilterSet'ы из core/filters.py + SearchFilter,
 построение выборок и агрегатов — core/querysets.py, бизнес-логика — services.py.
 """
-import logging
-
 from rest_framework import mixins, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
@@ -49,8 +47,6 @@ from .serializers import (
     SemesterStudentListSerializer,
     StudentProfileSerializer,
 )
-
-logger = logging.getLogger(__name__)
 
 _SEMESTER_PARAMS = [
     OpenApiParameter('academic_year', OpenApiTypes.INT, description='ID семестра (по умолчанию — текущий)'),
@@ -197,21 +193,8 @@ class AchievementViewSet(mixins.CreateModelMixin,
 
     @extend_schema(responses={204: None, 403: ErrorDetailSerializer})
     def destroy(self, request, *args, **kwargs):
-        doc = self.get_object()
-
-        # Подтверждённое достижение студент удалить не может — баллы уже начислены.
-        if doc.status.code == 'approved':
-            raise PermissionDenied("Нельзя удалить подтверждённое достижение.")
-
-        files = list(doc.files.all())
-        doc.delete()
-
-        for document_file in files:
-            try:
-                document_file.file.delete(save=False)
-            except Exception:
-                logger.exception("Не удалось удалить файл достижения из хранилища")
-
+        # Подтверждённое достижение студент удалить не может — баллы уже начислены (проверка в сервисе).
+        services.delete_achievement(self.get_object())
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(

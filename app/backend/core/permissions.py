@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from rest_framework.exceptions import PermissionDenied
 
 from core import scoping
 
@@ -68,6 +69,9 @@ class CanReviewDocument(permissions.BasePermission):
         return bool(user and user.is_authenticated and hasattr(user, 'staff_profile'))
 
     def has_object_permission(self, request, view, obj):
+        # ЭОС может дать одной учётке и профиль студента, и профиль сотрудника кафедры.
+        if obj.user_id == request.user.id:
+            raise PermissionDenied('Нельзя рассматривать собственную заявку')
         return scoping.document_in_scope(request.user, obj)
 
 

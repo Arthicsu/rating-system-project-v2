@@ -26,6 +26,12 @@ class User(AbstractUser):
     def is_rectorate(self):
         return 'Rectorate' in self.group_names
 
+    @property
+    def is_leadership(self):
+        # Деканат или ректорат. Перекрывает роль кафедры, как и в core/scoping: при нескольких
+        # группах права модерации - по самой широкой области видимости (одобряет только кафедра).
+        return self.is_dean or self.is_rectorate
+
     def get_full_username(self):
         """
         Возвращает полное имя пользователя (применяем для студента) для отображения на клиенте:

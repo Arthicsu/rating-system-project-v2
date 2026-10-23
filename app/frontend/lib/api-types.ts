@@ -623,9 +623,10 @@ export interface components {
         /**
          * @description * `approve` - approve
          *     * `reject` - reject
+         *     * `return` - return
          * @enum {string}
          */
-        ActionEnum: "approve" | "reject";
+        ActionEnum: "approve" | "reject" | "return";
         Category: {
             /** Код */
             code: string;
@@ -762,6 +763,8 @@ export interface components {
         Message: {
             message: string;
         };
+        /** @enum {unknown} */
+        NullEnum: null;
         PaginatedPendingDocumentList: {
             /** @example 123 */
             count: number;
@@ -880,6 +883,13 @@ export interface components {
             readonly faculty: string;
             /** @default — */
             readonly record_book: string;
+            /**
+             * @description Кто вернул заявку кафедре на повторное рассмотрение
+             *
+             *     * `Dean` - Dean
+             *     * `Rectorate` - Rectorate
+             */
+            readonly returned_by: (components["schemas"]["ReturnedByEnum"] | components["schemas"]["NullEnum"]) | null;
         };
         /** @description Сериализатор фильтра рейтинга для модерации документа. */
         RatingFiltersResponse: {
@@ -893,10 +903,23 @@ export interface components {
             /** Текст причины */
             text: string;
         };
+        /**
+         * @description * `Dean` - Dean
+         *     * `Rectorate` - Rectorate
+         * @enum {string}
+         */
+        ReturnedByEnum: "Dean" | "Rectorate";
         /** @description Сериализатор для модерации документа. */
         ReviewDocumentRequest: {
+            /**
+             * @description approve — кафедра; reject — студенту на исправление; return — руководство возвращает кафедре
+             *
+             *     * `approve` - approve
+             *     * `reject` - reject
+             *     * `return` - return
+             */
             action: components["schemas"]["ActionEnum"];
-            /** @description Список причин при отклонении */
+            /** @description Список причин при отклонении и возврате */
             reasons?: string[];
         };
         /** @description Сериализатор ответа при модерации документа. */
@@ -1106,7 +1129,7 @@ export interface operations {
                 semester?: number;
                 /**
                  * @description * `new` - Новые
-                 *     * `returned` - Повторные (были отклонены)
+                 *     * `returned` - Повторные и возвращённые
                  *     * `approved` - Подтверждённые
                  *     * `rejected` - Отклонённые
                  */

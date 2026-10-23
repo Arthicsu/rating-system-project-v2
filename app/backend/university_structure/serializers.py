@@ -118,14 +118,19 @@ class ReviewDocumentRequestSerializer(serializers.Serializer):
     """
     Сериализатор для модерации документа.
     """
-    action = serializers.ChoiceField(choices=['approve', 'reject'])
-    reasons = serializers.ListField(child=serializers.CharField(), required=False, help_text="Список причин при отклонении")
+    action = serializers.ChoiceField(
+        choices=['approve', 'reject', 'return'],
+        help_text="approve — кафедра; reject — студенту на исправление; return — руководство возвращает кафедре",
+    )
+    reasons = serializers.ListField(
+        child=serializers.CharField(), required=False, help_text="Список причин при отклонении и возврате"
+    )
 
     def validate(self, attrs):
         # Без причины отклонённая или возвращённая руководством заявка выглядела бы новой
         # (фильтр state=returned опирается на причину), а студент не узнал бы, что исправить.
-        if attrs['action'] == 'reject' and not attrs.get('reasons'):
-            raise serializers.ValidationError({'reasons': 'Укажите причину отклонения'})
+        if attrs['action'] in ('reject', 'return') and not attrs.get('reasons'):
+            raise serializers.ValidationError({'reasons': 'Укажите причину'})
         return attrs
 
 

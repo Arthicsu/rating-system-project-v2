@@ -194,7 +194,7 @@ def get_pending_docs_count(user) -> int:
     if not hasattr(user, 'staff_profile'):
         return 0
 
-    doc_status = 'pending' if user.is_dept_staff else 'approved'
+    doc_status = 'approved' if user.is_leadership else 'pending'
     return Document.objects.filter(
         user__student_profile__in=allowed_students(user),
         status__code=doc_status,

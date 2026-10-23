@@ -238,7 +238,7 @@ paths:
           - returned
         description: |-
           * `new` - Новые
-          * `returned` - Повторные (были отклонены)
+          * `returned` - Повторные и возвращённые
           * `approved` - Подтверждённые
           * `rejected` - Отклонённые
       tags:
@@ -1214,10 +1214,12 @@ components:
       enum:
       - approve
       - reject
+      - return
       type: string
       description: |-
         * `approve` - approve
         * `reject` - reject
+        * `return` - return
     Category:
       type: object
       properties:
@@ -1531,6 +1533,9 @@ components:
           type: string
       required:
       - message
+    NullEnum:
+      enum:
+      - null
     PaginatedPendingDocumentList:
       type: object
       required:
@@ -1745,6 +1750,17 @@ components:
           type: string
           readOnly: true
           default: —
+        returned_by:
+          readOnly: true
+          nullable: true
+          description: |-
+            Кто вернул заявку кафедре на повторное рассмотрение
+
+            * `Dean` - Dean
+            * `Rectorate` - Rectorate
+          oneOf:
+          - $ref: '#/components/schemas/ReturnedByEnum'
+          - $ref: '#/components/schemas/NullEnum'
       required:
       - achievement
       - category
@@ -1760,6 +1776,7 @@ components:
       - level_display
       - record_book
       - result_display
+      - returned_by
       - status
       - status_display
       - student_id
@@ -1805,17 +1822,32 @@ components:
       required:
       - id
       - text
+    ReturnedByEnum:
+      enum:
+      - Dean
+      - Rectorate
+      type: string
+      description: |-
+        * `Dean` - Dean
+        * `Rectorate` - Rectorate
     ReviewDocumentRequest:
       type: object
       description: Сериализатор для модерации документа.
       properties:
         action:
-          $ref: '#/components/schemas/ActionEnum'
+          allOf:
+          - $ref: '#/components/schemas/ActionEnum'
+          description: |-
+            approve — кафедра; reject — студенту на исправление; return — руководство возвращает кафедре
+
+            * `approve` - approve
+            * `reject` - reject
+            * `return` - return
         reasons:
           type: array
           items:
             type: string
-          description: Список причин при отклонении
+          description: Список причин при отклонении и возврате
       required:
       - action
     ReviewDocumentResponse:
