@@ -90,6 +90,38 @@ class RequestStateTests(APITestCase):
             self._ids(list_type="pending"), {self.new.pk, self.new_null.pk, self.returned.pk}
         )
 
+    def _review(self, reviewer, doc, **body):
+        self.client.force_authenticate(reviewer)
+        return self.client.post(reverse("api:achievements-review", args=[doc.pk]), body)
+
+    def test_reject_without_reason_400(self):
+        # Без причины отклонённая (или возвращённая руководством) заявка выглядела бы новой,
+        # а студент не узнал бы, что исправить.
+        for body in ({"action": "reject"}, {"action": "reject", "reasons": []}):
+            with self.subTest(body=body):
+                resp = self._review(self.staff, self.new, **body)
+
+                self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn("reasons", resp.data)
+                self.new.refresh_from_db()
+                self.assertEqual(self.new.status.code, "pending")
+
+    def test_department_reject_then_resubmit_is_returned(self):
+        self._review(self.staff, self.new, action="reject", reasons=["Нет подписи"])
+        self.client.force_authenticate(self.student)
+        self.client.patch(reverse("api:achievements-detail", args=[self.new.pk]), {"achievement": "с подписью"})
+
+        self.assertIn(self.new.pk, self._ids(list_type="pending", state="returned"))
+        self.assertNotIn(self.new.pk, self._ids(list_type="pending", state="new"))
+
+    def test_dean_return_is_returned(self):
+        dean = make_staff("dean-f", "Dean", faculty=self.staff.staff_profile.department.faculty)
+
+        resp = self._review(dean, self.approved, action="reject", reasons=["Не тот семестр"])
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertIn(self.approved.pk, self._ids(list_type="pending", state="returned"))
+
     def test_state_invalid_400(self):
         self.client.force_authenticate(self.staff)
 
