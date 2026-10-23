@@ -32,7 +32,7 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
   const handleSemesterChange = (value: string) => {
     const selected = semesterOptions.find((opt) => opt.id === Number(value));
     if (selected) {
-      changeSemester(selected.id, selected.label);
+      changeSemester(selected.id);
     }
   };
 

@@ -28,6 +28,8 @@ interface StudentsTabProps {
   exportParams: ExportExcelParams;
   onCategoryChange: (id: string) => void;
   onDirectionToggle: () => void;
+  /** Уже применённый поиск - поле показывает его после смены вкладки и при открытии по ссылке. */
+  searchValue: string;
   onSearch: (value: string) => void;
   onPageChange: (page: number) => void;
 }
@@ -53,6 +55,7 @@ export default function StudentsTab({
   exportParams,
   onCategoryChange,
   onDirectionToggle,
+  searchValue,
   onSearch,
   onPageChange,
 }: StudentsTabProps) {
@@ -69,7 +72,7 @@ export default function StudentsTab({
             </span>
           </h2>
           <div className="flex items-center gap-2">
-            <SearchInput onSearch={onSearch} placeholder="Поиск по ФИО или зачетке" />
+            <SearchInput initialValue={searchValue} onSearch={onSearch} placeholder="Поиск по ФИО или зачетке" />
             <ExportExcelButton {...exportParams} />
           </div>
         </div>

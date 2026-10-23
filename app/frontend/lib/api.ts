@@ -12,9 +12,11 @@ import type { components } from '@/lib/api-types';
 
 export type ApiSchema<T extends keyof components['schemas']> = components['schemas'][T];
 
-/** Стандартная пагинация DRF: {count, next, previous, results}. */
+/** Стандартная пагинация DRF: {count, next, previous, results} + номер отданной страницы. */
 export interface Paginated<T> {
   count: number;
+  /** Номер отданной страницы: вместо несуществующей сервер отдаёт последнюю (core/pagination). */
+  page: number;
   next?: string | null;
   previous?: string | null;
   results: T[];

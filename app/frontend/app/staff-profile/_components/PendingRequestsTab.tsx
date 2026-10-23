@@ -25,6 +25,8 @@ interface PendingRequestsTabProps {
   showStateFilter: boolean;
   stateValue: string;
   onStateChange: (value: string) => void;
+  /** Уже применённый поиск - поле показывает его после смены вкладки и при открытии по ссылке. */
+  searchValue: string;
   onSearch: (value: string) => void;
   onPageChange: (page: number) => void;
   actionsFor: (doc: Document) => ReviewAction[];
@@ -43,6 +45,7 @@ export default function PendingRequestsTab({
   showStateFilter,
   stateValue,
   onStateChange,
+  searchValue,
   onSearch,
   onPageChange,
   actionsFor,
@@ -56,7 +59,7 @@ export default function PendingRequestsTab({
           Заявки: {currentGroupName}, {semesterLabel}
         </h2>
         <div className="w-full sm:w-64">
-          <SearchInput onSearch={onSearch} placeholder="Поиск по ФИО..." />
+          <SearchInput initialValue={searchValue} onSearch={onSearch} placeholder="Поиск по ФИО..." />
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import toast from 'react-hot-toast';
 import type { AxiosError } from 'axios';
@@ -23,7 +23,6 @@ import { useRedirectIfLoggedOut } from '@/hooks/useRedirectIfLoggedOut';
 import { useStaffFilters } from '@/hooks/useStaffFilters';
 import { apiErrorMessage, isAuthError } from '@/lib/apiError';
 import { useCategories, useDashboard, useRating } from '@/hooks/queries';
-import { useTabParam } from '@/hooks/useTabParam';
 import { useReviewActions } from '@/hooks/useReviewActions';
 
 import type {
@@ -36,6 +35,63 @@ import type Student from '@/interfaces/StudentInterfaces';
 const EMPTY_STATS: DashboardStats = { total_students: 0, avg_score: 0, max_score: 0, min_score: 0, categories: {} };
 
 const TAB_IDS = ['my-group', 'pending-requests', 'reviewed-requests', 'statistics'] as const;
+
+// Состояние кабинета живёт в адресе: «Подробнее» → «Назад» возвращает в то же место,
+// ссылку можно переслать. В адрес попадает только отличное от значения по умолчанию.
+const URL_DEFAULTS = {
+  tab: 'my-group', faculty: 'all', course: 'all', group: 'all', semester: '',
+  cat: 'common', dir: 'desc', q: '', page: '1',
+  rstate: 'all', rq: '', rpage: '1',
+  vstate: 'all', vq: '', vpage: '1',
+};
+type UrlState = typeof URL_DEFAULTS;
+
+/** Адрес — пользовательский ввод: неизвестные значения заменяются значениями по умолчанию. */
+function readUrlState(params: { get(key: string): string | null }): UrlState {
+  const get = (key: keyof UrlState, valid: (value: string) => boolean) => {
+    const value = params.get(key);
+    return value !== null && valid(value) ? value : URL_DEFAULTS[key];
+  };
+  const id = (v: string) => /^\d{1,9}$/.test(v);
+  const page = (v: string) => /^[1-9]\d{0,5}$/.test(v);
+  const text = (v: string) => v.length <= 100;
+  const oneOf = (...values: readonly string[]) => (v: string) => values.includes(v);
+  return {
+    tab: get('tab', oneOf(...TAB_IDS)),
+    faculty: get('faculty', id),
+    course: get('course', oneOf('1', '2', '3', '4', '5')),
+    group: get('group', id),
+    semester: get('semester', id),
+    // Неизвестную категорию сервер сортирует по общему баллу.
+    cat: get('cat', (v) => /^\w{1,50}$/.test(v)),
+    dir: get('dir', oneOf('asc', 'desc')),
+    q: get('q', text),
+    page: get('page', page),
+    rstate: get('rstate', oneOf('new', 'returned')),
+    rq: get('rq', text),
+    rpage: get('rpage', page),
+    vstate: get('vstate', oneOf('approved', 'rejected')),
+    vq: get('vq', text),
+    vpage: get('vpage', page),
+  };
+}
+
+/**
+ * Сервер отдаёт последнюю существующую страницу вместо пропавшей (одобрили последнюю
+ * карточку на последней странице, старая ссылка) — переходим на неё, без экрана 404.
+ */
+function useServerPage(
+  query: { data?: { page: number }; isPlaceholderData: boolean; isFetching: boolean },
+  page: number,
+  setPage: (page: number) => void,
+) {
+  // Пока показаны прежние данные или идёт перезапрос, номер не в счёт: в кэше страницы мог
+  // остаться старый ответ (страница 3 отдавалась как 2), и он отменил бы клик по «3».
+  const served = query.isPlaceholderData || query.isFetching ? undefined : query.data?.page;
+  useEffect(() => {
+    if (served && served !== page) setPage(served);
+  }, [served, page, setPage]);
+}
 
 /**
  * Guard кабинета сотрудника: пока роль не подтверждена — не рендерим и не
@@ -59,72 +115,89 @@ export default function StaffProfilePage() {
     return null;
   }
 
-  return <StaffDashboard />;
+  // useSearchParams в кабинете требует Suspense; кабинет и так рендерится только на клиенте.
+  return (
+    <Suspense fallback={null}>
+      <StaffDashboard />
+    </Suspense>
+  );
 }
 
 /** Кабинет сотрудника; монтируется только после подтверждения роли (см. guard выше). */
 function StaffDashboard() {
   const { user } = useMySession();
-  const router = useRouter();
   const isRectorate = !!user?.roles?.includes('Rectorate');
 
-  const { activeTab, changeTab } = useTabParam(TAB_IDS, 'my-group', '/staff-profile');
+  // Кабинет монтируется только на клиенте после проверки сессии (guard выше): адрес
+  // читаем сразу — без расхождения гидрации и без лишнего запроса со значениями по умолчанию.
+  const searchParams = useSearchParams();
+  const [initial] = useState(() => readUrlState(searchParams));
+
+  const [activeTab, setActiveTab] = useState(initial.tab);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [requestsPage, setRequestsPage] = useState(1);
-  const [reviewedPage, setReviewedPage] = useState(1);
+  // Ссылки в шапке («Заявки», имя) и «Назад»/«Вперёд» браузера меняют адрес, не перемонтируя
+  // кабинет: вкладку берём из адреса (подстройка состояния при рендере, без эффекта). Фильтры,
+  // поиск и страницы при этом остаются текущими — эффект ниже запишет их обратно в адрес.
+  const urlTab = searchParams.get('tab');
+  const [seenUrlTab, setSeenUrlTab] = useState(urlTab);
+  if (urlTab !== seenUrlTab) {
+    setSeenUrlTab(urlTab);
+    setActiveTab(urlTab && (TAB_IDS as readonly string[]).includes(urlTab) ? urlTab : URL_DEFAULTS.tab);
+  }
 
-  const [groupSearchValue, setGroupSearchValue] = useState('');
-  const [pendingSearchValue, setPendingSearchValue] = useState('');
-  const [reviewedSearchValue, setReviewedSearchValue] = useState('');
+  const [currentPage, setCurrentPage] = useState(Number(initial.page));
+  const [requestsPage, setRequestsPage] = useState(Number(initial.rpage));
+  const [reviewedPage, setReviewedPage] = useState(Number(initial.vpage));
+
+  const [groupSearchValue, setGroupSearchValue] = useState(initial.q);
+  const [pendingSearchValue, setPendingSearchValue] = useState(initial.rq);
+  const [reviewedSearchValue, setReviewedSearchValue] = useState(initial.vq);
   // Фильтр состояния заявок ('all' - без фильтра); смена сбрасывает пагинацию на 1.
-  const [pendingState, setPendingState] = useState('all');
-  const [reviewedState, setReviewedState] = useState('all');
+  const [pendingState, setPendingState] = useState(initial.rstate);
+  const [reviewedState, setReviewedState] = useState(initial.vstate);
 
   // Подвкладка категории и направление сортировки таблицы студентов.
-  const [category, setCategory] = useState('common');
-  const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
+  const [pickedCategory, setCategory] = useState(initial.cat);
+  const [direction, setDirection] = useState<'asc' | 'desc'>(initial.dir === 'asc' ? 'asc' : 'desc');
 
   const pageSize = 20;
   const requestsPageSize = 6;
 
-  // Страница таблицы студентов живёт и в ?page= — ссылку на конкретную
-  // страницу можно сохранить/переслать. Чтение после гидрации, как в useTabParam.
-  useEffect(() => {
-    const page = Number(new URLSearchParams(window.location.search).get('page'));
-    if (Number.isInteger(page) && page > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- синхронизация с URL после гидрации
-      setCurrentPage(page);
-    }
-  }, []);
-
-  const changeStudentsPage = (page: number) => {
-    setCurrentPage(page);
-    const params = new URLSearchParams(window.location.search);
-    params.set('page', String(page));
-    router.replace(`/staff-profile?${params.toString()}`, { scroll: false });
-  };
-
-  // Смена фильтров сбрасывает страницу списка студентов (как прежние handle*Change).
+  // Смена группы, курса, факультета или периода меняет все списки — каждый с первой страницы.
   // Роль сотрудника гарантирована guard-обёрткой StaffProfilePage.
-  const filters = useStaffFilters(() => changeStudentsPage(1));
+  const filters = useStaffFilters(
+    () => {
+      setCurrentPage(1);
+      setRequestsPage(1);
+      setReviewedPage(1);
+    },
+    true,
+    {
+      // Селект факультета есть только у ректората: у остальных значение из чужой ссылки
+      // было бы скрытым фильтром без способа его снять.
+      facultyId: isRectorate ? initial.faculty : 'all',
+      course: initial.course,
+      groupId: initial.group,
+      semesterId: Number(initial.semester) || 0,
+    },
+  );
   const { groupId, semesterId, semesterLabel, groupsList } = filters;
 
   // Поиск сбрасывает пагинацию соответствующего списка (обработчики вместо эффектов).
   const handleGroupSearch = (value: string) => {
     setGroupSearchValue(value);
-    changeStudentsPage(1);
+    setCurrentPage(1);
   };
 
   const handleCategoryChange = (id: string) => {
     setCategory(id);
-    changeStudentsPage(1);
+    setCurrentPage(1);
   };
 
   const handleDirectionToggle = () => {
     setDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    changeStudentsPage(1);
+    setCurrentPage(1);
   };
 
   const handlePendingSearch = (value: string) => {
@@ -159,6 +232,9 @@ function StaffDashboard() {
     [categoriesData]
   );
 
+  // Категория из адреса могла устареть (удалили в админке) — тогда общий рейтинг, а не NaN в баллах.
+  const category =
+    categoriesData && !categoriesData.some((c) => c.code === pickedCategory) ? 'common' : pickedCategory;
   const scoreKey = category === 'common' ? 'total_score' : `${category}_score`;
 
   // Таблица студентов — ручка рейтинга: семестр из фильтров кабинета,
@@ -237,6 +313,44 @@ function StaffDashboard() {
   const totalReviewed = reviewedQuery.data?.count ?? 0;
   const reviewedLoading = reviewedQuery.isPending || reviewedQuery.isPlaceholderData;
 
+  useServerPage(studentsQuery, currentPage, setCurrentPage);
+  useServerPage(pendingListQuery, requestsPage, setRequestsPage);
+  useServerPage(reviewedQuery, reviewedPage, setReviewedPage);
+
+  // Состояние — в адрес. replace, а не push: «Назад» со страницы заявки возвращает сюда же,
+  // а не листает назад каждый фильтр и каждую букву поиска.
+  const currentSemesterId = filters.semesterOptions.find((s) => s.is_current)?.id;
+  const urlState: UrlState = {
+    tab: activeTab,
+    faculty: filters.facultyId,
+    course: filters.course,
+    group: groupId,
+    semester: semesterId && semesterId !== currentSemesterId ? String(semesterId) : '',
+    cat: category,
+    dir: direction,
+    q: groupSearchValue,
+    page: String(currentPage),
+    rstate: pendingState,
+    rq: pendingSearchValue,
+    rpage: String(requestsPage),
+    vstate: reviewedState,
+    vq: reviewedSearchValue,
+    vpage: String(reviewedPage),
+  };
+  const urlQuery = new URLSearchParams(
+    Object.entries(urlState).filter(([key, value]) => value !== URL_DEFAULTS[key as keyof UrlState]),
+  ).toString();
+  // Сверка и с текущим адресом: если его сменили снаружи (ссылка в шапке), состояние вернётся в адрес.
+  const currentQuery = searchParams.toString();
+  useEffect(() => {
+    if (urlQuery !== currentQuery) {
+      // History API, а не router.replace: без запроса к серверу Next на каждую страницу и букву
+      // поиска, и запись не теряется, если сразу нажать «Подробнее» (Next синхронизирует
+      // useSearchParams с replaceState).
+      window.history.replaceState(null, '', urlQuery ? `/staff-profile?${urlQuery}` : '/staff-profile');
+    }
+  }, [urlQuery, currentQuery]);
+
   const currentGroupName = groupId === 'all'
     ? 'Все группы'
     : (groupsList.find(g => String(g.id) === groupId)?.name || 'Все группы');
@@ -266,7 +380,7 @@ function StaffDashboard() {
 
           <FilterPanel filters={filters} isRectorate={isRectorate} mobileFiltersOpen={mobileFiltersOpen} />
 
-          <TabsNav tabs={tabs} activeTab={activeTab} onChange={changeTab} />
+          <TabsNav tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
           {activeTab === 'my-group' && (studentsErrorCode ? (
             <ErrorState code={studentsErrorCode} onReset={() => { void studentsQuery.refetch(); }} />
@@ -284,6 +398,7 @@ function StaffDashboard() {
               activeCategory={category}
               scoreKey={scoreKey}
               direction={direction}
+              searchValue={groupSearchValue}
               exportParams={{
                 faculty_id: filters.facultyId,
                 course: filters.course,
@@ -296,7 +411,7 @@ function StaffDashboard() {
               onCategoryChange={handleCategoryChange}
               onDirectionToggle={handleDirectionToggle}
               onSearch={handleGroupSearch}
-              onPageChange={changeStudentsPage}
+              onPageChange={setCurrentPage}
             />
           ))}
 
@@ -314,6 +429,7 @@ function StaffDashboard() {
               showStateFilter={canApprove}
               stateValue={pendingState}
               onStateChange={(value) => { setPendingState(value); setRequestsPage(1); }}
+              searchValue={pendingSearchValue}
               onSearch={handlePendingSearch}
               onPageChange={setRequestsPage}
               actionsFor={actionsFor}
@@ -334,6 +450,7 @@ function StaffDashboard() {
               semesterLabel={semesterLabel}
               stateValue={reviewedState}
               onStateChange={(value) => { setReviewedState(value); setReviewedPage(1); }}
+              searchValue={reviewedSearchValue}
               onSearch={handleReviewedSearch}
               onPageChange={setReviewedPage}
               actionsFor={actionsFor}
