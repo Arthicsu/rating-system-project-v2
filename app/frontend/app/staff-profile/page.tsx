@@ -78,6 +78,9 @@ function StaffDashboard() {
   const [groupSearchValue, setGroupSearchValue] = useState('');
   const [pendingSearchValue, setPendingSearchValue] = useState('');
   const [reviewedSearchValue, setReviewedSearchValue] = useState('');
+  // Фильтр состояния заявок ('all' - без фильтра); смена сбрасывает пагинацию на 1.
+  const [pendingState, setPendingState] = useState('all');
+  const [reviewedState, setReviewedState] = useState('all');
 
   // Подвкладка категории и направление сортировки таблицы студентов.
   const [category, setCategory] = useState('common');
@@ -180,6 +183,8 @@ function StaffDashboard() {
   // Как раньше: индикатор при первой загрузке и смене параметров, но не при фоновом поллинге.
   const studentsLoading = studentsQuery.isPending || studentsQuery.isPlaceholderData;
 
+  const { openModal, canApprove, modalApproveProps, modalRejectProps } = useReviewActions();
+
   const pendingParams = useMemo<DashboardStatsParams>(
     () => ({
       group_id: groupId,
@@ -195,11 +200,21 @@ function StaffDashboard() {
   // Поллинг 15с заменяет прежний ручной setInterval: заявки появляются/исчезают
   // без перезагрузки, пауза на скрытой вкладке.
   const pendingQuery = useDashboard(pendingParams, { enabled: ready, pollMs: 15_000 });
-  const pendingDocsData = pendingQuery.data?.results ?? [];
+  // Список под фильтром «Новые/Повторные» - отдельный запрос и только у кафедры: счётчик
+  // вкладки, статистика и топ-5 остаются по всем заявкам (нефильтрованный pendingQuery).
+  const pendingStateFilter =
+    canApprove && pendingState !== 'all' ? (pendingState as DashboardStatsParams['state']) : undefined;
+  const filteredPendingQuery = useDashboard(
+    { ...pendingParams, state: pendingStateFilter },
+    { enabled: ready && !!pendingStateFilter, pollMs: 15_000 },
+  );
+  const pendingListQuery = pendingStateFilter ? filteredPendingQuery : pendingQuery;
+  const pendingDocsData = pendingListQuery.data?.results ?? [];
+  const pendingListCount = pendingListQuery.data?.count ?? 0;
   const totalRequests = pendingQuery.data?.count ?? 0;
   const stats = pendingQuery.data?.stats ?? EMPTY_STATS;
   const top5Students = pendingQuery.data?.top5 ?? [];
-  const pendingLoading = pendingQuery.isPending || pendingQuery.isPlaceholderData;
+  const pendingLoading = pendingListQuery.isPending || pendingListQuery.isPlaceholderData;
 
   const reviewedParams = useMemo<DashboardStatsParams>(
     () => ({
@@ -209,9 +224,10 @@ function StaffDashboard() {
       page_size: requestsPageSize,
       search: reviewedSearchValue || undefined,
       list_type: 'reviewed',
+      state: reviewedState === 'all' ? undefined : (reviewedState as DashboardStatsParams['state']),
       ...filters.filterParams,
     }),
-    [groupId, semesterId, reviewedPage, reviewedSearchValue, filters.filterParams]
+    [groupId, semesterId, reviewedPage, reviewedSearchValue, reviewedState, filters.filterParams]
   );
 
   const reviewedQuery = useDashboard(reviewedParams, {
@@ -220,8 +236,6 @@ function StaffDashboard() {
   const reviewedDocsData = reviewedQuery.data?.results ?? [];
   const totalReviewed = reviewedQuery.data?.count ?? 0;
   const reviewedLoading = reviewedQuery.isPending || reviewedQuery.isPlaceholderData;
-
-  const { openModal, canApprove, modalApproveProps, modalRejectProps } = useReviewActions();
 
   const currentGroupName = groupId === 'all'
     ? 'Все группы'
@@ -241,6 +255,7 @@ function StaffDashboard() {
 
   const studentsErrorCode = tabError(studentsQuery.error, !!studentsQuery.data);
   const pendingErrorCode = tabError(pendingQuery.error, !!pendingQuery.data);
+  const pendingListErrorCode = tabError(pendingListQuery.error, !!pendingListQuery.data);
   const reviewedErrorCode = tabError(reviewedQuery.error, !!reviewedQuery.data);
 
   return (
@@ -285,18 +300,21 @@ function StaffDashboard() {
             />
           ))}
 
-          {activeTab === 'pending-requests' && (pendingErrorCode ? (
-            <ErrorState code={pendingErrorCode} onReset={() => { void pendingQuery.refetch(); }} />
+          {activeTab === 'pending-requests' && (pendingListErrorCode ? (
+            <ErrorState code={pendingListErrorCode} onReset={() => { void pendingListQuery.refetch(); }} />
           ) : (
             <PendingRequestsTab
               docs={pendingDocsData}
               loading={pendingLoading}
-              totalRequests={totalRequests}
+              totalRequests={pendingListCount}
               requestsPage={requestsPage}
               requestsPageSize={requestsPageSize}
               currentGroupName={currentGroupName}
               semesterLabel={semesterLabel}
               canApprove={canApprove}
+              showStateFilter={canApprove}
+              stateValue={pendingState}
+              onStateChange={(value) => { setPendingState(value); setRequestsPage(1); }}
               onSearch={handlePendingSearch}
               onPageChange={setRequestsPage}
               onApprove={(doc) => openModal('approve', doc)}
@@ -315,6 +333,8 @@ function StaffDashboard() {
               requestsPageSize={requestsPageSize}
               currentGroupName={currentGroupName}
               semesterLabel={semesterLabel}
+              stateValue={reviewedState}
+              onStateChange={(value) => { setReviewedState(value); setReviewedPage(1); }}
               onSearch={handleReviewedSearch}
               onPageChange={setReviewedPage}
               onApprove={(doc) => openModal('approve', doc)}
@@ -328,7 +348,7 @@ function StaffDashboard() {
             <StatisticsTab
               stats={stats}
               top5={top5Students}
-              activeRequests={pendingDocsData.length}
+              activeRequests={totalRequests}
               currentGroupName={currentGroupName}
               semesterLabel={semesterLabel}
             />

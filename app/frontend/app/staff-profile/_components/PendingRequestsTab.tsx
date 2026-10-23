@@ -4,7 +4,14 @@ import SearchInput from '@/components/SearchInput';
 import Pagination from '@/components/Pagination';
 import RequestCard from './RequestCard';
 import RequestCardsSkeleton from './RequestCardsSkeleton';
+import StateFilter from './StateFilter';
 import type { Document } from '@/interfaces/StaffInterfaces';
+
+const STATE_OPTIONS = [
+  { value: 'all', label: 'Все' },
+  { value: 'new', label: 'Новые' },
+  { value: 'returned', label: 'Повторные (были отклонены)' },
+];
 
 interface PendingRequestsTabProps {
   docs: Document[];
@@ -15,6 +22,10 @@ interface PendingRequestsTabProps {
   currentGroupName: string;
   semesterLabel: string;
   canApprove: boolean;
+  /** Новые/повторные - только у кафедры: у декана и ректората здесь лишь подтверждённые кафедрой. */
+  showStateFilter: boolean;
+  stateValue: string;
+  onStateChange: (value: string) => void;
   onSearch: (value: string) => void;
   onPageChange: (page: number) => void;
   onApprove: (doc: Document) => void;
@@ -31,11 +42,15 @@ export default function PendingRequestsTab({
   currentGroupName,
   semesterLabel,
   canApprove,
+  showStateFilter,
+  stateValue,
+  onStateChange,
   onSearch,
   onPageChange,
   onApprove,
   onReject,
 }: PendingRequestsTabProps) {
+  const filtered = showStateFilter && stateValue !== 'all';
   return (
     <div className="mt-5 space-y-4 animate-fade-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -46,6 +61,10 @@ export default function PendingRequestsTab({
           <SearchInput onSearch={onSearch} placeholder="Поиск по ФИО..." />
         </div>
       </div>
+
+      {showStateFilter && (
+        <StateFilter label="Какие заявки показать" options={STATE_OPTIONS} value={stateValue} onChange={onStateChange} />
+      )}
 
       {loading && docs.length === 0 ? (
         <RequestCardsSkeleton />
@@ -65,7 +84,7 @@ export default function PendingRequestsTab({
       ) : (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
           <p className="text-sm text-sky-700">
-            Нет заявок за период &quot;{semesterLabel}&quot; в группе &quot;{currentGroupName}&quot;
+            {filtered ? 'Нет заявок по выбранному фильтру' : 'Нет заявок'} за период &quot;{semesterLabel}&quot; в группе &quot;{currentGroupName}&quot;
           </p>
         </div>
       )}

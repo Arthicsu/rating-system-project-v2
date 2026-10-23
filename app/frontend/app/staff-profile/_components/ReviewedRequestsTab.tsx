@@ -4,7 +4,14 @@ import SearchInput from '@/components/SearchInput';
 import Pagination from '@/components/Pagination';
 import RequestCard from './RequestCard';
 import RequestCardsSkeleton from './RequestCardsSkeleton';
+import StateFilter from './StateFilter';
 import type { Document } from '@/interfaces/StaffInterfaces';
+
+const STATE_OPTIONS = [
+  { value: 'all', label: 'Все' },
+  { value: 'approved', label: 'Подтверждённые' },
+  { value: 'rejected', label: 'Отклонённые' },
+];
 
 interface ReviewedRequestsTabProps {
   docs: Document[];
@@ -14,6 +21,8 @@ interface ReviewedRequestsTabProps {
   requestsPageSize: number;
   currentGroupName: string;
   semesterLabel: string;
+  stateValue: string;
+  onStateChange: (value: string) => void;
   onSearch: (value: string) => void;
   onPageChange: (page: number) => void;
   onApprove: (doc: Document) => void;
@@ -29,6 +38,8 @@ export default function ReviewedRequestsTab({
   requestsPageSize,
   currentGroupName,
   semesterLabel,
+  stateValue,
+  onStateChange,
   onSearch,
   onPageChange,
   onApprove,
@@ -44,6 +55,8 @@ export default function ReviewedRequestsTab({
           <SearchInput onSearch={onSearch} placeholder="Поиск по ФИО..." />
         </div>
       </div>
+
+      <StateFilter label="Какие решения показать" options={STATE_OPTIONS} value={stateValue} onChange={onStateChange} />
 
       {loading && docs.length === 0 ? (
         <RequestCardsSkeleton />
@@ -62,7 +75,7 @@ export default function ReviewedRequestsTab({
       ) : (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
           <p className="text-sm text-sky-700">
-            Нет рассмотренных заявок за период &quot;{semesterLabel}&quot; в группе &quot;{currentGroupName}&quot;
+            {stateValue !== 'all' ? 'Нет рассмотренных заявок по выбранному фильтру' : 'Нет рассмотренных заявок'} за период &quot;{semesterLabel}&quot; в группе &quot;{currentGroupName}&quot;
           </p>
         </div>
       )}

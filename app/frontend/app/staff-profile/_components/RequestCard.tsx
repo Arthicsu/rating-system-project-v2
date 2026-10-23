@@ -117,7 +117,18 @@ export default function RequestCard({ doc, variant, canApprove, onApprove, onRej
             </Link>
             <p className="text-[10px] text-sky-700 sm:text-xs">{doc.record_book}</p>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 flex-wrap items-center gap-1">
+            {/* Причина прошлого отклонения сохраняется при повторной подаче: заявку уже отклоняли.
+                Сам текст причины - на странице заявки, в карточке только компактная метка. */}
+            {doc.rejection_reason && (
+              <span
+                title="Заявка уже отклонялась"
+                className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 sm:text-xs"
+              >
+                <i className="fa-solid fa-rotate-left" aria-hidden="true" />
+                Повторно
+              </span>
+            )}
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs sm:text-xs font-small text-amber-700">
               {doc.category_display}
             </span>
@@ -137,12 +148,6 @@ export default function RequestCard({ doc, variant, canApprove, onApprove, onRej
           <span className="text-[10px] text-sky-700 sm:text-xs">
             <i className="fa-solid fa-file mr-1" />
             Прикреплённых файл(ов): {doc.files.length}
-          </span>
-        )}
-        {doc.rejection_reason && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium text-rose-700 sm:text-xs">
-            <i className="fa-solid fa-circle-exclamation" />
-            Была отклонена
           </span>
         )}
         <Link

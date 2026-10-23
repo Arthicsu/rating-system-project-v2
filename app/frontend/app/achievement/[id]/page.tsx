@@ -252,7 +252,8 @@ export default function AchievementDetailPage() {
               {doc.rejection_reason && (
                 <section className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 shadow-sm sm:p-5">
                   <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-rose-700">
-                    Причина отклонения
+                    {/* Повторно поданная заявка хранит причину прошлого отклонения. */}
+                    {doc.status_display === 'pending' ? 'Причина прошлого отклонения' : 'Причина отклонения'}
                   </h3>
                   <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">
                     {doc.rejection_reason}

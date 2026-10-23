@@ -58,6 +58,8 @@ export interface DashboardStatsParams {
   faculty_id?: string;
   course?: string;
   list_type?: 'pending' | 'reviewed';
+  /** Фильтр состояния заявки (бэкенд: DocumentDashboardFilterSet.state). */
+  state?: 'new' | 'returned' | 'approved' | 'rejected';
 }
 
 export type ReviewDocumentData =
