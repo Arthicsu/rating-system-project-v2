@@ -779,6 +779,11 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["PendingDocument"][];
+            /**
+             * @description Номер отданной страницы
+             * @example 2
+             */
+            page: number;
         };
         PaginatedStudentProfileList: {
             /** @example 123 */
@@ -794,6 +799,11 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["StudentProfile"][];
+            /**
+             * @description Номер отданной страницы
+             * @example 2
+             */
+            page: number;
         };
         PaginatedStudentRatingList: {
             /** @example 123 */
@@ -809,6 +819,11 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["StudentRating"][];
+            /**
+             * @description Номер отданной страницы
+             * @example 2
+             */
+            page: number;
         };
         /**
          * @description Частичное редактирование достижения студентом (PATCH).

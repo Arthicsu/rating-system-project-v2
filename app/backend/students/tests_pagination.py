@@ -96,3 +96,39 @@ class PendingPaginationTests(APITestCase):
         self.assertEqual(set(page1) | set(page2), set(self.doc_ids))
         # Порядок детерминирован: -id при равном uploaded_at.
         self.assertEqual(page1 + page2, sorted(self.doc_ids, reverse=True))
+
+    def test_response_has_page_number(self):
+        self.client.force_authenticate(self.staff_user)
+
+        resp = self.client.get(reverse(URL_NAME), {"page_size": 2, "page": 2})
+
+        self.assertEqual(resp.data["page"], 2)
+
+    def test_out_of_range_page_returns_last_page(self):
+        # Одобрили последнюю карточку на последней странице или открыли старую ссылку:
+        # вместо 404 «Страница не найдена» - последняя существующая страница и её номер.
+        self.client.force_authenticate(self.staff_user)
+
+        resp = self.client.get(reverse(URL_NAME), {"page_size": 2, "page": 5})
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertEqual(resp.data["page"], 2)
+        self.assertEqual([r["id"] for r in resp.data["results"]], sorted(self.doc_ids, reverse=True)[2:])
+
+    def test_out_of_range_page_of_empty_list_is_first(self):
+        self.client.force_authenticate(self.staff_user)
+        Document.objects.all().delete()
+
+        resp = self.client.get(reverse(URL_NAME), {"page_size": 2, "page": 3})
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertEqual(resp.data["page"], 1)
+        self.assertEqual(resp.data["results"], [])
+
+    def test_non_ascii_digit_page_is_404_not_500(self):
+        # str.isdigit() принимает '²', а int() - нет: без проверки ловили 500.
+        self.client.force_authenticate(self.staff_user)
+
+        resp = self.client.get(reverse(URL_NAME), {"page_size": 2, "page": "²"})
+
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)

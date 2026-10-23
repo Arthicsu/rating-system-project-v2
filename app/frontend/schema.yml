@@ -1541,6 +1541,7 @@ components:
       required:
       - count
       - results
+      - page
       properties:
         count:
           type: integer
@@ -1559,11 +1560,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PendingDocument'
+        page:
+          type: integer
+          example: 2
+          description: Номер отданной страницы
     PaginatedStudentProfileList:
       type: object
       required:
       - count
       - results
+      - page
       properties:
         count:
           type: integer
@@ -1582,11 +1588,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StudentProfile'
+        page:
+          type: integer
+          example: 2
+          description: Номер отданной страницы
     PaginatedStudentRatingList:
       type: object
       required:
       - count
       - results
+      - page
       properties:
         count:
           type: integer
@@ -1605,6 +1616,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StudentRating'
+        page:
+          type: integer
+          example: 2
+          description: Номер отданной страницы
     PatchedAchievementUpdate:
       type: object
       description: |-
