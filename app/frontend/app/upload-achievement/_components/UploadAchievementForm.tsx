@@ -11,7 +11,7 @@ import { Skeleton } from 'boneyard-js/react';
 import { AxiosError } from 'axios';
 
 import FileDropZone from '@/components/upload/FileDropZone';
-import CustomSelect from '@/components/CustomSelect';
+import AchievementFields, { FieldError, getCurrentScore } from '@/components/achievement/AchievementFields';
 import { useAchievementConfig } from '@/hooks/queries';
 import { useUploadAchievement } from '@/hooks/mutations/useAchievementMutations';
 import { apiErrorMessage, isAuthError } from '@/lib/apiError';
@@ -21,15 +21,6 @@ import {
   type UploadAchievementSubmit,
 } from '@/lib/validation/achievement';
 import type { AuthUser } from '@/interfaces/AuthInterfaces';
-import type { DataStructure } from '@/interfaces/AchievementInterfaces';
-
-const EMPTY_STRUCTURE: DataStructure = {};
-
-/** Подпись ошибки под полем; ничего не рендерит, пока поле валидно. */
-function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return <p className="text-xs text-rose-600">{message}</p>;
-}
 
 /**
  * Форма загрузки достижения: react-hook-form + zod (uploadAchievementSchema).
@@ -50,19 +41,7 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
     }
   }, [configError]);
 
-  const dataStructure = config?.structure ?? EMPTY_STRUCTURE;
-  const levelsList = config?.levels ?? [];
-  const resultsList = config?.results ?? [];
-  const docTypesList = config?.doc_types ?? [];
-
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    getValues,
-    formState: { errors },
-  } = useForm<UploadAchievementValues, unknown, UploadAchievementSubmit>({
+  const form = useForm<UploadAchievementValues, unknown, UploadAchievementSubmit>({
     resolver: zodResolver(uploadAchievementSchema),
     defaultValues: {
       category: null,
@@ -75,13 +54,14 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
       files: [],
     },
   });
+  const {
+    handleSubmit,
+    watch,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = form;
 
-  const category = watch('category');
-  const subType = watch('subType');
-  const level = watch('level');
-  const result = watch('result');
-  const docType = watch('docType');
-  const achievementName = watch('achievement');
   const files = watch('files');
 
   // FileDropZone ждёт setState-совместимый сеттер (использует в т.ч.
@@ -90,36 +70,6 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
     setValue('files', typeof action === 'function' ? action(getValues('files')) : action, {
       shouldValidate: true,
     });
-
-  const getFilteredResults = () => {
-    if (!subType) return resultsList;
-
-    const allowed = subType.allowedResults;
-    if (!allowed || allowed.length === 0) return resultsList;
-
-    return resultsList.filter((item) => allowed.includes(item.code));
-  };
-
-  const getFilteredLevels = () => {
-    if (!subType) return levelsList;
-
-    const allowed = subType.allowedLevels;
-    if (!allowed || allowed.length === 0) return levelsList;
-
-    return levelsList.filter((item) => allowed.includes(item.code));
-  };
-
-  const getCurrentScore = (): number | null => {
-    if (!subType || !subType.scoring_rules) return null;
-
-    const rule = subType.scoring_rules.find((r) => {
-      const levelMatch = subType.needsLevel ? r.level === level?.code : r.level === null;
-      const resultMatch = subType.needsResult ? r.result === result?.code : r.result === null;
-      return levelMatch && resultMatch;
-    });
-
-    return rule?.score ?? null;
-  };
 
   const onSubmit = async (values: UploadAchievementSubmit) => {
     if (!user.record_book) {
@@ -187,7 +137,7 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
             Баллы
           </p>
           <p className="text-2xl sm:text-3xl font-bold text-emerald-600 leading-tight">
-            {getCurrentScore() ?? 0}
+            {getCurrentScore(watch('subType'), watch('level'), watch('result')) ?? 0}
           </p>
         </div>
       </div>
@@ -199,7 +149,7 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
           <div className="space-y-4">
           {/* Номер зачетной */}
           <div className="space-y-1.5">
-            <label htmlFor="record-book" className="text-[11px] font-medium text-slate-500">
+            <label htmlFor="record-book" className="text-xs font-medium text-slate-600">
               Номер зачетной книги
             </label>
             <input
@@ -211,148 +161,11 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
             />
           </div>
 
-          {/* Категория */}
-          <CustomSelect
-            label="Категория (обязательно)"
-            value={category ?? ''}
-            placeholder="Выберите категорию"
-            options={Object.keys(dataStructure).map((key) => ({
-              value: key,
-              label: dataStructure[key].label,
-            }))}
-            onChange={(value) => {
-              // Каскад: смена категории сбрасывает вид/уровень/результат.
-              setValue('category', value, { shouldValidate: true });
-              setValue('subType', null);
-              setValue('level', null);
-              setValue('result', null);
-            }}
-          />
-          <FieldError message={errors.category?.message} />
-
-          {/* Вид деятельности */}
-          {category && (
-            <>
-              <CustomSelect
-                label="Вид деятельности (обязательно)"
-                value={subType?.code ?? ''}
-                placeholder="Выберите вид деятельности"
-                options={dataStructure[category].sub_types.map((item) => ({
-                  value: item.code,
-                  label: item.label,
-                }))}
-                onChange={(value) => {
-                  const selected = dataStructure[category].sub_types.find((item) => item.code === value);
-                  if (selected) {
-                    setValue('subType', selected, { shouldValidate: true });
-                    setValue('level', null);
-                    setValue('result', null);
-                  }
-                }}
-              />
-              <FieldError message={errors.subType?.message} />
-            </>
-          )}
-
-          {/* Уровень */}
-          {subType?.needsLevel && (
-            <>
-              <CustomSelect
-                label="Уровень мероприятия (обязательно)"
-                value={level?.code ?? ''}
-                placeholder="Выберите уровень"
-                options={getFilteredLevels().map((item) => ({
-                  value: item.code,
-                  label: item.label,
-                }))}
-                onChange={(value) => {
-                  const selected = getFilteredLevels().find((item) => item.code === value);
-                  if (selected) {
-                    setValue('level', selected, { shouldValidate: true });
-                  }
-                }}
-              />
-              <FieldError message={errors.level?.message} />
-            </>
-          )}
-
-          {/* Результат */}
-          {subType?.needsResult && (
-            <>
-              <CustomSelect
-                label="Результат / Место (обязательно)"
-                value={result?.code ?? ''}
-                placeholder="Выберите результат"
-                options={getFilteredResults().map((item) => ({
-                  value: item.code,
-                  label: item.label,
-                }))}
-                onChange={(value) => {
-                  const selected = getFilteredResults().find((item) => item.code === value);
-                  if (selected) {
-                    setValue('result', selected, { shouldValidate: true });
-                  }
-                }}
-              />
-              <FieldError message={errors.result?.message} />
-            </>
-          )}
-
-          {/* Тип документа */}
-          <CustomSelect
-            label="Тип документа (обязательно)"
-            value={docType?.code ?? ''}
-            placeholder="Выберите тип документа"
-            options={docTypesList.map((item) => ({
-              value: item.code,
-              label: item.label,
-            }))}
-            onChange={(value) => {
-              const selected = docTypesList.find((item) => item.code === value);
-              if (selected) {
-                setValue('docType', selected, { shouldValidate: true });
-              }
-            }}
-          />
-          <FieldError message={errors.docType?.message} />
-
-          {/* Название достижения */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-medium text-slate-500">
-              Название достижения (обязательно)
-            </label>
-            <div className="relative">
-              <textarea
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-600/0 transition placeholder:text-slate-400 focus:border-sky-600 focus:bg-white focus:ring-2 focus:ring-sky-600 resize-none"
-                rows={2}
-                maxLength={1000}
-                placeholder="Название как в документе"
-                {...register('achievement')}
-              />
-              <span className="absolute bottom-1.5 right-2 text-[10px] text-slate-400">
-                {achievementName.length}/1000
-              </span>
-            </div>
-            <FieldError message={errors.achievement?.message} />
-          </div>
-
-          {/* Дата получения достижения */}
-          <div className="space-y-1.5">
-            <label htmlFor="date-received" className="text-[11px] font-medium text-slate-500">
-              Дата получения достижения (обязательно)
-            </label>
-            <input
-              id="date-received"
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-600/0 transition focus:border-sky-600 focus:bg-white focus:ring-2 focus:ring-sky-600"
-              type="date"
-              {...register('dateReceived')}
-            />
-            <FieldError message={errors.dateReceived?.message} />
-          </div>
+          <AchievementFields form={form} config={config} idPrefix="upload" />
 
           {/* Файлы */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-medium text-slate-500">
+            <label className="text-xs font-medium text-slate-600">
               Файлы (обязательно)
             </label>
             <FileDropZone files={files} setFiles={setFiles} />

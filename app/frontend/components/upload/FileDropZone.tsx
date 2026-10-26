@@ -14,6 +14,12 @@ import {
 interface FileDropZoneProps {
   files: File[];
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  /** Сколько новых файлов ещё можно добавить (при правке — MAX_FILES минус оставленные). */
+  maxFiles?: number;
+  /** Размер оставляемых файлов заявки: входит в общий лимит MAX_TOTAL_SIZE. */
+  reservedBytes?: number;
+  /** id скрытого input: окно правки открывает выбор файла кнопкой «Заменить». */
+  inputId?: string;
 }
 
 // Лимиты берём из единого модуля валидации (зеркало backend),
@@ -24,7 +30,7 @@ const ALLOWED_EXTENSIONS_BARE = ALLOWED_EXTENSIONS.map(ext => ext.replace(/^\./,
 const MAX_TOTAL_SIZE_MB = Math.round(MAX_TOTAL_SIZE / (1024 * 1024));
 const MAX_FILE_SIZE_MB = Math.round(MAX_FILE_SIZE / (1024 * 1024));
 
-export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
+export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, reservedBytes = 0, inputId }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,10 +78,10 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
     // 4. Проверяем лимит на количество (максимум MAX_FILES в сумме)
     const totalCountAfterAdd = files.length + uniqueNewFiles.length;
 
-    if (totalCountAfterAdd > MAX_FILES) {
-      const allowedSlots = MAX_FILES - files.length;
+    if (totalCountAfterAdd > maxFiles) {
+      const allowedSlots = maxFiles - files.length;
       if (allowedSlots <= 0) {
-        toast.error(`Максимум можно загрузить ${MAX_FILES} файла. Удалите что-то из списка.`);
+        toast.error(`У заявки может быть не больше ${MAX_FILES} файлов. Удалите что-то из списка.`);
         return;
       }
 
@@ -85,8 +91,8 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
       const slicedNewFiles = uniqueNewFiles.slice(0, allowedSlots);
       const combined = [...files, ...slicedNewFiles];
 
-      // Проверяем общий размер для урезанного списка
-      const totalSize = combined.reduce((sum, f) => sum + f.size, 0);
+      // Проверяем общий размер для урезанного списка (вместе с оставляемыми файлами заявки)
+      const totalSize = reservedBytes + combined.reduce((sum, f) => sum + f.size, 0);
       if (totalSize > MAX_TOTAL_SIZE) {
         toast.error(`Общий размер файлов превышает ${MAX_TOTAL_SIZE_MB} МБ`);
         return;
@@ -98,7 +104,7 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
 
     // 5. Проверяем общий размер всех файлов вместе (старых + новых)
     const combinedFiles = [...files, ...uniqueNewFiles];
-    const totalSize = combinedFiles.reduce((sum, f) => sum + f.size, 0);
+    const totalSize = reservedBytes + combinedFiles.reduce((sum, f) => sum + f.size, 0);
 
     if (totalSize > MAX_TOTAL_SIZE) {
       toast.error(`Общий размер всех загруженных файлов превышает ${MAX_TOTAL_SIZE_MB} МБ`);
@@ -152,6 +158,7 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
   return (
     <div className="w-full space-y-3">
       <input
+        id={inputId}
         type="file"
         ref={fileInputRef}
         multiple
@@ -180,7 +187,7 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
         <p className="text-xs font-medium text-slate-700">
           Перетащите файлы сюда или <span className="text-sky-700 group-hover:text-sky-600 font-semibold">выберите на компьютере</span>
         </p>
-        <p className="mt-1 text-[10px] text-sky-700 max-w-xs">
+        <p className="mt-1 text-xs text-sky-700 max-w-xs">
           До {MAX_FILES}-х файлов по очереди или вместе. Общий размер до {MAX_TOTAL_SIZE_MB} МБ.
         </p>
       </div>
@@ -210,8 +217,8 @@ export default function FileDropZone({ files, setFiles }: FileDropZoneProps) {
               </button>
             </div>
           ))}
-          {files.length === MAX_FILES && (
-            <p className="text-[10px] text-amber-600 flex items-center gap-1">
+          {files.length >= maxFiles && (
+            <p className="text-xs text-amber-700 flex items-center gap-1">
               <i className="fa-solid fa-triangle-exclamation" /> Достигнут лимит в {MAX_FILES} файла
             </p>
           )}

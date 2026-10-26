@@ -675,6 +675,11 @@ export interface components {
             /** Тип документа */
             doc_type: number;
             readonly doc_type_display: string;
+            readonly category_code: string;
+            readonly sub_type_code: string;
+            readonly level_code: string | null;
+            readonly result_code: string | null;
+            readonly doc_type_code: string;
             readonly semester_label: string | null;
             readonly files: components["schemas"]["DocumentFile"][];
             /**
@@ -884,6 +889,11 @@ export interface components {
             /** Тип документа */
             doc_type: number;
             readonly doc_type_display: string;
+            readonly category_code: string;
+            readonly sub_type_code: string;
+            readonly level_code: string | null;
+            readonly result_code: string | null;
+            readonly doc_type_code: string;
             readonly semester_label: string | null;
             readonly files: components["schemas"]["DocumentFile"][];
             /**

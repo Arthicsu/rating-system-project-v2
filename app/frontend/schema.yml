@@ -1328,6 +1328,23 @@ components:
         doc_type_display:
           type: string
           readOnly: true
+        category_code:
+          type: string
+          readOnly: true
+        sub_type_code:
+          type: string
+          readOnly: true
+        level_code:
+          type: string
+          readOnly: true
+          nullable: true
+        result_code:
+          type: string
+          readOnly: true
+          nullable: true
+        doc_type_code:
+          type: string
+          readOnly: true
         semester_label:
           type: string
           readOnly: true
@@ -1348,17 +1365,22 @@ components:
       required:
       - achievement
       - category
+      - category_code
       - category_display
       - doc_type
+      - doc_type_code
       - doc_type_display
       - files
       - id
+      - level_code
       - level_display
+      - result_code
       - result_display
       - semester_label
       - status
       - status_display
       - sub_type
+      - sub_type_code
       - sub_type_display
       - uploaded_at
     DocumentFile:
@@ -1743,6 +1765,23 @@ components:
         doc_type_display:
           type: string
           readOnly: true
+        category_code:
+          type: string
+          readOnly: true
+        sub_type_code:
+          type: string
+          readOnly: true
+        level_code:
+          type: string
+          readOnly: true
+          nullable: true
+        result_code:
+          type: string
+          readOnly: true
+          nullable: true
+        doc_type_code:
+          type: string
+          readOnly: true
         semester_label:
           type: string
           readOnly: true
@@ -1801,17 +1840,21 @@ components:
       required:
       - achievement
       - category
+      - category_code
       - category_display
       - course
       - doc_type
+      - doc_type_code
       - doc_type_display
       - faculty
       - files
       - group
       - group_id
       - id
+      - level_code
       - level_display
       - record_book
+      - result_code
       - result_display
       - returned_by
       - semester_label
@@ -1820,6 +1863,7 @@ components:
       - student_id
       - student_name
       - sub_type
+      - sub_type_code
       - sub_type_display
       - uploaded_at
       - user_id

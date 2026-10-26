@@ -128,3 +128,17 @@ class AchievementDetailTests(APITestCase):
 
         self.assertIsNone(resp.data["semester_label"])
 
+    def test_detail_exposes_codes_for_edit_form(self):
+        # Форма правки предзаполняет селекты по кодам справочника (/achievements/config/).
+        student = make_student("codes@uni.ru")
+        doc = make_doc(student, make_catalog(), make_statuses()["pending"])
+        self.client.force_authenticate(student)
+
+        resp = self.client.get(reverse("api:achievements-detail", args=[doc.pk]))
+
+        self.assertEqual(
+            {k: resp.data[k] for k in ("category_code", "sub_type_code", "level_code", "result_code", "doc_type_code")},
+            {"category_code": "academic", "sub_type_code": "olympiad", "level_code": None, "result_code": None,
+             "doc_type_code": "other"},
+        )
+

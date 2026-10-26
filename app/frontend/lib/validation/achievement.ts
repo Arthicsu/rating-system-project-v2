@@ -57,36 +57,62 @@ export async function matchesFileSignature(file: File): Promise<boolean> {
  * (needsLevel/needsResult), поэтому проверяется в superRefine: subType
  * лежит в самих значениях формы, отдельная фабрика схем не нужна.
  */
+export const achievementFieldsShape = {
+  category: z.string().nullable().refine((v): v is string => !!v, 'Выберите категорию'),
+  subType: z.custom<SelectOption | null>().refine((v) => v != null, 'Выберите вид деятельности'),
+  level: z.custom<SelectOption | null>(),
+  result: z.custom<SelectOption | null>(),
+  docType: z.custom<SelectOption | null>().refine((v) => v != null, 'Выберите тип документа'),
+  achievement: z.string().trim().min(1, 'Укажите название достижения').max(1000),
+  dateReceived: z.string().min(1, 'Укажите дату получения'),
+};
+
+/** Поля заявки, общие для загрузки и правки (AchievementFields). */
+export type AchievementFieldValues = z.input<z.ZodObject<typeof achievementFieldsShape>>;
+
+type LevelResult = { subType?: SelectOption | null; level?: SelectOption | null; result?: SelectOption | null };
+
+function refineLevelResult(data: LevelResult, ctx: z.RefinementCtx) {
+  if (data.subType?.needsLevel && !data.level) {
+    ctx.addIssue({ code: 'custom', path: ['level'], message: 'Пожалуйста, выберите уровень мероприятия.' });
+  }
+  if (data.subType?.needsResult && !data.result) {
+    ctx.addIssue({ code: 'custom', path: ['result'], message: 'Пожалуйста, выберите результат / место.' });
+  }
+}
+
 export const uploadAchievementSchema = z
   .object({
-    category: z.string().nullable().refine((v): v is string => !!v, 'Выберите категорию'),
-    subType: z.custom<SelectOption | null>().refine((v) => v != null, 'Выберите вид деятельности'),
-    level: z.custom<SelectOption | null>(),
-    result: z.custom<SelectOption | null>(),
-    docType: z.custom<SelectOption | null>().refine((v) => v != null, 'Выберите тип документа'),
-    achievement: z.string().trim().min(1, 'Укажите название достижения').max(1000),
-    dateReceived: z.string().min(1, 'Укажите дату получения'),
+    ...achievementFieldsShape,
     files: z.array(z.instanceof(File)).min(1, 'Прикрепите файл(-ы) подтверждения достижения'),
   })
-  .superRefine((data, ctx) => {
-    if (data.subType?.needsLevel && !data.level) {
-      ctx.addIssue({ code: 'custom', path: ['level'], message: 'Пожалуйста, выберите уровень мероприятия.' });
-    }
-    if (data.subType?.needsResult && !data.result) {
-      ctx.addIssue({ code: 'custom', path: ['result'], message: 'Пожалуйста, выберите результат / место.' });
-    }
-  });
+  .superRefine(refineLevelResult);
 
 // input - состояние формы (селекты nullable), output - провалидированные
 // значения после refine (обязательные селекты уже не null).
 export type UploadAchievementValues = z.input<typeof uploadAchievementSchema>;
 export type UploadAchievementSubmit = z.output<typeof uploadAchievementSchema>;
 
-export const editAchievementSchema = z.object({
-  achievement: z.string().trim().min(1, 'Укажите название достижения').max(1000),
-  dateReceived: z.string().min(1, 'Укажите дату получения'),
-  // Пустой список = "файлы не заменять": PATCH без files сохраняет старые.
-  files: z.array(z.instanceof(File)),
-});
+/**
+ * Правка: поля заявки + новые файлы и id удаляемых. keptFileCount форма выставляет сама
+ * (сколько текущих файлов остаётся). Файлов 1..MAX_FILES — только если файлы меняются:
+ * у старых заявок без файлов можно поправить текст (как на сервере).
+ */
+export const editAchievementSchema = z
+  .object({
+    ...achievementFieldsShape,
+    newFiles: z.array(z.instanceof(File)),
+    removeFileIds: z.array(z.number()),
+    keptFileCount: z.number(),
+  })
+  .superRefine((data, ctx) => {
+    refineLevelResult(data, ctx);
+    const changed = data.newFiles.length > 0 || data.removeFileIds.length > 0;
+    const total = data.keptFileCount + data.newFiles.length;
+    if (changed && (total < 1 || total > MAX_FILES)) {
+      ctx.addIssue({ code: 'custom', path: ['newFiles'], message: `Оставьте или добавьте от 1 до ${MAX_FILES} файлов` });
+    }
+  });
 
-export type EditAchievementValues = z.infer<typeof editAchievementSchema>;
+export type EditAchievementValues = z.input<typeof editAchievementSchema>;
+export type EditAchievementSubmit = z.output<typeof editAchievementSchema>;

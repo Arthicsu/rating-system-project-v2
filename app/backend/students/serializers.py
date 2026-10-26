@@ -293,6 +293,12 @@ class DocumentSerializer(serializers.ModelSerializer):
     result_display = serializers.CharField(source='result.label', read_only=True, default=None)
     doc_type_display = serializers.CharField(source='doc_type.label', read_only=True)
     status_display = serializers.CharField(source='status.code', read_only=True)
+    # Коды справочника — для предзаполнения формы правки (селекты работают с кодами /config/).
+    category_code = serializers.CharField(source='category.code', read_only=True)
+    sub_type_code = serializers.CharField(source='sub_type.code', read_only=True)
+    level_code = serializers.CharField(source='level.code', read_only=True, default=None, allow_null=True)
+    result_code = serializers.CharField(source='result.code', read_only=True, default=None, allow_null=True)
+    doc_type_code = serializers.CharField(source='doc_type.code', read_only=True)
     # Подпись семестра заявки для страниц «Подробнее»; у старых заявок без семестра — null.
     semester_label = serializers.CharField(source='semester.label', read_only=True, default=None, allow_null=True)
     files = DocumentFileSerializer(many=True, read_only=True)
@@ -310,6 +316,7 @@ class DocumentSerializer(serializers.ModelSerializer):
             'score',
             'status', 'status_display',
             'doc_type', 'doc_type_display',
+            'category_code', 'sub_type_code', 'level_code', 'result_code', 'doc_type_code',
             'semester_label',
             'files',
             'date_received', 'uploaded_at',
