@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import type { AxiosError } from 'axios';
 
 import { useMySession } from '@/context/AuthContext';
 import { useAchievement } from '@/hooks/queries';
@@ -15,28 +14,10 @@ import AchievementHeader from '@/components/achievement/AchievementHeader';
 import AchievementDetails, { ReasonNote } from '@/components/achievement/AchievementDetails';
 import AchievementFiles from '@/components/achievement/AchievementFiles';
 import AchievementPreviewPane from '@/components/achievement/AchievementPreviewPane';
+import { BackButton, DetailError, DetailSkeleton, detailLoadState } from '@/components/achievement/DetailStates';
 import ModalPreview from '@/components/modals/ModalPreview';
 import ModalConfirm from '@/components/modals/ModalConfirm';
 import ModalEditAchievement from '@/components/modals/ModalEditAchievement';
-
-type LoadState = 'loading' | 'ready' | 'forbidden' | 'notfound' | 'error';
-
-function PageSkeleton() {
-  return (
-    <main className="min-h-screen bg-slate-50 pt-24 pb-10">
-      <div className="mx-auto max-w-350 px-4 sm:px-5">
-        <div className="animate-pulse space-y-4">
-          <div className="h-11 w-32 rounded-lg bg-slate-200" />
-          <div className="h-28 rounded-2xl bg-slate-200" />
-          <div className="grid gap-6 lg:grid-cols-5">
-            <div className="h-96 rounded-2xl bg-slate-200 lg:col-span-2" />
-            <div className="h-96 rounded-2xl bg-slate-200 lg:col-span-3" />
-          </div>
-        </div>
-      </div>
-    </main>
-  );
-}
 
 /** Страница заявки студента: сведения, файлы, предпросмотр; правка и удаление неподтверждённой. */
 export default function AchievementDetailPage() {
@@ -66,52 +47,23 @@ export default function AchievementDetailPage() {
   // принял бы выход за истёкшую сессию. Пока идёт редирект на вход - скелетон (isPending).
   const { user } = useMySession();
   useRedirectIfLoggedOut(`/achievement/${id}`);
-  const { data: doc, isPending, error } = useAchievement(id, !!user);
+  // Сотрудник смотрит заявку на своей странице (модерация живёт только в app/staff-profile/**).
+  const isEmployee = !!user?.is_employee;
+  useEffect(() => {
+    if (isEmployee) router.replace(`/staff-profile/requests/${id}`);
+  }, [isEmployee, id, router]);
+  const { data: doc, isPending, error } = useAchievement(id, !!user && !isEmployee);
 
-  const errorStatus = (error as AxiosError | null)?.response?.status;
-  const state: LoadState = isPending
-    ? 'loading'
-    : error
-      ? errorStatus === 403
-        ? 'forbidden'
-        : errorStatus === 404
-          ? 'notfound'
-          : 'error'
-      : 'ready';
+  const state = detailLoadState(isPending, error);
 
-  if (state === 'loading' || deleted) return <PageSkeleton />;
-
-  if (state !== 'ready' || !doc) {
-    const message =
-      state === 'forbidden'
-        ? 'У вас нет доступа к этой заявке.'
-        : state === 'notfound'
-          ? 'Заявка не найдена.'
-          : 'Не удалось загрузить информацию о заявке.';
-    return (
-      <main className="min-h-screen bg-slate-50 pt-24 pb-10">
-        <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <div className="rounded-2xl border border-slate-100 bg-white p-10 text-center shadow-sm">
-            <i className="fa-solid fa-circle-exclamation mb-3 text-3xl text-slate-300" aria-hidden="true" />
-            <p className="text-sm text-slate-600">{message}</p>
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="mt-4 min-h-11 cursor-pointer rounded-lg bg-sky-700 px-4 text-sm font-medium text-white transition hover:bg-sky-800"
-            >
-              Назад
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  if (state === 'loading' || deleted || isEmployee) return <DetailSkeleton />;
+  if (state !== 'ready' || !doc) return <DetailError state={state} onBack={() => router.back()} />;
 
   const files = doc.files ?? [];
   const hasFiles = files.length > 0;
   // Студент видит только свои заявки (IsAchievementOwnerOrStaffInScope); подтверждённую
   // не правят и не удаляют - баллы уже начислены (сервер тоже запрещает).
-  const canChange = !user?.is_employee && doc.status_display !== 'approved';
+  const canChange = doc.status_display !== 'approved';
 
   const handleDelete = async () => {
     try {
@@ -128,20 +80,13 @@ export default function AchievementDetailPage() {
     <>
       <main className="min-h-screen bg-slate-50 pt-24 pb-10">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="mb-1 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-          >
-            <i className="fa-solid fa-arrow-left" aria-hidden="true" />
-            Назад
-          </button>
+          <BackButton onClick={() => router.back()} />
 
           <div className={`mt-5 grid gap-6 ${hasFiles ? 'lg:grid-cols-5' : 'mx-auto max-w-3xl grid-cols-1'}`}>
             <div className={`min-w-0 animate-fade-in space-y-5 ${hasFiles ? 'lg:col-span-2' : ''}`}>
               <AchievementHeader
                 doc={doc}
-                title={user?.is_employee ? doc.student_name : 'Заявка на достижение'}
+                title="Заявка на достижение"
                 actions={
                   canChange && (
                     <>

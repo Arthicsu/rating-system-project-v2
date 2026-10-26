@@ -131,7 +131,7 @@ class AchievementViewSet(mixins.CreateModelMixin,
             'user__student_profile__group',
             'user__student_profile__group__specialty__department',
             'user__student_profile__faculty',
-        ).prefetch_related('files')
+        ).prefetch_related('files').annotate(returned_by=querysets.returned_by_annotation())
 
     def filter_queryset(self, queryset):
         # Параметрические фильтры и поиск — только для списка модерации.

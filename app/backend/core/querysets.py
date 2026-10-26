@@ -261,6 +261,18 @@ _DOCUMENT_LIST_RELATED = (
 )
 
 
+def returned_by_annotation():
+    """
+    Метка «Возвращена деканатом/ректоратом» (Dean/Rectorate или None): последнее решение по
+    заявке принял руководитель (повторная подача студента сбрасывает verified_by).
+    Смысл имеет только у заявки на рассмотрении — по статусу проверяет клиент.
+    """
+    return Subquery(
+        AuthGroup.objects.filter(user=OuterRef('verified_by'), name__in=('Dean', 'Rectorate'))
+        .order_by('-name').values('name')[:1]  # Rectorate раньше Dean - самая широкая роль
+    )
+
+
 def pending_documents(user, request):
     """
     Заявки, ожидающие действия сотрудника, в его области видимости:
@@ -276,12 +288,7 @@ def pending_documents(user, request):
         )
         .select_related(*_DOCUMENT_LIST_RELATED)
         .prefetch_related('files')
-        # Метка «Возвращена деканатом/ректоратом»: последнее решение по заявке на рассмотрении
-        # принял руководитель (повторная подача студента сбрасывает verified_by).
-        .annotate(returned_by=Subquery(
-            AuthGroup.objects.filter(user=OuterRef('verified_by'), name__in=('Dean', 'Rectorate'))
-            .order_by('-name').values('name')[:1]  # Rectorate раньше Dean - самая широкая роль
-        ))
+        .annotate(returned_by=returned_by_annotation())
         # Очередь — сначала старые: дольше всех ждут первыми, а новые уходят в конец и не
         # сдвигают первую страницу под курсором при фоновом обновлении. Добор по id: у пачки
         # заявок с одинаковым uploaded_at порядок иначе не определён, и страницы перекрываются.

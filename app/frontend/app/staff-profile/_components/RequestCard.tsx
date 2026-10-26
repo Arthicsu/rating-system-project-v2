@@ -21,7 +21,8 @@ const ACTION_BUTTONS: Record<ReviewAction, { label: string; className: string }>
 // Метка целиком в одну строку; переносится весь ряд меток, а не текст внутри метки.
 const BADGE = 'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold';
 
-function ActionButtons({ doc, actions, onAction }: Pick<RequestCardProps, 'doc' | 'actions' | 'onAction'>) {
+/** Кнопки решений по заявке (карточка и страница заявки сотрудника). */
+export function ActionButtons({ doc, actions, onAction }: Pick<RequestCardProps, 'doc' | 'actions' | 'onAction'>) {
   if (actions.length === 0) return null;
   return (
     <div className="mt-3 flex gap-2">
@@ -121,7 +122,7 @@ export default function RequestCard({ doc, variant, actions, onAction }: Request
           </span>
         )}
         <Link
-          href={`/achievement/${doc.id}`}
+          href={`/staff-profile/requests/${doc.id}`}
           className="cursor-pointer ml-auto inline-flex min-h-11 items-center text-xs font-semibold text-sky-700 hover:text-sky-900"
         >
           Подробнее
