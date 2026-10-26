@@ -9,6 +9,7 @@ filter backends на уровне ViewSet (core/filters.py + SearchFilter). Зд
 from django.contrib.auth.models import Group as AuthGroup
 from django.db.models import Avg, Count, IntegerField, Max, Min, OuterRef, Q, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 
 from core import scoping
 from core.students_manager import CATEGORY_SCORE_FIELDS
@@ -207,7 +208,30 @@ def dashboard_stats(user, request):
         'max_score': stats_data['max_score'] or 0,
         'min_score': stats_data['min_score'] or 0,
         'categories': {code: (stats_data[f'{code}_sum'] or 0) for code in category_codes},
+        'moderation': _moderation_stats(students, request),
     }
+
+
+def _moderation_stats(students, request):
+    """
+    Показатели модерации за выбранный семестр по тем же студентам, что и остальная
+    статистика, одним запросом: подано, одобрено, отклонено, ждут решения кафедры,
+    из них повторных/возвращённых (с причиной) и сколько дней ждёт самая старая.
+    """
+    pending = Q(status__code='pending')
+    data = Document.objects.filter(
+        user__student_profile__in=students, **requested_semester_filter(request)
+    ).aggregate(
+        submitted=Count('id'),
+        approved=Count('id', filter=Q(status__code='approved')),
+        rejected=Count('id', filter=Q(status__code='rejected')),
+        pending=Count('id', filter=pending),
+        returned=Count('id', filter=pending & Q(rejection_reason__gt='')),
+        oldest_pending=Min('uploaded_at', filter=pending),
+    )
+    oldest = data.pop('oldest_pending')
+    data['oldest_pending_days'] = (timezone.now() - oldest).days if oldest else None
+    return data
 
 
 def top5_students(user, request):
