@@ -271,24 +271,24 @@ function StaffDashboard() {
       academic_year: String(semesterId),
       page: requestsPage,
       page_size: requestsPageSize,
-      search: pendingSearchValue || undefined,
       ...filters.filterParams,
     }),
-    [groupId, semesterId, requestsPage, pendingSearchValue, filters.filterParams]
+    [groupId, semesterId, requestsPage, filters.filterParams]
   );
 
   // Поллинг 15с заменяет прежний ручной setInterval: заявки появляются/исчезают
   // без перезагрузки, пауза на скрытой вкладке.
   const pendingQuery = useDashboard(pendingParams, { enabled: ready, pollMs: 15_000 });
-  // Список под фильтром «Новые/Повторные» - отдельный запрос и только у кафедры: счётчик
-  // вкладки, статистика и топ-5 остаются по всем заявкам (нефильтрованный pendingQuery).
+  // Список под поиском или фильтром «Новые/Повторные» (таблетки только у кафедры) - отдельный
+  // запрос: счётчик вкладки, статистика и топ-5 остаются по всем заявкам (pendingQuery без них).
   const pendingStateFilter =
     canApprove && pendingState !== 'all' ? (pendingState as DashboardStatsParams['state']) : undefined;
+  const pendingFiltered = !!pendingStateFilter || !!pendingSearchValue;
   const filteredPendingQuery = useDashboard(
-    { ...pendingParams, state: pendingStateFilter },
-    { enabled: ready && !!pendingStateFilter, pollMs: 15_000 },
+    { ...pendingParams, state: pendingStateFilter, search: pendingSearchValue || undefined },
+    { enabled: ready && pendingFiltered, pollMs: 15_000 },
   );
-  const pendingListQuery = pendingStateFilter ? filteredPendingQuery : pendingQuery;
+  const pendingListQuery = pendingFiltered ? filteredPendingQuery : pendingQuery;
   const pendingDocsData = pendingListQuery.data?.results ?? [];
   const pendingListCount = pendingListQuery.data?.count ?? 0;
   const totalRequests = pendingQuery.data?.count ?? 0;

@@ -41,12 +41,13 @@ export default function ModalApprove({ isOpen, doc, saving, onClose, onConfirm }
             Будет начислено <b className="font-semibold text-slate-900">{doc?.score ?? 0}</b> балл(-ов).
           </p>
           <div className="mt-5 flex gap-2">
+            {/* aria-disabled, а не disabled: кнопка в фокусе не теряет его на время сохранения. */}
             <button
               type="button"
               autoFocus
-              disabled={saving}
-              className="cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={onConfirm}
+              aria-disabled={saving}
+              className="cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+              onClick={saving ? undefined : onConfirm}
             >
               {saving ? 'Сохраняем…' : 'Одобрить'}
             </button>

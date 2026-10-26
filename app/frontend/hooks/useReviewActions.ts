@@ -37,6 +37,8 @@ export function useReviewActions() {
   // Ключ идемпотентности решения: генерируется на открытие модалки, повтор
   // с тем же ключом (двойной клик, ретрай при сбое) получает 409 вместо дубля.
   const reviewKeyRef = useRef('');
+  // Второй клик/Enter в том же кадре, до того как isPending успел стать true.
+  const inFlightRef = useRef(false);
 
   const openModal = (type: ReviewAction, doc: Document) => {
     reviewKeyRef.current = crypto.randomUUID();
@@ -56,7 +58,8 @@ export function useReviewActions() {
   };
 
   const submit = async (data: ReviewDocumentRequestDto) => {
-    if (!modalState.doc) return;
+    if (!modalState.doc || inFlightRef.current) return;
+    inFlightRef.current = true;
 
     try {
       const { message } = await reviewMutation.mutateAsync({
@@ -77,6 +80,8 @@ export function useReviewActions() {
       // 403 тут бывает и при живой сессии («за пределами области модерации») - показываем
       // текст сервера, а не сырой AxiosError; погасшую сессию уведёт на вход интерсептор.
       toast.error(apiErrorMessage(error, 'Не удалось сохранить решение по заявке'));
+    } finally {
+      inFlightRef.current = false;
     }
   };
 
@@ -88,11 +93,11 @@ export function useReviewActions() {
     e.preventDefault();
     if (modalState.type !== 'reject' && modalState.type !== 'return') return;
 
-    // Готовые причины и свой комментарий складываются, а не стирают друг друга.
-    const reasons = [
+    // Готовые причины и свой комментарий складываются, а не стирают друг друга (без повторов).
+    const reasons = [...new Set([
       ...rejectionReasonsList.filter(r => rejectReasons.includes(r.id)).map(r => r.text),
       customReason.trim(),
-    ].filter(Boolean);
+    ])].filter(Boolean);
 
     if (reasons.length === 0) {
       toast.error("Укажите хотя бы одну причину");

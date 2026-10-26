@@ -6,6 +6,8 @@ import type { ModalRejectProps } from '@/interfaces/ModalInterfaces'
  * Отклонение (студенту на исправление) или возврат кафедре: готовые причины и свой
  * комментарий указываются вместе; без единой причины отправить нельзя.
  */
+const REASONS_LIMIT = 500;
+
 export default function ModalReject({
   isOpen,
   action,
@@ -23,6 +25,11 @@ export default function ModalReject({
   const isReturn = action === 'return';
   const score = <b className="font-semibold text-slate-900">{targetScore}</b>;
   const hasReason = selectedReasons.length > 0 || customReason.trim() !== '';
+  // Причины уходят одной строкой через «; » в поле на 500 символов: комментарию — остаток.
+  const presetLength = rejectionReasons
+    .filter((r) => selectedReasons.includes(r.id))
+    .reduce((sum, r) => sum + r.text.length + 2, 0);
+  const commentLimit = Math.max(0, REASONS_LIMIT - presetLength);
 
   return (
     <ModalShell
@@ -63,6 +70,8 @@ export default function ModalReject({
                     className="h-4 w-4 shrink-0 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                     onChange={() => onToggleReason(reason.id)}
                     checked={selectedReasons.includes(reason.id)}
+                    // Фокус сразу в окно: клавиатура и скринридер начинают с причин, а не со страницы позади.
+                    autoFocus={reason.id === rejectionReasons[0]?.id}
                   />
                 </label>
               ))}
@@ -77,22 +86,24 @@ export default function ModalReject({
                   id="review-comment"
                   className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 pb-5 text-base text-slate-900 shadow-sm outline-none ring-sky-600/0 transition placeholder:text-slate-500 focus:border-sky-600 focus:bg-white focus:ring-2 focus:ring-sky-600 sm:text-sm"
                   rows={3}
-                  maxLength={500}
+                  autoFocus={rejectionReasons.length === 0}
+                  maxLength={commentLimit}
                   placeholder={isReturn ? 'Что кафедре проверить ещё раз' : 'Что студенту исправить'}
                   value={customReason}
                   onChange={(e) => onCustomReasonChange(e.target.value)}
                 />
                 <span className="absolute bottom-1.5 right-2 text-xs text-slate-500" aria-hidden="true">
-                  {customReason.length}/500
+                  {customReason.length}/{commentLimit}
                 </span>
               </div>
             </div>
 
             <div className="mt-3 flex gap-2">
+              {/* aria-disabled, а не disabled: кнопка в фокусе не теряет его на время сохранения. */}
               <button
                 type="submit"
-                disabled={saving || !hasReason}
-                className={`cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full px-4 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60 ${
+                aria-disabled={saving || !hasReason}
+                className={`cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full px-4 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 ${
                   isReturn
                     ? 'bg-amber-700 hover:bg-amber-800 focus:ring-amber-700'
                     : 'bg-rose-600 hover:bg-rose-700 focus:ring-rose-600'

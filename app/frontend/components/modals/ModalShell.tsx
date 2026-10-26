@@ -81,6 +81,18 @@ export default function ModalShell({
     setClosing(true);
   }, [locked]);
 
+  // Фокус после закрытия — на элемент, открывший окно (кнопку в карточке), а не в начало страницы.
+  // Запоминаем его в рендере открытия: autoFocus внутри окна срабатывает раньше любых эффектов.
+  const [opener, setOpener] = useState<HTMLElement | null>(null);
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) setOpener(document.activeElement as HTMLElement | null);
+  }
+  useEffect(() => {
+    if (isOpen && opener) return () => opener.focus?.();
+  }, [isOpen, opener]);
+
   // Esc + блокировка прокрутки фона, пока модалка открыта.
   useEffect(() => {
     if (!isOpen) return;

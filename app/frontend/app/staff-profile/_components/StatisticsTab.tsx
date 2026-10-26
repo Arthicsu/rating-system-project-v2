@@ -69,9 +69,10 @@ export default function StatisticsTab({
           <StatCard label="Отклонено" value={m.rejected} />
           <StatCard label="Ждут решения кафедры" value={m.pending} accent={!isLeadership && m.pending > 0} />
           <StatCard label="Из них повторные и возвращённые" value={m.returned} />
+          {/* От первой подачи: у повторно поданной ожидание после исправления может быть меньше. */}
           <StatCard
-            label="Самая старая ждёт"
-            value={m.oldest_pending_days === null ? '—' : `${m.oldest_pending_days} дн.`}
+            label="Самая ранняя из ждущих"
+            value={m.oldest_pending_days === null ? '—' : `подана ${m.oldest_pending_days} дн. назад`}
           />
           {isLeadership && <StatCard label="На контроле" value={activeRequests} />}
         </div>
