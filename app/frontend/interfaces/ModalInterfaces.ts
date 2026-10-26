@@ -2,7 +2,10 @@ import type { PendingDocumentDto } from '@/lib/api';
 
 export interface ModalApproveProps {
   isOpen: boolean;
-  targetScore: number;
+  /** Одобряемая заявка: окно показывает, что именно одобряется. */
+  doc: PendingDocumentDto | null;
+  /** Решение сохраняется: кнопки неактивны, окно не закрывается. */
+  saving: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -19,6 +22,7 @@ export interface ModalRejectProps {
   targetScore: number;
   /** Заявка подтверждена: решение спишет её баллы. */
   debitsScore: boolean;
+  saving: boolean;
   rejectionReasons: RejectionReason[];
   selectedReasons: number[];
   customReason: string;

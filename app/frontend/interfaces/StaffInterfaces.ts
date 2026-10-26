@@ -70,11 +70,8 @@ export type ReviewDocumentData =
 
 export interface ModalState {
   type: ReviewAction | null;
-  targetId: number | null;
-  targetScore: number;
-  /** Статус заявки на момент открытия окна: с подтверждённой при отклонении/возврате баллы списываются. */
-  targetStatus: string | null;
-  targetStudentId: number | null;
+  /** Заявка на момент открытия окна: её данные и статус (с подтверждённой баллы списываются). */
+  doc: Document | null;
 }
 
 export {}

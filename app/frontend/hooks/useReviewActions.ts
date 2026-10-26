@@ -8,9 +8,10 @@ import type { AxiosError } from 'axios';
 import { useMySession } from '@/context/AuthContext';
 import { useRejectionReasons, useReviewDocument } from '@/hooks/queries';
 import { apiErrorMessage } from '@/lib/apiError';
+import type { ReviewDocumentRequestDto } from '@/lib/api';
 import type { Document, ModalState, ReviewAction } from '@/interfaces/StaffInterfaces';
 
-const EMPTY_MODAL: ModalState = { type: null, targetId: null, targetScore: 0, targetStatus: null, targetStudentId: null };
+const EMPTY_MODAL: ModalState = { type: null, doc: null };
 
 // Вариант А (спек 2д): кафедра решает, руководство контролирует. Зеркало
 // students/services._REVIEW_RULES - кнопки строго по таблице, сервер всё равно проверит.
@@ -39,13 +40,7 @@ export function useReviewActions() {
 
   const openModal = (type: ReviewAction, doc: Document) => {
     reviewKeyRef.current = crypto.randomUUID();
-    setModalState({
-      type,
-      targetId: doc.id,
-      targetScore: doc.score ?? 0,
-      targetStatus: doc.status_display,
-      targetStudentId: doc.student_id,
-    });
+    setModalState({ type, doc });
   };
 
   const closeModal = () => {
@@ -60,13 +55,13 @@ export function useReviewActions() {
     );
   };
 
-  const handleApprove = async () => {
-    if (!modalState.targetId) return;
+  const submit = async (data: ReviewDocumentRequestDto) => {
+    if (!modalState.doc) return;
 
     try {
       const { message } = await reviewMutation.mutateAsync({
-        documentId: modalState.targetId,
-        data: { action: 'approve' },
+        documentId: modalState.doc.id,
+        data,
         idempotencyKey: reviewKeyRef.current,
       });
       toast.success(message);
@@ -85,49 +80,25 @@ export function useReviewActions() {
     }
   };
 
-  const handleReject = async (e: FormEvent) => {
+  const handleApprove = () => {
+    void submit({ action: 'approve' });
+  };
+
+  const handleReject = (e: FormEvent) => {
     e.preventDefault();
-    if (!modalState.targetId || (modalState.type !== 'reject' && modalState.type !== 'return')) return;
-    const action = modalState.type;
+    if (modalState.type !== 'reject' && modalState.type !== 'return') return;
 
-    const reasonsText = rejectReasons.map(id => {
-      const reason = rejectionReasonsList.find(r => r.id === id);
-      return reason ? reason.text : '';
-    }).filter(Boolean);
+    // Готовые причины и свой комментарий складываются, а не стирают друг друга.
+    const reasons = [
+      ...rejectionReasonsList.filter(r => rejectReasons.includes(r.id)).map(r => r.text),
+      customReason.trim(),
+    ].filter(Boolean);
 
-    if (reasonsText.length > 0 && customReason.trim() !== '') {
-      setCustomReason('');
-    }
-
-    const allReasons = customReason.trim()
-      ? [customReason.trim()]
-      : reasonsText;
-
-    if (allReasons.length === 0) {
+    if (reasons.length === 0) {
       toast.error("Укажите хотя бы одну причину");
       return;
     }
-
-    try {
-      const { message } = await reviewMutation.mutateAsync({
-        documentId: modalState.targetId,
-        data: { action, reasons: allReasons },
-        idempotencyKey: reviewKeyRef.current,
-      });
-      toast.success(message);
-      closeModal();
-      await refreshUser();
-    } catch (error) {
-      if ((error as AxiosError).response?.status === 409) {
-        // Решение уже принято этим же действием (двойной клик) - не ошибка.
-        toast.success("Решение по заявке уже принято");
-        closeModal();
-        return;
-      }
-      // 403 тут бывает и при живой сессии («за пределами области модерации») - показываем
-      // текст сервера, а не сырой AxiosError; погасшую сессию уведёт на вход интерсептор.
-      toast.error(apiErrorMessage(error, 'Не удалось сохранить решение по заявке'));
-    }
+    void submit({ action: modalState.type, reasons });
   };
 
   // Роль руководства перекрывает кафедру, как на сервере (User.is_leadership): одобряет только кафедра.
@@ -136,21 +107,25 @@ export function useReviewActions() {
   const actionsFor = (doc: Document): ReviewAction[] =>
     ACTIONS_BY_STATUS[canApprove ? 'department' : 'leadership'][doc.status_display] ?? [];
 
+  const saving = reviewMutation.isPending;
+
   return {
     openModal,
     canApprove,
     actionsFor,
     modalApproveProps: {
       isOpen: modalState.type === 'approve',
-      targetScore: modalState.targetScore,
+      doc: modalState.doc,
+      saving,
       onClose: closeModal,
       onConfirm: handleApprove,
     },
     modalRejectProps: {
       isOpen: modalState.type === 'reject' || modalState.type === 'return',
       action: modalState.type === 'return' ? 'return' as const : 'reject' as const,
-      targetScore: modalState.targetScore,
-      debitsScore: modalState.targetStatus === 'approved',
+      targetScore: modalState.doc?.score ?? 0,
+      debitsScore: modalState.doc?.status_display === 'approved',
+      saving,
       rejectionReasons: rejectionReasonsList,
       selectedReasons: rejectReasons,
       customReason,
