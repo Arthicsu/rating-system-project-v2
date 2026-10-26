@@ -86,7 +86,7 @@ export default function RequestCard({ doc, variant, actions, onAction }: Request
       <div className="mt-2 flex flex-wrap items-center gap-1">
         {variant === 'reviewed' ? (
           <span className={`${BADGE} ${isRejected ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
-            {isRejected ? 'Отклонена' : 'Подтверждена'}
+            {isRejected ? 'Отклонена' : 'Одобрена'}
           </span>
         ) : (
           <HistoryMark doc={doc} />

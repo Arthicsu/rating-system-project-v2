@@ -1,15 +1,18 @@
 'use client';
 
+import { useState } from 'react';
+
 import SearchInput from '@/components/SearchInput';
 import Pagination from '@/components/Pagination';
 import RequestCard from './RequestCard';
 import RequestCardsSkeleton from './RequestCardsSkeleton';
 import StateFilter from './StateFilter';
+import EmptyRequests from './EmptyRequests';
 import type { Document, ReviewAction } from '@/interfaces/StaffInterfaces';
 
 const STATE_OPTIONS = [
   { value: 'all', label: 'Все' },
-  { value: 'approved', label: 'Подтверждённые' },
+  { value: 'approved', label: 'Одобренные' },
   { value: 'rejected', label: 'Отклонённые' },
 ];
 
@@ -26,6 +29,8 @@ interface ReviewedRequestsTabProps {
   /** Уже применённый поиск - поле показывает его после смены вкладки и при открытии по ссылке. */
   searchValue: string;
   onSearch: (value: string) => void;
+  /** Сброс таблетки и поиска (кнопка «Сбросить фильтры» в пустом списке). */
+  onResetFilters: () => void;
   onPageChange: (page: number) => void;
   actionsFor: (doc: Document) => ReviewAction[];
   onAction: (action: ReviewAction, doc: Document) => void;
@@ -44,10 +49,18 @@ export default function ReviewedRequestsTab({
   onStateChange,
   searchValue,
   onSearch,
+  onResetFilters,
   onPageChange,
   actionsFor,
   onAction,
 }: ReviewedRequestsTabProps) {
+  const filtered = stateValue !== 'all' || !!searchValue;
+  // Сброс очищает и поле поиска: SearchInput берёт значение только при монтировании.
+  const [searchKey, setSearchKey] = useState(0);
+  const resetFilters = () => {
+    onResetFilters();
+    setSearchKey((k) => k + 1);
+  };
   return (
     <div className="mt-5 space-y-4 animate-fade-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -55,7 +68,7 @@ export default function ReviewedRequestsTab({
           Рассмотренные: {currentGroupName}, {semesterLabel}
         </h2>
         <div className="w-full sm:w-64">
-          <SearchInput initialValue={searchValue} onSearch={onSearch} placeholder="Поиск по ФИО..." />
+          <SearchInput key={searchKey} initialValue={searchValue} onSearch={onSearch} placeholder="ФИО, зачётка или название" />
         </div>
       </div>
 
@@ -76,11 +89,12 @@ export default function ReviewedRequestsTab({
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-          <p className="text-sm text-sky-700">
-            {stateValue !== 'all' ? 'Нет рассмотренных заявок по выбранному фильтру' : 'Нет рассмотренных заявок'} за период &quot;{semesterLabel}&quot; в группе &quot;{currentGroupName}&quot;
-          </p>
-        </div>
+        <EmptyRequests
+          filtered={filtered}
+          emptyText="Рассмотренных заявок пока нет"
+          context={`${semesterLabel} · ${currentGroupName}`}
+          onReset={resetFilters}
+        />
       )}
 
       <Pagination

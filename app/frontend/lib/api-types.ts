@@ -1145,7 +1145,7 @@ export interface operations {
                 /**
                  * @description * `new` - Новые
                  *     * `returned` - Повторные и возвращённые
-                 *     * `approved` - Подтверждённые
+                 *     * `approved` - Одобренные
                  *     * `rejected` - Отклонённые
                  */
                 state?: "approved" | "new" | "rejected" | "returned";

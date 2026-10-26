@@ -239,7 +239,7 @@ paths:
         description: |-
           * `new` - Новые
           * `returned` - Повторные и возвращённые
-          * `approved` - Подтверждённые
+          * `approved` - Одобренные
           * `rejected` - Отклонённые
       tags:
       - achievements

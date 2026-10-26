@@ -38,12 +38,23 @@ export default function SearchInput({ onSearch, placeholder = 'Поиск...', d
       <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 text-[11px] text-slate-400" />
       <input
         type="text"
-        className="w-full min-w-0 rounded-full border border-slate-200 bg-white py-1.5 pl-7 pr-3 text-base text-slate-900 placeholder:text-slate-400 outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
+        className="w-full min-w-0 rounded-full border border-slate-200 bg-white py-1.5 pl-7 pr-9 text-base text-slate-900 placeholder:text-slate-400 outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/70 sm:text-sm"
         placeholder={placeholder}
         value={value}
         maxLength={100}
+        aria-label={placeholder}
         onChange={(e) => setValue(e.target.value)}
       />
+      {value && (
+        <button
+          type="button"
+          aria-label="Очистить поиск"
+          onClick={() => setValue('')}
+          className="cursor-pointer absolute right-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+        >
+          <i className="fa-solid fa-xmark" aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }

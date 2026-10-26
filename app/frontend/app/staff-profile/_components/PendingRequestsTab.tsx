@@ -1,10 +1,13 @@
 'use client';
 
+import { useState } from 'react';
+
 import SearchInput from '@/components/SearchInput';
 import Pagination from '@/components/Pagination';
 import RequestCard from './RequestCard';
 import RequestCardsSkeleton from './RequestCardsSkeleton';
 import StateFilter from './StateFilter';
+import EmptyRequests from './EmptyRequests';
 import type { Document, ReviewAction } from '@/interfaces/StaffInterfaces';
 
 const STATE_OPTIONS = [
@@ -25,19 +28,21 @@ interface PendingRequestsTabProps {
   title: string;
   /** Пояснение под заголовком (у руководства — что значит «На контроле»). */
   hint?: string;
-  /** Новые/повторные - только у кафедры: у декана и ректората здесь лишь подтверждённые кафедрой. */
+  /** Новые/повторные - только у кафедры: у декана и ректората здесь лишь одобренные кафедрой. */
   showStateFilter: boolean;
   stateValue: string;
   onStateChange: (value: string) => void;
   /** Уже применённый поиск - поле показывает его после смены вкладки и при открытии по ссылке. */
   searchValue: string;
   onSearch: (value: string) => void;
+  /** Сброс таблетки и поиска (кнопка «Сбросить фильтры» в пустом списке). */
+  onResetFilters: () => void;
   onPageChange: (page: number) => void;
   actionsFor: (doc: Document) => ReviewAction[];
   onAction: (action: ReviewAction, doc: Document) => void;
 }
 
-/** Вкладка «Заявки на подтверждение». */
+/** Вкладка «Заявки на рассмотрение» (у руководства — «На контроле»). */
 export default function PendingRequestsTab({
   docs,
   loading,
@@ -53,11 +58,18 @@ export default function PendingRequestsTab({
   onStateChange,
   searchValue,
   onSearch,
+  onResetFilters,
   onPageChange,
   actionsFor,
   onAction,
 }: PendingRequestsTabProps) {
-  const filtered = showStateFilter && stateValue !== 'all';
+  const filtered = (showStateFilter && stateValue !== 'all') || !!searchValue;
+  // Сброс очищает и поле поиска: SearchInput берёт значение только при монтировании.
+  const [searchKey, setSearchKey] = useState(0);
+  const resetFilters = () => {
+    onResetFilters();
+    setSearchKey((k) => k + 1);
+  };
   return (
     <div className="mt-5 space-y-4 animate-fade-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -68,7 +80,7 @@ export default function PendingRequestsTab({
           {hint && <p className="mt-1 text-xs text-slate-600 sm:text-sm">{hint}</p>}
         </div>
         <div className="w-full sm:w-64">
-          <SearchInput initialValue={searchValue} onSearch={onSearch} placeholder="Поиск по ФИО..." />
+          <SearchInput key={searchKey} initialValue={searchValue} onSearch={onSearch} placeholder="ФИО, зачётка или название" />
         </div>
       </div>
 
@@ -91,11 +103,12 @@ export default function PendingRequestsTab({
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-          <p className="text-sm text-sky-700">
-            {filtered ? 'Нет заявок по выбранному фильтру' : 'Нет заявок'} за период &quot;{semesterLabel}&quot; в группе &quot;{currentGroupName}&quot;
-          </p>
-        </div>
+        <EmptyRequests
+          filtered={filtered}
+          emptyText={showStateFilter ? 'Все заявки рассмотрены' : 'Нет заявок на контроле'}
+          context={`${semesterLabel} · ${currentGroupName}`}
+          onReset={resetFilters}
+        />
       )}
 
       <Pagination

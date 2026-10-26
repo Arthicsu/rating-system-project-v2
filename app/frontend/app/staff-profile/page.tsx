@@ -360,7 +360,7 @@ function StaffDashboard() {
     { id: 'my-group', label: 'Студенты' },
     // У руководства — подтверждённые кафедрой заявки для контроля (вариант А), счётчик нейтральный.
     canApprove
-      ? { id: 'pending-requests', label: 'Заявки на подтверждение', badge: totalRequests }
+      ? { id: 'pending-requests', label: 'Заявки на рассмотрение', badge: totalRequests }
       : { id: 'pending-requests', label: 'На контроле', badge: totalRequests, badgeTone: 'neutral' as const },
     { id: 'reviewed-requests', label: 'Рассмотренные заявки' },
     { id: 'statistics', label: 'Статистика' },
@@ -391,6 +391,7 @@ function StaffDashboard() {
 
           <TabsNav tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
+          <div role="tabpanel" id="staff-tabpanel" aria-labelledby={`tab-${activeTab}`}>
           {activeTab === 'my-group' && (studentsErrorCode ? (
             <ErrorState code={studentsErrorCode} onReset={() => { void studentsQuery.refetch(); }} />
           ) : (
@@ -442,6 +443,7 @@ function StaffDashboard() {
               onStateChange={(value) => { setPendingState(value); setRequestsPage(1); }}
               searchValue={pendingSearchValue}
               onSearch={handlePendingSearch}
+              onResetFilters={() => { setPendingSearchValue(''); setPendingState('all'); setRequestsPage(1); }}
               onPageChange={setRequestsPage}
               actionsFor={actionsFor}
               onAction={openModal}
@@ -463,6 +465,7 @@ function StaffDashboard() {
               onStateChange={(value) => { setReviewedState(value); setReviewedPage(1); }}
               searchValue={reviewedSearchValue}
               onSearch={handleReviewedSearch}
+              onResetFilters={() => { setReviewedSearchValue(''); setReviewedState('all'); setReviewedPage(1); }}
               onPageChange={setReviewedPage}
               actionsFor={actionsFor}
               onAction={openModal}
@@ -480,6 +483,7 @@ function StaffDashboard() {
               semesterLabel={semesterLabel}
             />
           ))}
+          </div>
         </div>
       </main>
 

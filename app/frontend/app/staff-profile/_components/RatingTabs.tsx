@@ -1,6 +1,7 @@
 'use client';
 
 import CustomSelect from '@/components/CustomSelect';
+import { handleTabListKey } from './TabsNav';
 import type { Tab } from '@/interfaces/RatingInterfaces';
 
 interface RatingTabsProps {
@@ -18,17 +19,27 @@ export default function RatingTabs({ tabs, activeTab, onChange }: RatingTabsProp
           id="tab-select"
           label="Категория рейтинга"
           value={activeTab}
-          labelClassName="block text-[11px] font-medium text-slate-500"
-          triggerClassName="text-xs"
+          labelClassName="block text-xs font-medium text-slate-600"
+          triggerClassName="text-base! min-h-11"
           options={tabs.map((tab) => ({ value: tab.id, label: tab.label }))}
           onChange={onChange}
         />
       </div>
 
-      <div className="hidden sm:inline-flex overflow-hidden rounded-lg bg-white shadow-[0_2px_10px_rgba(0,0,0,0.05)] text-[11px] sm:text-xs md:text-sm lg:text-base">
+      <div
+        role="tablist"
+        aria-label="Категория рейтинга"
+        onKeyDown={(e) => handleTabListKey(e, tabs.map((t) => t.id), activeTab, onChange)}
+        className="hidden sm:inline-flex overflow-hidden rounded-lg bg-white shadow-[0_2px_10px_rgba(0,0,0,0.05)] text-xs md:text-sm lg:text-base"
+      >
         {tabs.map((tab) => (
           <button
             key={tab.id}
+            type="button"
+            role="tab"
+            data-tab-id={tab.id}
+            aria-selected={activeTab === tab.id}
+            tabIndex={activeTab === tab.id ? 0 : -1}
             className={`cursor-pointer border-r border-[#f0f0f0] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1 sm:py-1.5 md:py-2 lg:py-3 transition-colors last:border-r-0 ${
               activeTab === tab.id
                 ? 'bg-sky-700 text-white'
