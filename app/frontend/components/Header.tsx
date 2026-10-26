@@ -19,6 +19,13 @@ type NavItem = {
   badgeTone?: 'alert' | 'neutral';
 };
 
+const SETTINGS_ITEM: NavItem = {
+  href: '/settings',
+  label: 'Настройки',
+  icon: 'fa-solid fa-gear',
+  isActive: (p) => p.startsWith('/settings'),
+};
+
 export default function Header() {
   const { logoutUser, user, loading } = useMySession();
   const pathname = usePathname() ?? '';
@@ -47,6 +54,8 @@ export default function Header() {
       : [
           { href: '/upload-achievement', label: 'Загрузить', icon: 'fa-solid fa-circle-plus', isActive: (p) => p.startsWith('/upload-achievement'), cta: true },
         ];
+  // На телефоне ссылки «Настройки» у имени нет — она в нижнем таб-баре.
+  const mobileItems = user ? [...navItems, SETTINGS_ITEM] : [];
 
   return (
     <>
@@ -108,6 +117,14 @@ export default function Header() {
                     <span className="inline truncate sm:hidden">{user.short_name}</span>
                     <span className="hidden truncate sm:inline">{user.full_name}</span>
                   </Link>
+                  <Link
+                    href={SETTINGS_ITEM.href}
+                    aria-current={SETTINGS_ITEM.isActive(pathname, null) ? 'page' : undefined}
+                    className="hidden min-h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap px-1 hover:text-sky-700 aria-[current=page]:text-sky-700 sm:inline-flex"
+                  >
+                    <i className={SETTINGS_ITEM.icon} aria-hidden="true" />
+                    <span className="sr-only lg:not-sr-only">{SETTINGS_ITEM.label}</span>
+                  </Link>
                   <button
                     onClick={logoutUser}
                     className="cursor-pointer inline-flex items-center whitespace-nowrap border-0 bg-transparent px-1 text-xs text-sky-600 hover:text-sky-700 sm:text-sm"
@@ -129,16 +146,16 @@ export default function Header() {
       </header>
 
       {/* Нижний таб-бар (мобилки) */}
-      {navItems.length > 0 && (
+      {mobileItems.length > 0 && (
         <nav
           className="fixed inset-x-0 bottom-0 z-20 grid border-t border-slate-200 bg-white sm:hidden"
           style={{
-            gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))`,
+            gridTemplateColumns: `repeat(${mobileItems.length}, minmax(0, 1fr))`,
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
           <Suspense fallback={null}>
-            <MobileNavLinks items={navItems} pathname={pathname} />
+            <MobileNavLinks items={mobileItems} pathname={pathname} />
           </Suspense>
         </nav>
       )}

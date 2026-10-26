@@ -28,5 +28,6 @@ export const config = {
     '/staff-profile/:path*',
     '/upload-achievement/:path*',
     '/achievement/:path*',
+    '/settings/:path*',
   ],
 };
