@@ -3,7 +3,7 @@
 поэтому цепочка студент -> группа -> специальность -> кафедра должна давать
 ровно ту область видимости, что и в проде.
 """
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 
 from core import scoping
 from core.testing import (
@@ -45,3 +45,11 @@ class FactoriesScopeTests(TestCase):
 
         self.assertFalse(user.has_usable_password())
         self.assertEqual(doc.score, 7)
+
+
+class TestRunnerTests(SimpleTestCase):
+    def test_celery_tasks_run_in_process(self):
+        # Иначе .delay() из теста уходит живому воркеру, а он читает рабочую БД, не тестовую.
+        from backend.celery import celery_app
+
+        self.assertTrue(celery_app.conf.task_always_eager)

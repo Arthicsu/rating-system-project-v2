@@ -302,6 +302,8 @@ USE_I18N = True
 USE_TZ = True
 
 # Celery
+# В тестах задачи выполняются на месте, без брокера (см. core.testing).
+TEST_RUNNER = 'core.testing.EagerCeleryTestRunner'
 _REDIS_PW = _url_quote(os.getenv('REDIS_PASSWORD', ''), safe='')
 CELERY_BROKER_URL = f"redis://:{_REDIS_PW}@{os.getenv('REDIS_HOST')}:{os.getenv('REDIS_PORT')}/1"
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL

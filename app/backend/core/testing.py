@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group as AuthGroup
+from django.test.runner import DiscoverRunner
 from django.utils import timezone
 
 from students.models import (
@@ -22,6 +23,16 @@ from students.models import (
 from university_structure.models import AcademicYear, Department, Faculty, Group, Specialty, Staff
 
 User = get_user_model()
+
+
+class EagerCeleryTestRunner(DiscoverRunner):
+    """Задачи Celery в тестах выполняются на месте: живой воркер читает рабочую БД, а не тестовую."""
+
+    def setup_test_environment(self, **kwargs):
+        super().setup_test_environment(**kwargs)
+        from backend.celery import celery_app
+
+        celery_app.conf.task_always_eager = True
 
 # locmem-кэш (он же бэкенд сессий) + быстрый хешер: тесты не зависят от живого Redis
 # и не тратят по полсекунды на PBKDF2 при каждом create_user.
