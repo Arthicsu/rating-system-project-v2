@@ -22,6 +22,7 @@ from core.exceptions import InvalidDocumentState
 from core.students_manager import CATEGORY_SCORE_FIELDS
 from university_structure.models import AcademicYear
 from students.models import Document, DocumentFile, DocumentStatus, Student, SemesterScore
+from students.tasks import send_review_decision_email
 
 logger = logging.getLogger(__name__)
 # Решения по заявкам — в аудит-лог (SHARED_DIR/logs/audit.log, см. LOGGING).
@@ -246,6 +247,14 @@ _ACTION_VERBS = {'approve': 'одобрить', 'reject': 'отклонить', 
 _STATUS_NAMES = {'pending': 'На рассмотрении', 'approved': 'Одобрена', 'rejected': 'Отклонена'}
 
 
+def _queue_decision_email(document_id, status_code):
+    # Решение уже сохранено: сбой очереди писем не должен превращаться в 500.
+    try:
+        send_review_decision_email.delay(document_id, status_code)
+    except Exception:
+        logger.exception("review: cannot queue decision email for doc id=%s", document_id)
+
+
 @transaction.atomic
 def review_document(*, document, reviewer, action, reasons=()):
     """
@@ -302,6 +311,8 @@ def review_document(*, document, reviewer, action, reasons=()):
         "review doc=%s reviewer=%s action=%s from=%s to=%s points=%+d reasons=%s",
         document.id, reviewer.pk, action, old_code, new_code, points, reason_text,
     )
+    doc_id = document.id
+    transaction.on_commit(lambda: _queue_decision_email(doc_id, new_code))
 
     if action == 'approve':
         return "Заявка одобрена, баллы начислены"

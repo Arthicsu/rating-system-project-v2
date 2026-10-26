@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 
 class User(AbstractUser):
     patronymic = models.CharField("Отчество", max_length=150, null=True ,blank=True)
+    notify_review_emails = models.BooleanField("Письма о решениях по заявкам", default=True)
 
     @property
     def group_names(self):

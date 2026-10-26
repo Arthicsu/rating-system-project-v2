@@ -57,6 +57,7 @@ class UserResponseSerializer(serializers.ModelSerializer):
             'record_book',
             'isAuthenticated',
             'is_employee',
+            'notify_review_emails',
             'full_name',
             'short_name',
             'roles',
@@ -161,3 +162,10 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 class PendingCountSerializer(serializers.Serializer):
     pending_docs_count = serializers.IntegerField(read_only=True)
+
+
+class NotificationSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ['notify_review_emails']
+        extra_kwargs = {'notify_review_emails': {'required': True}}

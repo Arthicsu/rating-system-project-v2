@@ -18,6 +18,14 @@ logger = logging.getLogger(__name__)
 PASSWORD_EMAIL_SUBJECT = "Пароль для входа в Портфолио БГИТУ"
 ARCHIVED_EMAIL_SUBJECT = "Портфолио БГИТУ: аккаунт в архиве"
 PASSWORD_CHANGED_EMAIL_SUBJECT = "Портфолио БГИТУ: пароль изменён"
+REVIEW_DECISION_EMAIL_SUBJECT = "Портфолио БГИТУ: решение по заявке"
+
+# Новый статус заявки -> (что произошло, подпись к тексту сотрудника или None).
+_DECISION_TEXTS = {
+    'approved': ("одобрена, баллы начислены.", None),
+    'rejected': ("отклонена. Исправьте заявку и отправьте её снова.", "Причина"),
+    'pending': ("возвращена кафедре на повторную проверку.", "Комментарий"),
+}
 
 
 @transaction.atomic
@@ -179,6 +187,22 @@ def send_password_changed_notice_email(email: str, user_name: str) -> None:
         f"{site}"
     )
     _send_email(email, PASSWORD_CHANGED_EMAIL_SUBJECT, text)
+
+
+def send_review_decision_notice_email(email: str, user_name: str, document) -> None:
+    """Решение по заявке - её автору. Вызывается из Celery-задачи."""
+    what, reason_label = _DECISION_TEXTS[document.status.code]
+    lines = [_greeting(user_name), "", f"Заявка «{document.achievement}» {what}"]
+    if reason_label and document.rejection_reason:
+        lines.append(f"{reason_label}: {document.rejection_reason}")
+    site = settings.EXTERNAL_SITE_URL.rstrip('/')
+    if site:
+        lines += [
+            f"Заявка: {site}/achievement/{document.pk}",
+            "",
+            f"Письма о решениях по заявкам отключаются в настройках: {site}/settings",
+        ]
+    _send_email(email, REVIEW_DECISION_EMAIL_SUBJECT, "\n".join(lines) + "\n")
 
 
 def get_pending_docs_count(user) -> int:

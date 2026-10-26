@@ -67,6 +67,7 @@ from .serializers import (
     DocumentFileAccessSerializer,
     ForgotPasswordRequestSerializer,
     LoginRequestSerializer,
+    NotificationSettingsSerializer,
     PendingCountSerializer,
     StudentRegistrationSerializer,
     UserResponseSerializer,
@@ -125,7 +126,7 @@ class AuthViewSet(viewsets.ViewSet):
     def get_permissions(self):
         if self.action in ('login', 'session', 'forgot_password'):
             return [AllowAny()]
-        if self.action == 'change_password':
+        if self.action in ('change_password', 'notifications'):
             # Сотрудникам смены пароля нет: их общими учётками управляет ОИ.
             return [IsStudent()]
         return [IsAuthenticated()]
@@ -216,6 +217,15 @@ class AuthViewSet(viewsets.ViewSet):
         except Exception:
             logger.exception("change password: cannot queue notice for user id=%s", user.pk)
         return Response({"message": "Пароль изменён"})
+
+    @extend_schema(request=NotificationSettingsSerializer, responses={200: NotificationSettingsSerializer})
+    @action(detail=False, methods=['patch'], url_path='notifications')
+    def notifications(self, request):
+        """Письма студенту о решениях по его заявкам: включить или выключить."""
+        serializer = NotificationSettingsSerializer(request.user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 _RATING_PARAMS = [
