@@ -701,6 +701,7 @@ export interface components {
             order?: number;
             /** Документ */
             document: number;
+            readonly size: number | null;
         };
         /** @description Единый формат ошибки API: {"detail": "..."}. */
         ErrorDetail: {
@@ -830,7 +831,8 @@ export interface components {
          * @description Частичное редактирование достижения студентом (PATCH).
          *
          *     Все поля опциональны. Подтип проверяется в рамках категории (переданной или
-         *     текущей). Если переданы файлы — старые удаляются и заменяются новыми.
+         *     текущей). Файлы правятся по одному: remove_file_ids — удалить эти файлы заявки,
+         *     files — добавить к оставшимся; итог 1..MAX_FILES файлов и не больше MAX_TOTAL_SIZE.
          *     Балл пересчитывается в `Document.save()`. Если документ был отклонён, при
          *     сохранении он возвращается на повторное рассмотрение (статус 'pending').
          *
@@ -850,6 +852,8 @@ export interface components {
             /** Код */
             doc_type?: string;
             files?: string[];
+            /** @description id файлов этой заявки, которые удалить (multipart: ключ на каждый id) */
+            remove_file_ids?: number[];
         };
         PendingCount: {
             readonly pending_docs_count: number;

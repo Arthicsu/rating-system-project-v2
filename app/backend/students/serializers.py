@@ -257,6 +257,10 @@ class SemesterStudentListSerializer(RatingRowMixin, serializers.ModelSerializer)
         fields = RatingRowMixin.BASE_FIELDS + ['record_book']
 
 class DocumentFileSerializer(serializers.ModelSerializer):
+    # Размер нужен окну правки (остаток лимита) и есть только в карточке заявки: в S3 это
+    # запрос на каждый файл, а списки кабинета опрашиваются каждые 15 с.
+    size = serializers.SerializerMethodField()
+
     class Meta:
         model = DocumentFile
         fields = [
@@ -265,7 +269,22 @@ class DocumentFileSerializer(serializers.ModelSerializer):
             'uploaded_at',
             'order',
             'document',
+            'size',
         ]
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_size(self, obj):
+        if not self.context.get('with_file_size'):
+            return None
+        return _stored_size(obj)
+
+
+def _stored_size(document_file):
+    """Размер файла в хранилище; пропавший объект места не занимает — 0."""
+    try:
+        return document_file.file.size
+    except Exception:
+        return 0
 
 class DocumentSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='category.label', read_only=True)
@@ -407,7 +426,8 @@ class AchievementUpdateSerializer(serializers.Serializer):
     Частичное редактирование достижения студентом (PATCH).
 
     Все поля опциональны. Подтип проверяется в рамках категории (переданной или
-    текущей). Если переданы файлы — старые удаляются и заменяются новыми.
+    текущей). Файлы правятся по одному: remove_file_ids — удалить эти файлы заявки,
+    files — добавить к оставшимся; итог 1..MAX_FILES файлов и не больше MAX_TOTAL_SIZE.
     Балл пересчитывается в `Document.save()`. Если документ был отклонён, при
     сохранении он возвращается на повторное рассмотрение (статус 'pending').
 
@@ -421,6 +441,10 @@ class AchievementUpdateSerializer(serializers.Serializer):
     date_received = serializers.DateField(required=False)
     doc_type = serializers.SlugRelatedField(queryset=DocType.objects.all(), slug_field='code', required=False)
     files = serializers.ListField(child=serializers.FileField(), write_only=True, required=False)
+    remove_file_ids = serializers.ListField(
+        child=serializers.IntegerField(), write_only=True, required=False,
+        help_text="id файлов этой заявки, которые удалить (multipart: ключ на каждый id)",
+    )
 
     def validate_files(self, files):
         return validate_achievement_files(files)
@@ -438,10 +462,24 @@ class AchievementUpdateSerializer(serializers.Serializer):
             # Категорию сменили, но подтип не передали — текущий подтип не из новой категории.
             raise serializers.ValidationError({"sub_type": "При смене категории необходимо указать подтип."})
 
+        new_files = data.get('files', [])
+        remove_ids = set(data.get('remove_file_ids', []))
+        if new_files or remove_ids:
+            current = {f.id: f for f in instance.files.all()}
+            if remove_ids - current.keys():
+                raise serializers.ValidationError({"remove_file_ids": "Можно удалить только файлы этой заявки."})
+            kept = [f for file_id, f in current.items() if file_id not in remove_ids]
+            if not 1 <= len(kept) + len(new_files) <= MAX_FILES:
+                raise serializers.ValidationError({"files": f"Оставьте или добавьте от 1 до {MAX_FILES} файлов."})
+            total = sum(_stored_size(f) for f in kept) + sum(f.size for f in new_files)
+            if total > MAX_TOTAL_SIZE:
+                raise serializers.ValidationError({"files": "Суммарный размер файлов не должен превышать 20 МБ."})
+        data['remove_file_ids'] = sorted(remove_ids)
         return data
 
     def update(self, instance, validated_data):
         from .services import update_achievement
 
         files = validated_data.pop('files', None)
-        return update_achievement(instance, validated_data, files=files)
+        remove_file_ids = validated_data.pop('remove_file_ids', [])
+        return update_achievement(instance, validated_data, files=files, remove_file_ids=remove_file_ids)

@@ -109,6 +109,10 @@ class AchievementViewSet(mixins.CreateModelMixin,
             return ReviewDocumentRequestSerializer
         return PendingDocumentSerializer
 
+    def get_serializer_context(self):
+        # Размеры файлов (запрос к S3 на файл) — только в карточке заявки, не в списках.
+        return {**super().get_serializer_context(), 'with_file_size': self.action == 'retrieve'}
+
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return Document.objects.none()

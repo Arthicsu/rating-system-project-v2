@@ -127,13 +127,14 @@ def create_achievement(*, user, files, **validated):
     return document
 
 
-def update_achievement(document, validated_data, files=None):
+def update_achievement(document, validated_data, files=None, remove_file_ids=()):
     """
     Частичное обновление заявки студентом.
 
     Отклонённая заявка после правок возвращается на повторное рассмотрение.
-    Если переданы файлы — старые заменяются, а из хранилища удаляются только
-    после коммита транзакции. Вызывается из AchievementUpdateSerializer.update().
+    remove_file_ids — удалить эти файлы заявки, files — добавить к оставшимся (порядок
+    заново 0..n-1); из хранилища удалённые стираются только после коммита транзакции.
+    Проверки состава файлов — в AchievementUpdateSerializer.validate().
     """
     with transaction.atomic():
         # Статус и решение — из БД под блокировкой строки: модератор мог решить, пока студент
@@ -158,19 +159,24 @@ def update_achievement(document, validated_data, files=None):
 
         document.save()  # балл пересчитывается в Document.save()
 
-        if files is not None:
-            old_files = list(document.files.all())
-            document.files.all().delete()
+        removed = list(document.files.filter(id__in=remove_file_ids))
+        if removed:
+            DocumentFile.objects.filter(id__in=[f.id for f in removed]).delete()
+            transaction.on_commit(lambda: _delete_stored_files(removed))
 
-            for order, file in enumerate(files):
+        if files or removed:
+            kept = list(document.files.order_by('order', 'id'))
+            for order, kept_file in enumerate(kept):
+                if kept_file.order != order:
+                    kept_file.order = order
+                    kept_file.save(update_fields=['order'])
+            for order, file in enumerate(files or (), start=len(kept)):
                 DocumentFile.objects.create(
                     document=document,
                     file=file,
                     original_file_name=file.name,
                     order=order,
                 )
-
-            transaction.on_commit(lambda: _delete_stored_files(old_files))
 
     return document
 
