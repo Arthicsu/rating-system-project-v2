@@ -70,6 +70,11 @@ export default function StudentsTab({
             <span className="text-xs font-normal text-sky-700">
               (всего: {totalStudents})
             </span>
+            {/* Сортировка серверная по всему списку; при равных баллах порядок по ФИО — подсказка,
+                чтобы «одинаковый» список при нулевых баллах не выглядел несортированным. */}
+            <span className="mt-0.5 block text-xs font-normal text-slate-600">
+              {direction === 'desc' ? 'По убыванию' : 'По возрастанию'} баллов по всему списку, при равных баллах — по ФИО
+            </span>
           </h2>
           {/* Поиск растягивается: на телефоне во всю ширину, на десктопе — широкое поле рядом с выгрузкой. */}
           <div className="flex w-full items-center gap-2 sm:w-[26rem] lg:w-[32rem]">

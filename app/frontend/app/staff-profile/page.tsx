@@ -43,7 +43,7 @@ const TAB_IDS = ['my-group', 'pending-requests', 'reviewed-requests', 'statistic
 // ссылку можно переслать. В адрес попадает только отличное от значения по умолчанию.
 const URL_DEFAULTS = {
   tab: 'my-group', faculty: 'all', course: 'all', group: 'all', semester: '',
-  cat: 'common', dir: 'desc', q: '', page: '1',
+  cat: 'common', q: '', page: '1',
   rstate: 'all', rq: '', rpage: '1',
   vstate: 'all', vq: '', vpage: '1',
 };
@@ -67,7 +67,6 @@ function readUrlState(params: { get(key: string): string | null }): UrlState {
     semester: get('semester', id),
     // Неизвестную категорию сервер сортирует по общему баллу.
     cat: get('cat', (v) => /^\w{1,50}$/.test(v)),
-    dir: get('dir', oneOf('asc', 'desc')),
     q: get('q', text),
     page: get('page', page),
     rstate: get('rstate', oneOf('new', 'returned')),
@@ -162,7 +161,8 @@ function StaffDashboard() {
 
   // Подвкладка категории и направление сортировки таблицы студентов.
   const [pickedCategory, setCategory] = useState(initial.cat);
-  const [direction, setDirection] = useState<'asc' | 'desc'>(initial.dir === 'asc' ? 'asc' : 'desc');
+  // Направление в адрес не пишем: каждый заход начинается «по убыванию баллов» (6a.4).
+  const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
 
   const pageSize = 20;
   // 12 карточек: очередь видна целиком чаще, меньше листать (сетка 3 × 4 на десктопе).
@@ -331,7 +331,6 @@ function StaffDashboard() {
     group: groupId,
     semester: semesterId && semesterId !== currentSemesterId ? String(semesterId) : '',
     cat: category,
-    dir: direction,
     q: groupSearchValue,
     page: String(currentPage),
     rstate: pendingState,
