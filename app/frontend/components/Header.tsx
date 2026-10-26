@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useMySession } from '@/context/AuthContext';
 import { usePendingCount } from '@/hooks/queries';
+import CountBadge from '@/components/CountBadge';
 
 type NavItem = {
   href: string;
@@ -15,6 +16,7 @@ type NavItem = {
   isActive: (path: string, tab: string | null) => boolean;
   cta?: boolean;
   badge?: number;
+  badgeTone?: 'alert' | 'neutral';
 };
 
 export default function Header() {
@@ -23,6 +25,9 @@ export default function Header() {
   const { data: pendingCount } = usePendingCount(!!user?.is_employee);
 
   const profileHref = user?.is_employee ? '/staff-profile' : '/profile';
+  // Руководство заявки не одобряет, а контролирует подтверждённые кафедрой (вариант А):
+  // у него «На контроле» и нейтральный счётчик, а не красный «требует действия».
+  const isLeadership = !!user?.roles?.some((r) => r === 'Dean' || r === 'Rectorate');
 
   // В меню только то, чего нет по клику на имя (кабинет): у сотрудника прямая
   // ссылка на заявки, у студента кнопка загрузки достижения.
@@ -32,10 +37,11 @@ export default function Header() {
       ? [
           {
             href: '/staff-profile?tab=pending-requests',
-            label: 'Заявки',
+            label: isLeadership ? 'На контроле' : 'Заявки',
             icon: 'fa-solid fa-inbox',
             isActive: (p, tab) => p.startsWith('/staff-profile') && tab === 'pending-requests',
             badge: pendingCount ?? 0,
+            badgeTone: isLeadership ? 'neutral' : 'alert',
           },
         ]
       : [
@@ -169,11 +175,7 @@ function DesktopNavLinks({ items, pathname }: { items: NavItem[]; pathname: stri
       >
         <i className={item.icon} aria-hidden="true" />
         {item.label}
-        {!!item.badge && item.badge > 0 && (
-          <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[11px] font-semibold leading-tight text-white">
-            {item.badge}
-          </span>
-        )}
+        <CountBadge count={item.badge ?? 0} tone={item.badgeTone} />
       </Link>
     );
   });
@@ -190,17 +192,13 @@ function MobileNavLinks({ items, pathname }: { items: NavItem[]; pathname: strin
         key={item.href}
         href={item.href}
         aria-current={active ? 'page' : undefined}
-        className={`relative flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] transition ${
+        className={`relative flex flex-col items-center justify-center gap-0.5 py-2 text-xs transition ${
           active || item.cta ? 'text-sky-700' : 'text-slate-500'
         }`}
       >
         <i className={`${item.icon} text-lg`} aria-hidden="true" />
         <span>{item.label}</span>
-        {!!item.badge && item.badge > 0 && (
-          <span className="absolute left-1/2 top-1 ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-semibold leading-tight text-white">
-            {item.badge}
-          </span>
-        )}
+        <CountBadge count={item.badge ?? 0} tone={item.badgeTone} className="absolute left-1/2 top-1 ml-1.5" />
       </Link>
     );
   });

@@ -358,7 +358,10 @@ function StaffDashboard() {
 
   const tabs = [
     { id: 'my-group', label: 'Студенты' },
-    { id: 'pending-requests', label: 'Заявки на подтверждение', badge: totalRequests },
+    // У руководства — подтверждённые кафедрой заявки для контроля (вариант А), счётчик нейтральный.
+    canApprove
+      ? { id: 'pending-requests', label: 'Заявки на подтверждение', badge: totalRequests }
+      : { id: 'pending-requests', label: 'На контроле', badge: totalRequests, badgeTone: 'neutral' as const },
     { id: 'reviewed-requests', label: 'Рассмотренные заявки' },
     { id: 'statistics', label: 'Статистика' },
   ];
@@ -432,6 +435,8 @@ function StaffDashboard() {
               requestsPageSize={requestsPageSize}
               currentGroupName={currentGroupName}
               semesterLabel={semesterLabel}
+              title={canApprove ? 'Заявки' : 'На контроле'}
+              hint={canApprove ? undefined : 'Одобренные кафедрой заявки: можно отклонить или вернуть кафедре на повторное рассмотрение.'}
               showStateFilter={canApprove}
               stateValue={pendingState}
               onStateChange={(value) => { setPendingState(value); setRequestsPage(1); }}

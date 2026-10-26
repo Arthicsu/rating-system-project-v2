@@ -1,10 +1,14 @@
 'use client';
 
+import CountBadge from '@/components/CountBadge';
+
 interface TabItem {
   id: string;
   label: string;
-  /** Число на красном бейдже (например, количество заявок); скрыт при 0/undefined. */
+  /** Число заявок на бейдже; скрыт при 0/undefined. */
   badge?: number;
+  /** alert — требует действия; neutral — для сведения (по умолчанию alert). */
+  badgeTone?: 'alert' | 'neutral';
 }
 
 interface TabsNavProps {
@@ -31,11 +35,7 @@ export default function TabsNav({ tabs, activeTab, onChange }: TabsNavProps) {
             }`}
           >
             {tab.label}
-            {tab.badge !== undefined && tab.badge > 0 && (
-              <span className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[11px] font-semibold leading-tight text-white">
-                {tab.badge}
-              </span>
-            )}
+            <CountBadge count={tab.badge ?? 0} tone={tab.badgeTone} className="ml-1.5" />
           </button>
         );
       })}

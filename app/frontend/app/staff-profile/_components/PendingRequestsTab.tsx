@@ -21,6 +21,10 @@ interface PendingRequestsTabProps {
   requestsPageSize: number;
   currentGroupName: string;
   semesterLabel: string;
+  /** «Заявки» у кафедры, «На контроле» у руководства. */
+  title: string;
+  /** Пояснение под заголовком (у руководства — что значит «На контроле»). */
+  hint?: string;
   /** Новые/повторные - только у кафедры: у декана и ректората здесь лишь подтверждённые кафедрой. */
   showStateFilter: boolean;
   stateValue: string;
@@ -42,6 +46,8 @@ export default function PendingRequestsTab({
   requestsPageSize,
   currentGroupName,
   semesterLabel,
+  title,
+  hint,
   showStateFilter,
   stateValue,
   onStateChange,
@@ -55,9 +61,12 @@ export default function PendingRequestsTab({
   return (
     <div className="mt-5 space-y-4 animate-fade-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
-          Заявки: {currentGroupName}, {semesterLabel}
-        </h2>
+        <div>
+          <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
+            {title}: {currentGroupName}, {semesterLabel}
+          </h2>
+          {hint && <p className="mt-1 text-xs text-slate-600 sm:text-sm">{hint}</p>}
+        </div>
         <div className="w-full sm:w-64">
           <SearchInput initialValue={searchValue} onSearch={onSearch} placeholder="Поиск по ФИО..." />
         </div>
