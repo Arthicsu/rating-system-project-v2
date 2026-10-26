@@ -26,7 +26,13 @@ export default function CollapsibleText({ text, lines = 4 }: CollapsibleTextProp
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
-    return () => observer.disconnect();
+    // После загрузки веб-шрифта строки переносятся иначе, а высота блока прежняя — RO молчит.
+    let alive = true;
+    void document.fonts?.ready.then(() => alive && measure());
+    return () => {
+      alive = false;
+      observer.disconnect();
+    };
   }, [text, expanded]);
 
   return (

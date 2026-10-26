@@ -210,10 +210,10 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
                   e.stopPropagation();
                   removeFile(index);
                 }}
-                className="cursor-pointer p-1 text-slate-400 hover:text-rose-500 rounded-full hover:bg-slate-100 transition"
-                title="Удалить"
+                className="cursor-pointer inline-flex h-11 w-11 shrink-0 items-center justify-center text-slate-500 hover:text-rose-600 rounded-full hover:bg-slate-100 transition sm:h-8 sm:w-8"
+                aria-label={`Убрать ${file.name}`}
               >
-                <i className="fa-solid fa-xmark text-sm" />
+                <i className="fa-solid fa-xmark text-sm" aria-hidden="true" />
               </button>
             </div>
           ))}

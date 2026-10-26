@@ -1,4 +1,11 @@
 import type { AxiosError } from 'axios';
+import type { useRouter } from 'next/navigation';
+
+/** Назад по истории, а если страницу открыли в новой вкладке — на `fallback`. */
+export function goBack(router: ReturnType<typeof useRouter>, fallback: string) {
+  if (window.history.length > 1) router.back();
+  else router.push(fallback);
+}
 
 export type DetailLoadState = 'loading' | 'ready' | 'forbidden' | 'notfound' | 'error';
 

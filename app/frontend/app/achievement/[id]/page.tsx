@@ -14,7 +14,7 @@ import AchievementHeader from '@/components/achievement/AchievementHeader';
 import AchievementDetails, { ReasonNote } from '@/components/achievement/AchievementDetails';
 import AchievementFiles from '@/components/achievement/AchievementFiles';
 import AchievementPreviewPane from '@/components/achievement/AchievementPreviewPane';
-import { BackButton, DetailError, DetailSkeleton, detailLoadState } from '@/components/achievement/DetailStates';
+import { BackButton, DetailError, DetailSkeleton, detailLoadState, goBack } from '@/components/achievement/DetailStates';
 import ModalPreview from '@/components/modals/ModalPreview';
 import ModalConfirm from '@/components/modals/ModalConfirm';
 import ModalEditAchievement from '@/components/modals/ModalEditAchievement';
@@ -57,7 +57,7 @@ export default function AchievementDetailPage() {
   const state = detailLoadState(isPending, error);
 
   if (state === 'loading' || deleted || isEmployee) return <DetailSkeleton />;
-  if (state !== 'ready' || !doc) return <DetailError state={state} onBack={() => router.back()} />;
+  if (state !== 'ready' || !doc) return <DetailError state={state} onBack={() => goBack(router, '/profile')} />;
 
   const files = doc.files ?? [];
   const hasFiles = files.length > 0;
@@ -80,7 +80,7 @@ export default function AchievementDetailPage() {
     <>
       <main className="min-h-screen bg-slate-50 pt-24 pb-10">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <BackButton onClick={() => router.back()} />
+          <BackButton onClick={() => goBack(router, '/profile')} />
 
           <div className={`mt-5 grid gap-6 ${hasFiles ? 'lg:grid-cols-5' : 'mx-auto max-w-3xl grid-cols-1'}`}>
             <div className={`min-w-0 animate-fade-in space-y-5 ${hasFiles ? 'lg:col-span-2' : ''}`}>
@@ -113,8 +113,15 @@ export default function AchievementDetailPage() {
 
               {doc.rejection_reason && (
                 <ReasonNote
-                  // Повторно поданная заявка хранит причину прошлого отклонения.
-                  title={doc.status_display === 'pending' ? 'Причина прошлого отклонения' : 'Причина отклонения'}
+                  // Повторно поданная заявка хранит причину прошлого отклонения; возвращённую
+                  // руководством кафедра проверяет ещё раз — это не отклонение.
+                  title={
+                    doc.status_display !== 'pending'
+                      ? 'Причина отклонения'
+                      : doc.returned_by
+                        ? 'Комментарий к повторной проверке'
+                        : 'Причина прошлого отклонения'
+                  }
                   text={doc.rejection_reason}
                 />
               )}
@@ -127,7 +134,7 @@ export default function AchievementDetailPage() {
               <div className="min-w-0 animate-fade-in lg:col-span-3">
                 <AchievementPreviewPane
                   files={files}
-                  selectedIndex={selectedFileIndex}
+                  selectedIndex={Math.min(selectedFileIndex, files.length - 1)}
                   onSelect={setSelectedFileIndex}
                   onFullscreen={() => setPreviewOpen(true)}
                   onDownload={(fileId, name) => downloadFile(fileId, name)}

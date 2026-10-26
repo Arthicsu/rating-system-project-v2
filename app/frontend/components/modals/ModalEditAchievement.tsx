@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -54,17 +54,21 @@ export default function ModalEditAchievement({ isOpen, doc, onClose }: ModalEdit
   const saving = updateMutation.isPending;
   const { data: config } = useAchievementConfig();
   // Карточка заявки: размеры файлов (их отдаёт только она) и коды для селектов.
-  const { data: detail } = useAchievement(doc ? String(doc.id) : '', isOpen);
+  const { data: detail, isFetching, isError } = useAchievement(doc ? String(doc.id) : '', isOpen);
   const [seededDocId, setSeededDocId] = useState<number | null>(null);
+  // Второй клик/Enter в том же кадре, до того как isPending успел стать true.
+  const inFlightRef = useRef(false);
 
   const form = useForm<EditAchievementValues, unknown, EditAchievementSubmit>({
     resolver: zodResolver(editAchievementSchema),
     defaultValues: EMPTY,
   });
-  const { handleSubmit, watch, setValue, getValues, reset, formState: { errors } } = form;
+  const { handleSubmit, watch, setValue, getValues, reset, setError, trigger, formState: { errors } } = form;
 
-  // Заполняем форму, когда пришли карточка и справочник (подстройка при рендере).
-  if (isOpen && detail && config && detail.id !== seededDocId) {
+  // Заполняем форму, когда пришли карточка и справочник (подстройка при рендере). Только по
+  // свежим данным: после сохранения кэш карточки ещё перезапрашивается, а старые файлы в форме
+  // дали бы remove_file_ids уже удалённых файлов.
+  if (isOpen && detail && config && !isFetching && detail.id !== seededDocId) {
     setSeededDocId(detail.id);
     reset(initialValues(detail, config));
   }
@@ -91,7 +95,9 @@ export default function ModalEditAchievement({ isOpen, doc, onClose }: ModalEdit
   const toggleRemove = (id: number) => {
     const next = removeIds.includes(id) ? removeIds.filter((x) => x !== id) : [...removeIds, id];
     setValue('removeFileIds', next);
-    setValue('keptFileCount', files.length - next.length, { shouldValidate: true });
+    setValue('keptFileCount', files.length - next.length);
+    // Ошибка «от 1 до 3 файлов» висит на newFiles — обновляем её сразу, а не только при отправке.
+    void trigger('newFiles');
   };
 
   // «Заменить» = отметить файл к удалению и сразу открыть выбор нового.
@@ -101,7 +107,13 @@ export default function ModalEditAchievement({ isOpen, doc, onClose }: ModalEdit
   };
 
   const submitWith = (close: () => void) => async (values: EditAchievementSubmit) => {
-    if (saving || !values.subType || !values.docType || !values.category) return;
+    if (inFlightRef.current || !values.subType || !values.docType || !values.category) return;
+    // «Вернуть» файл может перевалить за лимит — говорим здесь, а не тостом от сервера.
+    if (keptBytes + newBytes > MAX_TOTAL_SIZE) {
+      setError('newFiles', { message: 'Вместе файлы больше 20 МБ: удалите или замените что-нибудь' });
+      return;
+    }
+    inFlightRef.current = true;
 
     const formData = new FormData();
     formData.append('category', values.category);
@@ -121,6 +133,8 @@ export default function ModalEditAchievement({ isOpen, doc, onClose }: ModalEdit
       close();
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Не удалось сохранить изменения'));
+    } finally {
+      inFlightRef.current = false;
     }
   };
 
@@ -150,7 +164,9 @@ export default function ModalEditAchievement({ isOpen, doc, onClose }: ModalEdit
           )}
 
           {!ready ? (
-            <p className="py-8 text-center text-sm text-slate-600">Загрузка заявки…</p>
+            <p className="py-8 text-center text-sm text-slate-600">
+              {isError ? 'Не удалось загрузить заявку. Закройте окно и попробуйте ещё раз.' : 'Загрузка заявки…'}
+            </p>
           ) : (
             <form className="space-y-4" onSubmit={handleSubmit(submitWith(close))}>
               <AchievementFields form={form} config={config} idPrefix="edit" />
@@ -180,32 +196,27 @@ export default function ModalEditAchievement({ isOpen, doc, onClose }: ModalEdit
                         {removed && <span className="sr-only"> — будет удалён</span>}
                       </span>
                       <span className="flex gap-1">
-                        {removed ? (
+                        {!removed && (
                           <button
                             type="button"
-                            onClick={() => toggleRemove(file.id)}
+                            onClick={() => replace(file.id)}
+                            aria-label={`Заменить ${name}`}
                             className="cursor-pointer min-h-11 rounded-lg px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50"
                           >
-                            Вернуть
+                            Заменить
                           </button>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => replace(file.id)}
-                              className="cursor-pointer min-h-11 rounded-lg px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50"
-                            >
-                              Заменить
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => toggleRemove(file.id)}
-                              className="cursor-pointer min-h-11 rounded-lg px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50"
-                            >
-                              Удалить
-                            </button>
-                          </>
                         )}
+                        {/* Одна кнопка «Удалить / Вернуть»: фокус остаётся на ней после нажатия. */}
+                        <button
+                          type="button"
+                          onClick={() => toggleRemove(file.id)}
+                          aria-label={removed ? `Вернуть ${name}` : `Удалить ${name}`}
+                          className={`cursor-pointer min-h-11 rounded-lg px-3 text-sm font-semibold ${
+                            removed ? 'text-sky-700 hover:bg-sky-50' : 'text-rose-700 hover:bg-rose-50'
+                          }`}
+                        >
+                          {removed ? 'Вернуть' : 'Удалить'}
+                        </button>
                       </span>
                     </div>
                   );

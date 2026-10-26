@@ -12,12 +12,14 @@ import { qk } from '@/lib/queryKeys';
  */
 function useInvalidateAchievements() {
   const queryClient = useQueryClient();
-  return () => {
-    queryClient.invalidateQueries({ queryKey: qk.profileAll });
-    queryClient.invalidateQueries({ queryKey: qk.dashboardAll });
-    queryClient.invalidateQueries({ queryKey: qk.achievementAll });
-    queryClient.invalidateQueries({ queryKey: qk.pendingCount });
-  };
+  // Promise: mutateAsync ждёт перезапроса — открытая заново правка не увидит старые файлы.
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: qk.profileAll }),
+      queryClient.invalidateQueries({ queryKey: qk.dashboardAll }),
+      queryClient.invalidateQueries({ queryKey: qk.achievementAll }),
+      queryClient.invalidateQueries({ queryKey: qk.pendingCount }),
+    ]);
 }
 
 export function useUploadAchievement() {

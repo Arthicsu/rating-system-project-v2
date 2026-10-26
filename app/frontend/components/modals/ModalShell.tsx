@@ -143,7 +143,7 @@ export default function ModalShell({
           <button
             type="button"
             aria-label="Закрыть"
-            className="cursor-pointer absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full text-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+            className="cursor-pointer absolute right-2 top-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 sm:right-3 sm:top-3 sm:h-7 sm:w-7"
             onClick={handleClose}
           >
             &times;
