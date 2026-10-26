@@ -15,7 +15,7 @@ import threading
 from contextlib import contextmanager
 
 from django.db import transaction
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from core.cache_utils import invalidate_view_cache
 from core.exceptions import InvalidDocumentState
@@ -127,6 +127,33 @@ def create_achievement(*, user, files, **validated):
     return document
 
 
+def check_file_limits(document, remove_file_ids, new_files):
+    """
+    Состав файлов после правки: удаляются только файлы этой заявки, итог 1..MAX_FILES и не
+    больше MAX_TOTAL_SIZE. Сериализатор вызывает для быстрого ответа, update_achievement —
+    ещё раз под блокировкой строки: параллельные PATCH валидировались по одному старому
+    состоянию и вместе обошли бы лимиты (или оставили заявку без файлов).
+    """
+    from .serializers import MAX_FILES, MAX_TOTAL_SIZE, stored_size
+
+    if not new_files and not remove_file_ids:
+        return  # файлы не меняются: старые заявки без файлов правят текст
+    current = {f.id: f for f in document.files.all()}
+    remove_ids = set(remove_file_ids)
+    if remove_ids - current.keys():
+        raise ValidationError({"remove_file_ids": "Можно удалить только файлы этой заявки."})
+    kept = [f for file_id, f in current.items() if file_id not in remove_ids]
+    if not 1 <= len(kept) + len(new_files) <= MAX_FILES:
+        raise ValidationError({"files": f"Оставьте или добавьте от 1 до {MAX_FILES} файлов."})
+    try:
+        kept_size = sum(stored_size(f) for f in kept)
+    except Exception:
+        logger.exception("Не удалось узнать размер файлов заявки %s", document.pk)
+        raise ValidationError({"files": "Не удалось проверить размер файлов заявки, попробуйте позже."})
+    if kept_size + sum(f.size for f in new_files) > MAX_TOTAL_SIZE:
+        raise ValidationError({"files": "Суммарный размер файлов не должен превышать 20 МБ."})
+
+
 def update_achievement(document, validated_data, files=None, remove_file_ids=()):
     """
     Частичное обновление заявки студентом.
@@ -145,6 +172,7 @@ def update_achievement(document, validated_data, files=None, remove_file_ids=())
         document.status = locked.status
         document.verified_by_id = locked.verified_by_id
         document.rejection_reason = locked.rejection_reason
+        check_file_limits(document, remove_file_ids, files or [])
 
         for attr, value in validated_data.items():
             setattr(document, attr, value)

@@ -14,7 +14,12 @@ from rest_framework.test import APITestCase
 
 from core.testing import FILE_TEST_SETTINGS, make_catalog, make_doc, make_statuses, make_student
 from students import serializers as achievement_serializers
+from unittest.mock import patch
+
+from rest_framework.exceptions import ValidationError
+
 from students.models import DocumentFile
+from students.services import update_achievement
 
 DETAIL = "api:achievements-detail"
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
@@ -135,3 +140,43 @@ class EditFilesTests(APITestCase):
         resp = self._patch(doc=legacy, achievement="исправлено")
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+
+    # Лимиты перепроверяются под блокировкой строки: параллельные PATCH прошли валидацию
+    # сериализатора по одному и тому же старому состоянию файлов.
+    def test_limits_rechecked_under_lock_for_count(self):
+        self._attach("c.png", 2)  # «параллельный» PATCH уже добавил третий файл
+
+        with self.assertRaises(ValidationError):
+            update_achievement(self.doc, {}, files=[png("d.png")], remove_file_ids=[])
+
+        self.assertEqual(self.doc.files.count(), 3)
+
+    def test_parallel_removals_cannot_leave_zero_files(self):
+        update_achievement(self.doc, {}, remove_file_ids=[self.first.pk])
+
+        with self.assertRaises(ValidationError):
+            update_achievement(self.doc, {}, remove_file_ids=[self.second.pk])
+
+        self.assertEqual(self.doc.files.count(), 1)
+
+    def test_already_removed_id_is_rejected(self):
+        update_achievement(self.doc, {}, remove_file_ids=[self.first.pk], files=[png("c.png")])
+
+        with self.assertRaises(ValidationError):
+            update_achievement(self.doc, {}, remove_file_ids=[self.first.pk])
+
+    def test_storage_failure_does_not_count_as_zero(self):
+        # Сбой хранилища (таймаут S3) не должен считаться «0 байт» и пропускать лимит.
+        with patch("django.core.files.storage.InMemoryStorage.size", side_effect=RuntimeError("S3 timeout")):
+            resp = self._patch(files=[png("c.png")])
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.doc.files.count(), 2)
+
+    def test_missing_storage_object_counts_as_zero(self):
+        self.first.file.storage.delete(self.first.file.name)
+
+        resp = self._patch(files=[png("c.png")])
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+

@@ -276,15 +276,26 @@ class DocumentFileSerializer(serializers.ModelSerializer):
     def get_size(self, obj):
         if not self.context.get('with_file_size'):
             return None
-        return _stored_size(obj)
+        try:
+            return stored_size(obj)
+        except Exception:
+            return None  # для показа сбой хранилища не ломает карточку
 
 
-def _stored_size(document_file):
-    """Размер файла в хранилище; пропавший объект места не занимает — 0."""
+def stored_size(document_file):
+    """
+    Размер файла в хранилище для лимита: пропавший объект места не занимает — 0; любой
+    другой сбой (таймаут, 5xx S3) — исключение, иначе лимит 20 МБ обходился бы при сбоях.
+    """
     try:
         return document_file.file.size
-    except Exception:
+    except FileNotFoundError:
         return 0
+    except Exception as exc:
+        code = getattr(exc, 'response', {}).get('Error', {}).get('Code') if hasattr(exc, 'response') else None
+        if code in ('404', 'NoSuchKey', 'NotFound'):
+            return 0
+        raise
 
 class DocumentSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='category.label', read_only=True)
@@ -469,19 +480,11 @@ class AchievementUpdateSerializer(serializers.Serializer):
             # Категорию сменили, но подтип не передали — текущий подтип не из новой категории.
             raise serializers.ValidationError({"sub_type": "При смене категории необходимо указать подтип."})
 
-        new_files = data.get('files', [])
-        remove_ids = set(data.get('remove_file_ids', []))
-        if new_files or remove_ids:
-            current = {f.id: f for f in instance.files.all()}
-            if remove_ids - current.keys():
-                raise serializers.ValidationError({"remove_file_ids": "Можно удалить только файлы этой заявки."})
-            kept = [f for file_id, f in current.items() if file_id not in remove_ids]
-            if not 1 <= len(kept) + len(new_files) <= MAX_FILES:
-                raise serializers.ValidationError({"files": f"Оставьте или добавьте от 1 до {MAX_FILES} файлов."})
-            total = sum(_stored_size(f) for f in kept) + sum(f.size for f in new_files)
-            if total > MAX_TOTAL_SIZE:
-                raise serializers.ValidationError({"files": "Суммарный размер файлов не должен превышать 20 МБ."})
-        data['remove_file_ids'] = sorted(remove_ids)
+        from .services import check_file_limits
+
+        # Быстрый ответ до загрузки в хранилище; под блокировкой строки сервис проверит ещё раз.
+        data['remove_file_ids'] = sorted(set(data.get('remove_file_ids', [])))
+        check_file_limits(instance, data['remove_file_ids'], data.get('files', []))
         return data
 
     def update(self, instance, validated_data):
