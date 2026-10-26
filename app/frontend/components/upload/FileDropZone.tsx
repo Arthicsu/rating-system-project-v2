@@ -33,9 +33,14 @@ const MAX_FILE_SIZE_MB = Math.round(MAX_FILE_SIZE / (1024 * 1024));
 export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, reservedBytes = 0, inputId }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Индекс файла, который заменяется выбором в проводнике; null — обычное добавление.
+  const replaceIndexRef = useRef<number | null>(null);
 
-  // Валидация с логикой ДОБАВЛЕНИЯ файлов
-  const validateAndProcessFiles = async (newFiles: File[]) => {
+  // Валидация добавления (или замены файла replaceIndex: лимиты — без заменяемого).
+  const validateAndProcessFiles = async (selectedFiles: File[], replaceIndex: number | null = null) => {
+    const newFiles = replaceIndex === null ? selectedFiles : selectedFiles.slice(0, 1);
+    const base = replaceIndex === null ? files : files.filter((_, i) => i !== replaceIndex);
+
     // 1. Проверка расширений только для новых файлов
     const invalidFiles = newFiles.filter(f => {
       const ext = f.name.split('.').pop()?.toLowerCase() || '';
@@ -67,7 +72,7 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
 
     // 3. Фильтруем дубликаты (чтобы не добавить один и тот же файл дважды)
     const uniqueNewFiles = newFiles.filter(
-      newFile => !files.some(existing => existing.name === newFile.name && existing.size === newFile.size)
+      newFile => !base.some(existing => existing.name === newFile.name && existing.size === newFile.size)
     );
 
     if (uniqueNewFiles.length === 0 && newFiles.length > 0) {
@@ -76,10 +81,10 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
     }
 
     // 4. Проверяем лимит на количество (максимум MAX_FILES в сумме)
-    const totalCountAfterAdd = files.length + uniqueNewFiles.length;
+    const totalCountAfterAdd = base.length + uniqueNewFiles.length;
 
     if (totalCountAfterAdd > maxFiles) {
-      const allowedSlots = maxFiles - files.length;
+      const allowedSlots = maxFiles - base.length;
       if (allowedSlots <= 0) {
         toast.error(`У заявки может быть не больше ${MAX_FILES} файлов. Удалите что-то из списка.`);
         return;
@@ -89,7 +94,7 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
 
       // Берем только то количество, которое влезает в лимит
       const slicedNewFiles = uniqueNewFiles.slice(0, allowedSlots);
-      const combined = [...files, ...slicedNewFiles];
+      const combined = [...base, ...slicedNewFiles];
 
       // Проверяем общий размер для урезанного списка (вместе с оставляемыми файлами заявки)
       const totalSize = reservedBytes + combined.reduce((sum, f) => sum + f.size, 0);
@@ -102,8 +107,10 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
       return;
     }
 
-    // 5. Проверяем общий размер всех файлов вместе (старых + новых)
-    const combinedFiles = [...files, ...uniqueNewFiles];
+    // 5. Проверяем общий размер всех файлов вместе (старых + новых); замена — на своё место
+    const combinedFiles = replaceIndex === null
+      ? [...base, ...uniqueNewFiles]
+      : [...base.slice(0, replaceIndex), ...uniqueNewFiles, ...base.slice(replaceIndex)];
     const totalSize = reservedBytes + combinedFiles.reduce((sum, f) => sum + f.size, 0);
 
     if (totalSize > MAX_TOTAL_SIZE) {
@@ -137,7 +144,9 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
-    void validateAndProcessFiles(selected);
+    const replaceIndex = replaceIndexRef.current;
+    replaceIndexRef.current = null;
+    void validateAndProcessFiles(selected, replaceIndex);
     
     // Сбрасываем значение инпута, чтобы можно было удалить файл и выбрать его же заново через проводник
     if (e.target) e.target.value = '';
@@ -145,6 +154,11 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
 
   const removeFile = (indexToRemove: number) => {
     setFiles(prev => prev.filter((_, i) => i !== indexToRemove));
+  };
+
+  const startReplace = (index: number) => {
+    replaceIndexRef.current = index;
+    fileInputRef.current?.click();
   };
 
   const formatFileSize = (bytes: number) => {
@@ -171,7 +185,11 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => {
+          // Обычное добавление; заодно сбрасывает замену, если выбор файла для неё отменили.
+          replaceIndexRef.current = null;
+          fileInputRef.current?.click();
+        }}
         className={`group relative flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-5 text-center transition-all duration-200
           ${isDragging 
             ? 'border-sky-500 bg-sky-50/50 scale-[0.99]' 
@@ -204,17 +222,30 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
                 <span className="truncate font-medium text-sky-700">{file.name}</span>
                 <span className="text-sky-700 shrink-0">({formatFileSize(file.size)})</span>
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeFile(index);
-                }}
-                className="cursor-pointer inline-flex h-11 w-11 shrink-0 items-center justify-center text-slate-500 hover:text-rose-600 rounded-full hover:bg-slate-100 transition sm:h-8 sm:w-8"
-                aria-label={`Убрать ${file.name}`}
-              >
-                <i className="fa-solid fa-xmark text-sm" aria-hidden="true" />
-              </button>
+              <span className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startReplace(index);
+                  }}
+                  aria-label={`Заменить ${file.name}`}
+                  className="cursor-pointer min-h-11 rounded-lg px-2.5 text-xs font-semibold text-sky-700 hover:bg-sky-50 sm:min-h-8"
+                >
+                  Заменить
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeFile(index);
+                  }}
+                  aria-label={`Удалить ${file.name}`}
+                  className="cursor-pointer min-h-11 rounded-lg px-2.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 sm:min-h-8"
+                >
+                  Удалить
+                </button>
+              </span>
             </div>
           ))}
           {files.length >= maxFiles && (
