@@ -11,6 +11,7 @@ from django.utils.html import escape
 from core.admin_password_generator import generate_password
 from core.querysets import allowed_students
 from students.models import Document
+from university_structure.models import AcademicYear
 
 logger = logging.getLogger(__name__)
 
@@ -195,7 +196,11 @@ def get_pending_docs_count(user) -> int:
         return 0
 
     doc_status = 'approved' if user.is_leadership else 'pending'
+    # Текущий семестр, как вкладка кабинета по умолчанию: иначе шапка и вкладка расходятся,
+    # а заявки прошлых лет навсегда накручивают счётчик (их разбор — задача 7.9).
+    current = AcademicYear.get_current()
     return Document.objects.filter(
         user__student_profile__in=allowed_students(user),
         status__code=doc_status,
+        **({'semester': current} if current else {}),
     ).count()

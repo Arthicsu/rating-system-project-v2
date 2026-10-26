@@ -85,3 +85,10 @@ class ModerationStatsTests(APITestCase):
         self.assertEqual(moderation["submitted"], 1)
         self.assertEqual(moderation["approved"], 1)
         self.assertIsNone(moderation["oldest_pending_days"])
+
+    def test_stats_ignore_list_search(self):
+        # Поиск ищет карточки в списке заявок; статистика и топ-5 — по фильтрам кабинета.
+        moderation = self._moderation(search="такого-нет")
+
+        self.assertEqual(moderation["submitted"], 5)
+

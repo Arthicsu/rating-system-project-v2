@@ -41,7 +41,7 @@ from students.models import (
 )
 from django.utils import timezone
 
-from university_structure.models import Staff, Faculty, Department, Specialty, Group as StudyGroup
+from university_structure.models import AcademicYear, Staff, Faculty, Department, Specialty, Group as StudyGroup
 
 User = get_user_model()
 
@@ -656,7 +656,7 @@ class PendingCountTests(APITestCase):
             user=self.student_user, external_id="EXT-1", full_name="Студент", record_book="RB-1"
         )
 
-    def _make_doc(self, status_obj):
+    def _make_doc(self, status_obj, semester=None):
         return Document.objects.create(
             user=self.student_user,
             category=self.category,
@@ -664,7 +664,27 @@ class PendingCountTests(APITestCase):
             doc_type=self.doc_type,
             status=status_obj,
             achievement="Тестовое достижение",
+            semester=semester or AcademicYear.get_current(),
         )
+
+    def test_counts_current_semester_only(self):
+        # Как вкладка по умолчанию: заявки прошлых семестров не накручивают счётчик в шапке.
+        AcademicYear.objects.all().delete()
+        current = AcademicYear.objects.create(
+            label="Текущий", start_date="2026-09-01", end_date="2027-01-31", is_current=True
+        )
+        past = AcademicYear.objects.create(label="Прошлый", start_date="2020-02-01", end_date="2020-06-30")
+        self._make_doc(self.pending, semester=current)
+        self._make_doc(self.pending, semester=past)
+        dept_user = User.objects.create_user(username="kaf@uni.ru", password="pass12345")
+        dept_user.groups.add(Group.objects.create(name="Department"))
+        Staff.objects.create(user=dept_user)
+        self.client.force_authenticate(dept_user)
+
+        with patch("users.services.allowed_students", return_value=Student.objects.all()):
+            resp = self.client.get(self.url)
+
+        self.assertEqual(resp.data["pending_docs_count"], 1)
 
     def test_requires_auth(self):
         """Аноним к IsAuthenticated + SessionAuthentication получает отказ."""

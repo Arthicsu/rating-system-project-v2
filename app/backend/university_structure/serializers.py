@@ -131,6 +131,15 @@ class ReviewDocumentRequestSerializer(serializers.Serializer):
         # (фильтр state=returned опирается на причину), а студент не узнал бы, что исправить.
         if attrs['action'] in ('reject', 'return') and not attrs.get('reasons'):
             raise serializers.ValidationError({'reasons': 'Укажите причину'})
+        # Причины сохраняются одной строкой через «; » в поле ограниченной длины: длиннее —
+        # понятный 400, а не падение базы (готовые причины и комментарий складываются).
+        from students.models import Document
+        limit = Document._meta.get_field('rejection_reason').max_length
+        length = len('; '.join(attrs.get('reasons', [])))
+        if length > limit:
+            raise serializers.ValidationError(
+                {'reasons': f'Причины вместе длиннее {limit} символов ({length}) — сократите комментарий'}
+            )
         return attrs
 
 

@@ -87,23 +87,18 @@ def allowed_students(user):
 
 def filtered_students(user, request):
     """
-    Студенты в scope с применёнными параметрами запроса (факультет/курс/группа
-    и поиск) — для агрегатов дашборда (stats, top5), которые считаются по
-    Student, а не по Document, и потому не могут переиспользовать filter
-    backends вьюшки списка заявок.
+    Студенты в scope с применёнными фильтрами кабинета (факультет/курс/группа) —
+    для агрегатов дашборда (stats, top5), которые считаются по Student, а не по
+    Document, и потому не могут переиспользовать filter backends вьюшки списка заявок.
+
+    Поиск (search) сюда не входит: он ищет карточки в списке заявок (в т.ч. по названию),
+    а статистика не должна обнуляться оттого, что сотрудник что-то ищет.
     """
     from core.filters import StudentFilterSet
 
-    queryset = StudentFilterSet(
+    return StudentFilterSet(
         request.query_params, queryset=allowed_students(user), request=request
     ).qs
-
-    search = request.query_params.get('search')
-    if search:
-        queryset = queryset.filter(
-            Q(full_name__icontains=search) | Q(record_book__icontains=search)
-        )
-    return queryset
 
 
 def rating_queryset(request):

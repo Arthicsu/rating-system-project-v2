@@ -284,3 +284,25 @@ class ReviewRulesTests(APITestCase):
         review_document(document=doc, reviewer=self.reviewers["Department"], action="reject", reasons=[REASON])
 
         self.assertEqual(self._score(), before - SCORE)
+
+    def test_combined_reasons_too_long_400(self):
+        # Готовые причины и комментарий складываются через «; » в поле на 500 символов:
+        # без проверки длины сервер падал с 500 (DataError), а не объяснял, что не так.
+        doc = self._doc("pending")
+
+        resp = self._review(self.reviewers["Department"], doc, "reject", reasons=["а" * 300, "б" * 300])
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("reasons", resp.data)
+        doc.refresh_from_db()
+        self.assertEqual(doc.status.code, "pending")
+
+    def test_refusal_uses_cabinet_words(self):
+        # В кабинете решение называется «Одобрить / Одобрена», а не меткой статуса из БД.
+        doc = self._doc("approved")
+
+        resp = self._review(self.reviewers["Department"], doc, "approve")
+
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("«Одобрена»", str(resp.data["detail"]))
+

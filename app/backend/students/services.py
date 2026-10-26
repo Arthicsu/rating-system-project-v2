@@ -208,6 +208,8 @@ _REVIEW_RULES = {
     ('leadership', 'return'): {'approved': 'pending', 'rejected': 'pending'},
 }
 _ACTION_VERBS = {'approve': 'одобрить', 'reject': 'отклонить', 'return': 'вернуть кафедре'}
+# Слова кабинета сотрудника (метка статуса в БД — «Подтверждено» — для студента).
+_STATUS_NAMES = {'pending': 'На рассмотрении', 'approved': 'Одобрена', 'rejected': 'Отклонена'}
 
 
 @transaction.atomic
@@ -242,7 +244,7 @@ def review_document(*, document, reviewer, action, reasons=()):
     if old_code not in transitions:
         if role == 'leadership' and old_code == 'pending':
             raise InvalidDocumentState("Новую заявку сначала рассматривает кафедра")
-        raise InvalidDocumentState(f"Нельзя {_ACTION_VERBS[action]} заявку в статусе «{document.status.label}»")
+        raise InvalidDocumentState(f"Нельзя {_ACTION_VERBS[action]} заявку в статусе «{_STATUS_NAMES[old_code]}»")
     new_code = transitions[old_code]
 
     # Баллы — в семестр заявки (текущий — так же обновит кэш Student). Списание до save():
