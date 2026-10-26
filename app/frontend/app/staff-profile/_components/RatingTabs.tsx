@@ -19,8 +19,6 @@ export default function RatingTabs({ tabs, activeTab, onChange }: RatingTabsProp
           id="tab-select"
           label="Категория рейтинга"
           value={activeTab}
-          labelClassName="block text-xs font-medium text-slate-600"
-          triggerClassName="text-base! min-h-11"
           options={tabs.map((tab) => ({ value: tab.id, label: tab.label }))}
           onChange={onChange}
         />

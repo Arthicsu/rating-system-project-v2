@@ -31,7 +31,6 @@ const LABEL = 'text-xs font-medium text-slate-600';
 // 16 px на телефоне: iOS не увеличивает страницу при фокусе на поле меньше 16 px.
 const INPUT =
   'w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-sky-600 focus:bg-white focus:ring-2 focus:ring-sky-600 sm:text-sm';
-const SELECT_TRIGGER = 'text-base! min-h-11 sm:min-h-0 sm:text-sm!';
 
 interface AchievementFieldsProps<T extends AchievementFieldValues, C, R> {
   form: UseFormReturn<T, C, R>;
@@ -81,8 +80,6 @@ export default function AchievementFields<T extends AchievementFieldValues, C, R
         <CustomSelect
           id={`${idPrefix}-category`}
           label="Категория (обязательно)"
-          labelClassName={LABEL}
-          triggerClassName={SELECT_TRIGGER}
           value={category ?? ''}
           placeholder="Выберите категорию"
           options={Object.keys(dataStructure).map((key) => ({ value: key, label: dataStructure[key].label }))}
@@ -93,8 +90,8 @@ export default function AchievementFields<T extends AchievementFieldValues, C, R
             setValue('level', null);
             setValue('result', null);
           }}
+          error={errors.category?.message}
         />
-        <FieldError message={errors.category?.message} />
       </div>
 
       {category && (
@@ -102,8 +99,6 @@ export default function AchievementFields<T extends AchievementFieldValues, C, R
           <CustomSelect
             id={`${idPrefix}-sub-type`}
             label="Вид деятельности (обязательно)"
-            labelClassName={LABEL}
-            triggerClassName={SELECT_TRIGGER}
             value={subType?.code ?? ''}
             placeholder="Выберите вид деятельности"
             options={subTypes.map((item) => ({ value: item.code, label: item.label }))}
@@ -115,8 +110,8 @@ export default function AchievementFields<T extends AchievementFieldValues, C, R
                 setValue('result', null);
               }
             }}
+            error={errors.subType?.message}
           />
-          <FieldError message={errors.subType?.message} />
         </div>
       )}
 
@@ -125,8 +120,6 @@ export default function AchievementFields<T extends AchievementFieldValues, C, R
           <CustomSelect
             id={`${idPrefix}-level`}
             label="Уровень мероприятия (обязательно)"
-            labelClassName={LABEL}
-            triggerClassName={SELECT_TRIGGER}
             value={level?.code ?? ''}
             placeholder="Выберите уровень"
             options={levels.map((item) => ({ value: item.code, label: item.label }))}
@@ -134,8 +127,8 @@ export default function AchievementFields<T extends AchievementFieldValues, C, R
               const selected = levels.find((item) => item.code === value);
               if (selected) setValue('level', selected, { shouldValidate: true });
             }}
+            error={errors.level?.message}
           />
-          <FieldError message={errors.level?.message} />
         </div>
       )}
 
@@ -144,8 +137,6 @@ export default function AchievementFields<T extends AchievementFieldValues, C, R
           <CustomSelect
             id={`${idPrefix}-result`}
             label="Результат / Место (обязательно)"
-            labelClassName={LABEL}
-            triggerClassName={SELECT_TRIGGER}
             value={result?.code ?? ''}
             placeholder="Выберите результат"
             options={results.map((item) => ({ value: item.code, label: item.label }))}
@@ -153,8 +144,8 @@ export default function AchievementFields<T extends AchievementFieldValues, C, R
               const selected = results.find((item) => item.code === value);
               if (selected) setValue('result', selected, { shouldValidate: true });
             }}
+            error={errors.result?.message}
           />
-          <FieldError message={errors.result?.message} />
         </div>
       )}
 
@@ -162,8 +153,6 @@ export default function AchievementFields<T extends AchievementFieldValues, C, R
         <CustomSelect
           id={`${idPrefix}-doc-type`}
           label="Тип документа (обязательно)"
-          labelClassName={LABEL}
-          triggerClassName={SELECT_TRIGGER}
           value={docType?.code ?? ''}
           placeholder="Выберите тип документа"
           options={docTypesList.map((item) => ({ value: item.code, label: item.label }))}
@@ -171,8 +160,8 @@ export default function AchievementFields<T extends AchievementFieldValues, C, R
             const selected = docTypesList.find((item) => item.code === value);
             if (selected) setValue('docType', selected, { shouldValidate: true });
           }}
+          error={errors.docType?.message}
         />
-        <FieldError message={errors.docType?.message} />
       </div>
 
       <div className="space-y-1.5">

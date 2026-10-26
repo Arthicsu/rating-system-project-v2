@@ -92,9 +92,6 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
                 id={`m-${s.id}`}
                 label={s.label}
                 value={s.value}
-                labelClassName="text-xs uppercase tracking-wide text-sky-700"
-                // 16 px: iOS не увеличивает страницу при фокусе на поле меньше 16 px; 44 px — под палец.
-                triggerClassName="text-base! min-h-11"
                 options={s.options}
                 onChange={s.onChange}
               />
@@ -114,8 +111,7 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
               id={`${s.id}-select`}
               label={s.label}
               value={s.value}
-              labelClassName="block text-[11px] font-medium text-sky-700"
-              triggerClassName="text-xs sm:text-sm"
+              size="sm"
               options={s.options}
               onChange={s.onChange}
             />
