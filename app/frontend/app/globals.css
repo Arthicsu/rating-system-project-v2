@@ -26,3 +26,49 @@ input[type=password]::-ms-clear {
         animation: none;
     }
 }
+
+@supports (appearance: base-select) {
+  @media (hover: hover) and (pointer: fine) {
+    .app-select,
+    .app-select::picker(select) {
+      appearance: base-select;
+    }
+
+    .app-select::picker-icon {
+      display: none;
+    }
+
+    .app-select::picker(select) {
+      margin-block: 4px;
+      padding: 4px;
+      border: 1px solid var(--color-slate-200);
+      border-radius: 0.75rem;
+      background: #fff;
+      box-shadow: 0 12px 32px rgb(15 23 42 / 0.16);
+    }
+
+    .app-select option {
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      color: var(--color-slate-900);
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+
+    .app-select option:hover,
+    .app-select option:focus-visible {
+      background: var(--color-sky-50);
+      color: var(--color-sky-800);
+      outline: none;
+    }
+
+    .app-select option:checked {
+      font-weight: 600;
+      color: var(--color-sky-800);
+    }
+
+    .app-select option::checkmark {
+      color: var(--color-sky-700);
+    }
+  }
+}

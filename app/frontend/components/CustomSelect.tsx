@@ -22,7 +22,7 @@ export interface CustomSelectProps {
 
 // Без transition фона и рамки: она давала «моргание» при открытии списка на 144 Гц (спек 4е).
 const BASE =
-  'block w-full cursor-pointer appearance-none truncate rounded-lg border bg-white pl-3 pr-9 text-slate-900 shadow-sm outline-none ' +
+  'app-select block w-full cursor-pointer appearance-none truncate rounded-lg border bg-white pl-3 pr-9 text-slate-900 shadow-sm outline-none ' +
   'hover:border-sky-600 focus-visible:border-sky-700 focus-visible:ring-2 focus-visible:ring-sky-700/30 ' +
   'disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500';
 // 16 px на телефоне — iOS не увеличивает страницу при фокусе.
