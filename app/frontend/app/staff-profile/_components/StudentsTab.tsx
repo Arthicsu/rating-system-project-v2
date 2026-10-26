@@ -71,8 +71,9 @@ export default function StudentsTab({
               (всего: {totalStudents})
             </span>
           </h2>
-          <div className="flex items-center gap-2">
-            <SearchInput initialValue={searchValue} onSearch={onSearch} placeholder="Поиск по ФИО или зачетке" />
+          {/* Поиск растягивается: на телефоне во всю ширину, на десктопе — широкое поле рядом с выгрузкой. */}
+          <div className="flex w-full items-center gap-2 sm:w-[26rem] lg:w-[32rem]">
+            <SearchInput initialValue={searchValue} onSearch={onSearch} placeholder="ФИО или зачётка" />
             <ExportExcelButton {...exportParams} />
           </div>
         </div>
