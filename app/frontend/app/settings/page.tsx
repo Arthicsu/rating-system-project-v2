@@ -19,11 +19,11 @@ export default function SettingsPage() {
   const [savingEmails, setSavingEmails] = useState(false);
   useRedirectIfLoggedOut('/settings');
 
-  const isStudent = !!user && !user.is_employee;
+  const isStudent = !!user?.roles?.includes('Student') && !user.is_employee;
   const emailsOn = !!user?.notify_review_emails;
 
   const toggleEmails = async () => {
-    if (!user) return;
+    if (!user || savingEmails) return;
     setSavingEmails(true);
     try {
       const { data } = await authApi.updateNotifications({ notify_review_emails: !emailsOn });
@@ -55,9 +55,9 @@ export default function SettingsPage() {
               <div className="space-y-0.5">
                 <p className="text-sm font-medium text-slate-800">Пароль</p>
                 <p className="text-sm text-slate-500">
-                  {user.is_employee
-                    ? 'Пароль сотрудника выдаёт отдел информатизации.'
-                    : 'После смены пароля вход на других устройствах завершится.'}
+                  {isStudent
+                    ? 'После смены пароля вход на других устройствах завершится.'
+                    : 'Пароль сотрудника выдаёт отдел информатизации.'}
                 </p>
               </div>
               {isStudent && (
@@ -94,9 +94,9 @@ export default function SettingsPage() {
                 aria-checked={emailsOn}
                 aria-labelledby="notify-review-label"
                 aria-describedby="notify-review-hint"
-                disabled={savingEmails}
+                aria-disabled={savingEmails}
                 onClick={toggleEmails}
-                className="relative inline-flex h-11 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-wait disabled:opacity-60"
+                className="relative inline-flex h-11 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 aria-disabled:cursor-wait aria-disabled:opacity-60"
               >
                 <span
                   className={`h-6 w-11 rounded-full transition-colors motion-reduce:transition-none ${emailsOn ? 'bg-sky-700' : 'bg-slate-500'}`}

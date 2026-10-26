@@ -161,7 +161,7 @@ function StaffDashboard() {
 
   // Подвкладка категории и направление сортировки таблицы студентов.
   const [pickedCategory, setCategory] = useState(initial.cat);
-  // Направление в адрес не пишем: каждый заход начинается «по убыванию баллов» (6a.4).
+  // Направление в адрес не пишем: каждый заход начинается «по убыванию баллов».
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
 
   const pageSize = 20;

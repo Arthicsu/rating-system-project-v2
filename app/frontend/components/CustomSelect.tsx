@@ -20,7 +20,7 @@ export interface CustomSelectProps {
   className?: string;
 }
 
-// Без transition фона и рамки: она давала «моргание» при открытии списка на 144 Гц (спек 4е).
+// Без transition фона и рамки: на мониторах с высокой частотой он мигает при открытии списка.
 const BASE =
   'app-select block w-full cursor-pointer appearance-none truncate rounded-lg border bg-white pl-3 pr-9 text-slate-900 shadow-sm outline-none ' +
   'hover:border-sky-600 focus-visible:border-sky-700 focus-visible:ring-2 focus-visible:ring-sky-700/30 ' +
@@ -74,7 +74,7 @@ export default function CustomSelect({
             </option>
           )}
           {options.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option key={option.value} value={option.value} className="text-slate-900">
               {option.label}
             </option>
           ))}

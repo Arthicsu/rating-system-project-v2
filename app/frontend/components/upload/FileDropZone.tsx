@@ -33,12 +33,12 @@ const MAX_FILE_SIZE_MB = Math.round(MAX_FILE_SIZE / (1024 * 1024));
 export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, reservedBytes = 0, inputId }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Индекс файла, который заменяется выбором в проводнике; null — обычное добавление.
+  // Замена выбирает один файл через свой input: общий (с multiple) открывает и окно правки.
+  const replaceInputRef = useRef<HTMLInputElement>(null);
   const replaceIndexRef = useRef<number | null>(null);
 
   // Валидация добавления (или замены файла replaceIndex: лимиты — без заменяемого).
-  const validateAndProcessFiles = async (selectedFiles: File[], replaceIndex: number | null = null) => {
-    const newFiles = replaceIndex === null ? selectedFiles : selectedFiles.slice(0, 1);
+  const validateAndProcessFiles = async (newFiles: File[], replaceIndex: number | null = null) => {
     const base = replaceIndex === null ? files : files.filter((_, i) => i !== replaceIndex);
 
     // 1. Проверка расширений только для новых файлов
@@ -144,9 +144,7 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
-    const replaceIndex = replaceIndexRef.current;
-    replaceIndexRef.current = null;
-    void validateAndProcessFiles(selected, replaceIndex);
+    void validateAndProcessFiles(selected);
     
     // Сбрасываем значение инпута, чтобы можно было удалить файл и выбрать его же заново через проводник
     if (e.target) e.target.value = '';
@@ -158,7 +156,13 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
 
   const startReplace = (index: number) => {
     replaceIndexRef.current = index;
-    fileInputRef.current?.click();
+    replaceInputRef.current?.click();
+  };
+
+  const handleReplaceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && replaceIndexRef.current !== null) void validateAndProcessFiles([file], replaceIndexRef.current);
+    e.target.value = '';
   };
 
   const formatFileSize = (bytes: number) => {
@@ -180,16 +184,19 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
         className="hidden"
         onChange={handleFileChange}
       />
+      <input
+        type="file"
+        ref={replaceInputRef}
+        accept={ALLOWED_EXTENSIONS.join(',')}
+        className="hidden"
+        onChange={handleReplaceChange}
+      />
 
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => {
-          // Обычное добавление; заодно сбрасывает замену, если выбор файла для неё отменили.
-          replaceIndexRef.current = null;
-          fileInputRef.current?.click();
-        }}
+        onClick={() => fileInputRef.current?.click()}
         className={`group relative flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-5 text-center transition-all duration-200
           ${isDragging 
             ? 'border-sky-500 bg-sky-50/50 scale-[0.99]' 

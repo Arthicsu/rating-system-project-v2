@@ -64,20 +64,22 @@ export default function StudentsTab({
       <RatingTabs tabs={categoryTabs} activeTab={activeCategory} onChange={onCategoryChange} />
 
       <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.10)] sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
-            {selectedGroupId === 'all' ? 'Все студенты' : `Список студентов группы ${currentGroupName}`}{' '}
-            <span className="text-xs font-normal text-sky-700">
-              (всего: {totalStudents})
-            </span>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
+              {selectedGroupId === 'all' ? 'Все студенты' : `Список студентов группы ${currentGroupName}`}{' '}
+              <span className="text-xs font-normal text-sky-700">
+                (всего: {totalStudents})
+              </span>
+            </h2>
             {/* Сортировка серверная по всему списку; при равных баллах порядок по ФИО — подсказка,
                 чтобы «одинаковый» список при нулевых баллах не выглядел несортированным. */}
-            <span className="mt-0.5 block text-xs font-normal text-slate-600">
+            <p className="mt-0.5 text-xs text-slate-600">
               {direction === 'desc' ? 'По убыванию' : 'По возрастанию'} баллов по всему списку, при равных баллах — по ФИО
-            </span>
-          </h2>
+            </p>
+          </div>
           {/* Поиск растягивается: на телефоне во всю ширину, на десктопе — широкое поле рядом с выгрузкой. */}
-          <div className="flex w-full items-center gap-2 sm:w-[26rem] lg:w-[32rem]">
+          <div className="flex w-full items-center gap-2 md:w-[26rem] lg:w-[32rem]">
             <SearchInput initialValue={searchValue} onSearch={onSearch} placeholder="ФИО или зачётка" />
             <ExportExcelButton {...exportParams} />
           </div>
