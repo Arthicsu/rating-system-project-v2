@@ -70,5 +70,6 @@ def send_review_decision_email(self, document_id: int, status_code: str):
         send_review_decision_notice_email(user.email, user.get_user_display_name(), document)
         logger.info("decision email sent: doc id=%s user id=%s", document_id, user.pk)
     except Exception as exc:
-        logger.warning("decision email failed: doc id=%s: %s", document_id, exc)
+        # Только тип ошибки: текст SMTP-ошибки содержит адрес студента.
+        logger.warning("decision email failed: doc id=%s: %s", document_id, type(exc).__name__)
         raise self.retry(exc=exc)

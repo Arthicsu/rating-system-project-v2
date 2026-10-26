@@ -41,7 +41,7 @@ export const authApi = {
     api.post<MessageDto>('/api/v1/auth/change-password/', data),
 
   updateNotifications: (data: NotificationSettingsDto) =>
-    api.patch<NotificationSettingsDto>('/api/v1/auth/notifications/', data),
+    api.put<NotificationSettingsDto>('/api/v1/auth/notifications/', data),
 
   getPendingCount: () =>
     api.get<PendingCountDto>('/api/v1/notifications/pending-count/', {

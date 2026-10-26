@@ -40,6 +40,9 @@ services:
       - ${SHARED_HOST_DIR:-./shared}:/shared
     env_file:
       - .env
+    # Как у backend: письма о решениях при DEBUG уходят только test_*-учёткам (dev-база - копия реальной).
+    environment:
+      - DEBUG=true
     deploy:
       resources:
         limits:

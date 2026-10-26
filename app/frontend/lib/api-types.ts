@@ -266,13 +266,13 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /** @description Письма студенту о решениях по его заявкам: включить или выключить. */
+        put: operations["v1_auth_notifications_update"];
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** @description Письма студенту о решениях по его заявкам: включить или выключить. */
-        patch: operations["v1_auth_notifications_partial_update"];
+        patch?: never;
         trace?: never;
     };
     "/api/v1/auth/session/": {
@@ -880,10 +880,6 @@ export interface components {
             files?: string[];
             /** @description id файлов этой заявки, которые удалить (multipart: ключ на каждый id) */
             remove_file_ids?: number[];
-        };
-        PatchedNotificationSettings: {
-            /** Письма о решениях по заявкам */
-            notify_review_emails?: boolean;
         };
         PendingCount: {
             readonly pending_docs_count: number;
@@ -1519,18 +1515,18 @@ export interface operations {
             };
         };
     };
-    v1_auth_notifications_partial_update: {
+    v1_auth_notifications_update: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                "application/json": components["schemas"]["PatchedNotificationSettings"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedNotificationSettings"];
-                "multipart/form-data": components["schemas"]["PatchedNotificationSettings"];
+                "application/json": components["schemas"]["NotificationSettings"];
+                "application/x-www-form-urlencoded": components["schemas"]["NotificationSettings"];
+                "multipart/form-data": components["schemas"]["NotificationSettings"];
             };
         };
         responses: {

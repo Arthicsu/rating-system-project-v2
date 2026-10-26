@@ -622,8 +622,8 @@ paths:
         '200':
           description: No response body
   /api/v1/auth/notifications/:
-    patch:
-      operationId: v1_auth_notifications_partial_update
+    put:
+      operationId: v1_auth_notifications_update
       description: 'Письма студенту о решениях по его заявкам: включить или выключить.'
       tags:
       - auth
@@ -631,13 +631,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedNotificationSettings'
+              $ref: '#/components/schemas/NotificationSettings'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedNotificationSettings'
+              $ref: '#/components/schemas/NotificationSettings'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedNotificationSettings'
+              $ref: '#/components/schemas/NotificationSettings'
+        required: true
       security:
       - cookieAuth: []
       responses:
@@ -1733,12 +1734,6 @@ components:
           writeOnly: true
           description: 'id файлов этой заявки, которые удалить (multipart: ключ на
             каждый id)'
-    PatchedNotificationSettings:
-      type: object
-      properties:
-        notify_review_emails:
-          type: boolean
-          title: Письма о решениях по заявкам
     PendingCount:
       type: object
       properties:

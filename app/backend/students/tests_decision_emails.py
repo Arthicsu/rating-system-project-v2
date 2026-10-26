@@ -1,5 +1,5 @@
 """
-Письма студенту о решении по его заявке (вопрос 8: только студенту, по умолчанию включены).
+Письма студенту о решении по его заявке: только студенту, по умолчанию включены.
 
 Решение сохраняется независимо от писем: письмо ставится в очередь после коммита, его сбой
 не меняет ответ. Воркер перечитывает заявку и настройки студента: устаревшее решение,
@@ -108,9 +108,9 @@ class DecisionEmailTests(APITestCase):
     def test_opted_out_student_gets_no_email(self):
         self.student.notify_review_emails = False
         self.student.save(update_fields=["notify_review_emails"])
-        doc = self._doc("pending")
+        doc = self._doc("approved")
 
-        self._review(self.department, doc, "approve")
+        send_review_decision_email(doc.pk, "approved")
 
         self.assertEqual(mail.outbox, [])
 
@@ -198,7 +198,7 @@ class NotificationSettingsApiTests(APITestCase):
     def test_student_turns_emails_off(self):
         self.client.force_authenticate(self.student)
 
-        resp = self.client.patch(reverse(NOTIFICATIONS), {"notify_review_emails": False})
+        resp = self.client.put(reverse(NOTIFICATIONS), {"notify_review_emails": False})
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         self.assertEqual(resp.data, {"notify_review_emails": False})
@@ -208,7 +208,7 @@ class NotificationSettingsApiTests(APITestCase):
     def test_value_required(self):
         self.client.force_authenticate(self.student)
 
-        resp = self.client.patch(reverse(NOTIFICATIONS), {})
+        resp = self.client.put(reverse(NOTIFICATIONS), {})
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.student.refresh_from_db()
@@ -217,7 +217,7 @@ class NotificationSettingsApiTests(APITestCase):
     def test_only_this_field_changes(self):
         self.client.force_authenticate(self.student)
 
-        self.client.patch(reverse(NOTIFICATIONS), {"notify_review_emails": False, "email": "evil@x.ru", "is_staff": True})
+        self.client.put(reverse(NOTIFICATIONS), {"notify_review_emails": False, "email": "evil@x.ru", "is_staff": True})
 
         self.student.refresh_from_db()
         self.assertEqual(self.student.email, "stud@uni.ru")
@@ -228,6 +228,6 @@ class NotificationSettingsApiTests(APITestCase):
             with self.subTest(user=user):
                 self.client.force_authenticate(user)
 
-                resp = self.client.patch(reverse(NOTIFICATIONS), {"notify_review_emails": False})
+                resp = self.client.put(reverse(NOTIFICATIONS), {"notify_review_emails": False})
 
                 self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)

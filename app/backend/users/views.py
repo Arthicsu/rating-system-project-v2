@@ -219,7 +219,7 @@ class AuthViewSet(viewsets.ViewSet):
         return Response({"message": "Пароль изменён"})
 
     @extend_schema(request=NotificationSettingsSerializer, responses={200: NotificationSettingsSerializer})
-    @action(detail=False, methods=['patch'], url_path='notifications')
+    @action(detail=False, methods=['put'], url_path='notifications')
     def notifications(self, request):
         """Письма студенту о решениях по его заявкам: включить или выключить."""
         serializer = NotificationSettingsSerializer(request.user, data=request.data)
