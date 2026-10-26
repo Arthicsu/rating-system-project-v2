@@ -621,6 +621,32 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/v1/auth/notifications/:
+    patch:
+      operationId: v1_auth_notifications_partial_update
+      description: 'Письма студенту о решениях по его заявкам: включить или выключить.'
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationSettings'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationSettings'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedNotificationSettings'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationSettings'
+          description: ''
   /api/v1/auth/session/:
     get:
       operationId: v1_auth_session_retrieve
@@ -1565,6 +1591,14 @@ components:
           type: string
       required:
       - message
+    NotificationSettings:
+      type: object
+      properties:
+        notify_review_emails:
+          type: boolean
+          title: Письма о решениях по заявкам
+      required:
+      - notify_review_emails
     NullEnum:
       enum:
       - null
@@ -1699,6 +1733,12 @@ components:
           writeOnly: true
           description: 'id файлов этой заявки, которые удалить (multipart: ключ на
             каждый id)'
+    PatchedNotificationSettings:
+      type: object
+      properties:
+        notify_review_emails:
+          type: boolean
+          title: Письма о решениях по заявкам
     PendingCount:
       type: object
       properties:
@@ -2240,6 +2280,9 @@ components:
         is_employee:
           type: boolean
           readOnly: true
+        notify_review_emails:
+          type: boolean
+          title: Письма о решениях по заявкам
         full_name:
           type: string
           readOnly: true

@@ -7,6 +7,7 @@ import type {
   DashboardStatsResponse,
   GroupDto,
   MessageDto,
+  NotificationSettingsDto,
   Paginated,
   PendingCountDto,
   PendingDocumentDto,
@@ -38,6 +39,9 @@ export const authApi = {
 
   changePassword: (data: ChangePasswordDto) =>
     api.post<MessageDto>('/api/v1/auth/change-password/', data),
+
+  updateNotifications: (data: NotificationSettingsDto) =>
+    api.patch<NotificationSettingsDto>('/api/v1/auth/notifications/', data),
 
   getPendingCount: () =>
     api.get<PendingCountDto>('/api/v1/notifications/pending-count/', {

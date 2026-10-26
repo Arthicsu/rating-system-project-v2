@@ -258,6 +258,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/notifications/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Письма студенту о решениях по его заявкам: включить или выключить. */
+        patch: operations["v1_auth_notifications_partial_update"];
+        trace?: never;
+    };
     "/api/v1/auth/session/": {
         parameters: {
             query?: never;
@@ -770,6 +787,10 @@ export interface components {
         Message: {
             message: string;
         };
+        NotificationSettings: {
+            /** Письма о решениях по заявкам */
+            notify_review_emails: boolean;
+        };
         /** @enum {unknown} */
         NullEnum: null;
         PaginatedPendingDocumentList: {
@@ -859,6 +880,10 @@ export interface components {
             files?: string[];
             /** @description id файлов этой заявки, которые удалить (multipart: ключ на каждый id) */
             remove_file_ids?: number[];
+        };
+        PatchedNotificationSettings: {
+            /** Письма о решениях по заявкам */
+            notify_review_emails?: boolean;
         };
         PendingCount: {
             readonly pending_docs_count: number;
@@ -1075,6 +1100,8 @@ export interface components {
             /** @default true */
             isAuthenticated: boolean;
             readonly is_employee: boolean;
+            /** Письма о решениях по заявкам */
+            notify_review_emails?: boolean;
             readonly full_name: string;
             readonly short_name: string;
             readonly roles: string[];
@@ -1489,6 +1516,31 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    v1_auth_notifications_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedNotificationSettings"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedNotificationSettings"];
+                "multipart/form-data": components["schemas"]["PatchedNotificationSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationSettings"];
+                };
             };
         };
     };
