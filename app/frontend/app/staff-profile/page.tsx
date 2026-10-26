@@ -32,7 +32,10 @@ import type {
 import type { RatingParams, Tab } from '@/interfaces/RatingInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
 
-const EMPTY_STATS: DashboardStats = { total_students: 0, avg_score: 0, max_score: 0, min_score: 0, categories: {} };
+const EMPTY_STATS: DashboardStats = {
+  total_students: 0, avg_score: 0, max_score: 0, min_score: 0, categories: {},
+  moderation: { submitted: 0, approved: 0, rejected: 0, pending: 0, returned: 0, oldest_pending_days: null },
+};
 
 const TAB_IDS = ['my-group', 'pending-requests', 'reviewed-requests', 'statistics'] as const;
 
@@ -352,6 +355,13 @@ function StaffDashboard() {
     }
   }, [urlQuery, currentQuery]);
 
+  // Заголовок статистики — по выбранным фильтрам: факультет, курс, группа (или все студенты).
+  const statsScopeLabel = [
+    filters.facultyId !== 'all' ? filters.facultiesList.find((f) => String(f.id) === filters.facultyId)?.short_name : null,
+    filters.course !== 'all' ? `${filters.course} курс` : null,
+    groupId !== 'all' ? groupsList.find((g) => String(g.id) === groupId)?.name : null,
+  ].filter(Boolean).join(', ') || 'все студенты';
+
   const currentGroupName = groupId === 'all'
     ? 'Все группы'
     : (groupsList.find(g => String(g.id) === groupId)?.name || 'Все группы');
@@ -479,7 +489,8 @@ function StaffDashboard() {
               stats={stats}
               top5={top5Students}
               activeRequests={totalRequests}
-              currentGroupName={currentGroupName}
+              isLeadership={!canApprove}
+              scopeLabel={statsScopeLabel}
               semesterLabel={semesterLabel}
             />
           ))}

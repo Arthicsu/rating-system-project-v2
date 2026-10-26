@@ -70,6 +70,18 @@ export interface StudentSimple {
   total_score: number;
 }
 
+/** Ход модерации за период (core/querysets._moderation_stats). */
+export interface ModerationStats {
+  submitted: number;
+  approved: number;
+  rejected: number;
+  /** Ждут решения кафедры; returned — из них с причиной (повторные и возвращённые). */
+  pending: number;
+  returned: number;
+  /** Сколько дней ждёт самая старая заявка на рассмотрении; null — таких нет. */
+  oldest_pending_days: number | null;
+}
+
 /** Блок stats дашборда; categories — суммы по кодам категорий. */
 export interface DashboardStats {
   total_students: number;
@@ -77,6 +89,7 @@ export interface DashboardStats {
   max_score: number;
   min_score: number;
   categories: Record<string, number>;
+  moderation: ModerationStats;
 }
 
 /** GET /api/v1/achievements/ (staff): пагинированные заявки + stats + top5. */
