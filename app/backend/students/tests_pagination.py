@@ -94,8 +94,8 @@ class PendingPaginationTests(APITestCase):
         # Страницы не пересекаются и вместе покрывают все заявки.
         self.assertEqual(set(page1) & set(page2), set())
         self.assertEqual(set(page1) | set(page2), set(self.doc_ids))
-        # Порядок детерминирован: -id при равном uploaded_at.
-        self.assertEqual(page1 + page2, sorted(self.doc_ids, reverse=True))
+        # Порядок детерминирован: id при равном uploaded_at (очередь - сначала старые).
+        self.assertEqual(page1 + page2, sorted(self.doc_ids))
 
     def test_response_has_page_number(self):
         self.client.force_authenticate(self.staff_user)
@@ -113,7 +113,7 @@ class PendingPaginationTests(APITestCase):
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         self.assertEqual(resp.data["page"], 2)
-        self.assertEqual([r["id"] for r in resp.data["results"]], sorted(self.doc_ids, reverse=True)[2:])
+        self.assertEqual([r["id"] for r in resp.data["results"]], sorted(self.doc_ids)[2:])
 
     def test_out_of_range_page_of_empty_list_is_first(self):
         self.client.force_authenticate(self.staff_user)
@@ -132,3 +132,15 @@ class PendingPaginationTests(APITestCase):
         resp = self.client.get(reverse(URL_NAME), {"page_size": 2, "page": "²"})
 
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_queue_is_oldest_first(self):
+        # Дольше всех ждут - первыми; новые заявки уходят в конец и не сдвигают первую
+        # страницу под курсором при фоновом обновлении.
+        self.client.force_authenticate(self.staff_user)
+        now = timezone.now()
+        for age, doc_id in enumerate(self.doc_ids):
+            Document.objects.filter(id=doc_id).update(uploaded_at=now - timezone.timedelta(days=age))
+
+        resp = self.client.get(reverse(URL_NAME), {"page_size": 10})
+
+        self.assertEqual([r["id"] for r in resp.data["results"]], list(reversed(self.doc_ids)))
