@@ -262,7 +262,7 @@ def top5_students(user, request):
 _DOCUMENT_LIST_RELATED = (
     'user__student_profile',
     'user__student_profile__group',
-    'status', 'category', 'sub_type', 'level', 'result', 'doc_type',
+    'status', 'category', 'sub_type', 'level', 'result', 'doc_type', 'semester',
 )
 
 

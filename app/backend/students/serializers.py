@@ -274,6 +274,8 @@ class DocumentSerializer(serializers.ModelSerializer):
     result_display = serializers.CharField(source='result.label', read_only=True, default=None)
     doc_type_display = serializers.CharField(source='doc_type.label', read_only=True)
     status_display = serializers.CharField(source='status.code', read_only=True)
+    # Подпись семестра заявки для страниц «Подробнее»; у старых заявок без семестра — null.
+    semester_label = serializers.CharField(source='semester.label', read_only=True, default=None, allow_null=True)
     files = DocumentFileSerializer(many=True, read_only=True)
 
     class Meta:
@@ -289,6 +291,7 @@ class DocumentSerializer(serializers.ModelSerializer):
             'score',
             'status', 'status_display',
             'doc_type', 'doc_type_display',
+            'semester_label',
             'files',
             'date_received', 'uploaded_at',
         ]

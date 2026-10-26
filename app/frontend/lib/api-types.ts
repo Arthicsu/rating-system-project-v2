@@ -675,6 +675,7 @@ export interface components {
             /** Тип документа */
             doc_type: number;
             readonly doc_type_display: string;
+            readonly semester_label: string | null;
             readonly files: components["schemas"]["DocumentFile"][];
             /**
              * Дата получения
@@ -879,6 +880,7 @@ export interface components {
             /** Тип документа */
             doc_type: number;
             readonly doc_type_display: string;
+            readonly semester_label: string | null;
             readonly files: components["schemas"]["DocumentFile"][];
             /**
              * Дата получения

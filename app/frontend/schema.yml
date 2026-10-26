@@ -1328,6 +1328,10 @@ components:
         doc_type_display:
           type: string
           readOnly: true
+        semester_label:
+          type: string
+          readOnly: true
+          nullable: true
         files:
           type: array
           items:
@@ -1351,6 +1355,7 @@ components:
       - id
       - level_display
       - result_display
+      - semester_label
       - status
       - status_display
       - sub_type
@@ -1725,6 +1730,10 @@ components:
         doc_type_display:
           type: string
           readOnly: true
+        semester_label:
+          type: string
+          readOnly: true
+          nullable: true
         files:
           type: array
           items:
@@ -1792,6 +1801,7 @@ components:
       - record_book
       - result_display
       - returned_by
+      - semester_label
       - status
       - status_display
       - student_id

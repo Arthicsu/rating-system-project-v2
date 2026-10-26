@@ -6,6 +6,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from core.testing import TEST_SETTINGS, make_catalog, make_doc, make_semester, make_statuses, make_student
+
 from students.models import (
     Category,
     AchievementType,
@@ -100,3 +102,29 @@ class AchievementDeleteTests(APITestCase):
             (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
         )
         self.assertTrue(Document.objects.filter(pk=doc.pk).exists())
+
+
+@override_settings(**TEST_SETTINGS)
+class AchievementDetailTests(APITestCase):
+    """Карточка заявки (GET /achievements/<id>/) для страниц «Подробнее»."""
+
+    def test_detail_exposes_semester_label(self):
+        semester = make_semester("2026-2027 Осенний", "2026-09-01", "2027-01-31", current=True)
+        student = make_student("detail@uni.ru")
+        doc = make_doc(student, make_catalog(), make_statuses()["pending"], semester=semester)
+        self.client.force_authenticate(student)
+
+        resp = self.client.get(reverse("api:achievements-detail", args=[doc.pk]))
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertEqual(resp.data["semester_label"], "2026-2027 Осенний")
+
+    def test_detail_without_semester_has_null_label(self):
+        student = make_student("legacy@uni.ru")
+        doc = make_doc(student, make_catalog(), make_statuses()["pending"])
+        self.client.force_authenticate(student)
+
+        resp = self.client.get(reverse("api:achievements-detail", args=[doc.pk]))
+
+        self.assertIsNone(resp.data["semester_label"])
+
