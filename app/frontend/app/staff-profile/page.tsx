@@ -162,7 +162,8 @@ function StaffDashboard() {
   const [direction, setDirection] = useState<'asc' | 'desc'>(initial.dir === 'asc' ? 'asc' : 'desc');
 
   const pageSize = 20;
-  const requestsPageSize = 6;
+  // 12 карточек: очередь видна целиком чаще, меньше листать (сетка 3 × 4 на десктопе).
+  const requestsPageSize = 12;
 
   // Смена группы, курса, факультета или периода меняет все списки — каждый с первой страницы.
   // Роль сотрудника гарантирована guard-обёрткой StaffProfilePage.
@@ -376,7 +377,12 @@ function StaffDashboard() {
     <>
       <main className="min-h-screen bg-slate-50 pt-24 pb-10">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <MobileFilterToggle onClick={() => setMobileFiltersOpen((prev) => !prev)} visibleAt="max-[640px]:flex" />
+          <MobileFilterToggle
+            expanded={mobileFiltersOpen}
+            controls="mobile-filters"
+            onClick={() => setMobileFiltersOpen((prev) => !prev)}
+            visibleAt="max-[640px]:flex"
+          />
 
           <FilterPanel filters={filters} isRectorate={isRectorate} mobileFiltersOpen={mobileFiltersOpen} />
 

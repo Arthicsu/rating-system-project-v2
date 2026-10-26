@@ -84,7 +84,7 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
   return (
     <>
       {mobileFiltersOpen && (
-        <div className="mb-3 max-[640px]:block hidden rounded-lg bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.08)] text-[11px] text-sky-700">
+        <div id="mobile-filters" className="mb-3 max-[640px]:block hidden rounded-lg bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.08)] text-xs text-sky-700">
           <div className="space-y-2">
             {selects.map((s) => (
               <CustomSelect
@@ -92,8 +92,9 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
                 id={`m-${s.id}`}
                 label={s.label}
                 value={s.value}
-                labelClassName="text-[10px] uppercase tracking-wide text-sky-700"
-                triggerClassName="text-[11px] py-1 px-2"
+                labelClassName="text-xs uppercase tracking-wide text-sky-700"
+                // 16 px: iOS не увеличивает страницу при фокусе на поле меньше 16 px; 44 px — под палец.
+                triggerClassName="text-base! min-h-11"
                 options={s.options}
                 onChange={s.onChange}
               />

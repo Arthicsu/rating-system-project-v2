@@ -64,7 +64,7 @@ export default function ReviewedRequestsTab({
       {loading && docs.length === 0 ? (
         <RequestCardsSkeleton />
       ) : docs.length > 0 ? (
-        <div className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-300 ${loading ? 'opacity-40' : 'opacity-100'}`}>
+        <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-300 ${loading ? 'opacity-40' : 'opacity-100'}`}>
           {docs.map((doc) => (
             <RequestCard
               key={doc.id}
