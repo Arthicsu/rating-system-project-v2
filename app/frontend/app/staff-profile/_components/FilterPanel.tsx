@@ -21,6 +21,8 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
     groupId,
     period,
     periodOptions,
+    onlyCurrentYear,
+    changeOnlyCurrentYear,
     facultiesList,
     groupsList,
     changeFaculty,
@@ -73,6 +75,17 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
       onChange: changePeriod,
       // «2025-2026 уч. год — весна» в одну колонку не входит: обрезалось бы само слово семестра.
       className: 'md:col-span-2',
+      extra: (
+        <label className="mt-1.5 inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm text-slate-700 sm:min-h-0">
+          <input
+            type="checkbox"
+            checked={onlyCurrentYear}
+            onChange={(e) => changeOnlyCurrentYear(e.target.checked)}
+            className="size-4 cursor-pointer accent-sky-700"
+          />
+          Только текущий учебный год
+        </label>
+      ),
     },
   ];
 
@@ -82,14 +95,16 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
         <div id="mobile-filters" className="mb-3 max-[640px]:block hidden rounded-lg bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.08)] text-xs text-sky-700">
           <div className="space-y-2">
             {selects.map((s) => (
-              <CustomSelect
-                key={s.id}
-                id={`m-${s.id}`}
-                label={s.label}
-                value={s.value}
-                options={s.options}
-                onChange={s.onChange}
-              />
+              <div key={s.id}>
+                <CustomSelect
+                  id={`m-${s.id}`}
+                  label={s.label}
+                  value={s.value}
+                  options={s.options}
+                  onChange={s.onChange}
+                />
+                {s.extra}
+              </div>
             ))}
           </div>
         </div>
@@ -101,16 +116,17 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
         </p>
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 sm:gap-4">
           {selects.map((s) => (
-            <CustomSelect
-              key={s.id}
-              id={`${s.id}-select`}
-              label={s.label}
-              value={s.value}
-              size="sm"
-              className={s.className}
-              options={s.options}
-              onChange={s.onChange}
-            />
+            <div key={s.id} className={s.className}>
+              <CustomSelect
+                id={`${s.id}-select`}
+                label={s.label}
+                value={s.value}
+                size="sm"
+                options={s.options}
+                onChange={s.onChange}
+              />
+              {s.extra}
+            </div>
           ))}
         </div>
       </div>

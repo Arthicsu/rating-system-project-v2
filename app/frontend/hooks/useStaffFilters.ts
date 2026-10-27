@@ -19,7 +19,10 @@ export interface StaffFilters {
   periodParams: PeriodParams;
   /** Выбран период по умолчанию - текущий учебный год (в адрес страницы не пишется). */
   isDefaultPeriod: boolean;
+  /** Пункты селекта «Период» (с галочкой - только текущий учебный год и выбранный период). */
   periodOptions: CustomSelectOption[];
+  onlyCurrentYear: boolean;
+  changeOnlyCurrentYear: (value: boolean) => void;
   facultiesList: Faculty[];
   groupsList: Group[];
   /** Смена факультета: сбрасывает курс и группу (прежняя цепочка handleFacultyChange+handleCourseChange('all')+handleGroupChange('all')). */
@@ -82,6 +85,8 @@ export function useStaffFilters(
   const [groupId, setGroupId] = useState(initial.groupId);
   // '' — «не выбран вручную»: тогда действует текущий учебный год (деривация ниже).
   const [pickedPeriod, setPickedPeriod] = useState(initial.period);
+  // Через несколько лет список периодов разрастается: по умолчанию в нём только текущий год.
+  const [onlyCurrentYear, setOnlyCurrentYear] = useState(true);
 
   const { data: ratingFilters } = useRatingFilters();
   const facultiesList = useMemo<Faculty[]>(
@@ -100,6 +105,13 @@ export function useStaffFilters(
   const period = pickedPeriod && pickedKnown ? pickedPeriod : defaultPeriod;
   const periodLabel = periodOptions.find((o) => o.value === period)?.label ?? '';
   const periodParams = useMemo(() => periodParamsOf(period), [period]);
+  const visiblePeriodOptions = useMemo(() => {
+    if (!onlyCurrentYear || !current) return periodOptions;
+    const visible = buildPeriodOptions((semesters ?? []).filter((s) => s.year_start === current.year_start));
+    // Выбранный прошлый период (из адреса или заметки о старых заявках) из списка не пропадает.
+    const picked = periodOptions.find((o) => o.value === period);
+    return picked && !visible.some((o) => o.value === picked.value) ? [...visible, picked] : visible;
+  }, [onlyCurrentYear, current, semesters, periodOptions, period]);
 
   const { data: groupsData } = useGroups(
     {
@@ -161,7 +173,9 @@ export function useStaffFilters(
     periodLabel,
     periodParams,
     isDefaultPeriod: period === defaultPeriod,
-    periodOptions,
+    periodOptions: visiblePeriodOptions,
+    onlyCurrentYear,
+    changeOnlyCurrentYear: setOnlyCurrentYear,
     facultiesList,
     groupsList,
     changeFaculty,
