@@ -1,12 +1,15 @@
 # syntax=docker/dockerfile:1
 
-ARG NODE_VERSION=24.22.1
+ARG NODE_VERSION=26.12.1
 
 ARG PNPM_VERSION=10.34.9
+
+ARG COREPACK_VERSION=0.36.0
 
 FROM node:${NODE_VERSION}-alpine AS base
 
 ARG PNPM_VERSION
+ARG COREPACK_VERSION
 
 WORKDIR /usr/src/app
 
@@ -14,7 +17,9 @@ WORKDIR /usr/src/app
 # а runtime-стадия работает от пользователя node. Без этого corepack при старте
 # контейнера не нашёл бы кэш в /root/.cache и полез бы качать pnpm из сети.
 ENV COREPACK_HOME=/opt/corepack
-RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate \
+# С Node 25 corepack не входит в образ - ставим закреплённую версию из npm.
+RUN npm install -g corepack@${COREPACK_VERSION} \
+    && corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate \
     && [ "$(pnpm --version)" = "${PNPM_VERSION}" ]
 
 FROM base AS deps
