@@ -2,37 +2,64 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+import type { CustomSelectOption } from '@/components/CustomSelect';
 import { useAcademicYears, useGroups, useRatingFilters } from '@/hooks/queries';
 import type { Faculty, Group, Semester } from '@/interfaces/StaffInterfaces';
+
+/** Параметр периода для запросов кабинета и Excel: учебный год или один семестр. */
+export type PeriodParams = { year_start?: string; academic_year?: string };
 
 export interface StaffFilters {
   facultyId: string;
   course: string;
   groupId: string;
-  semesterId: number;
-  semesterLabel: string;
+  /** Выбранный период: 'year:<год начала>' или 'sem:<id семестра>'; '' - семестров ещё нет. */
+  period: string;
+  periodLabel: string;
+  periodParams: PeriodParams;
+  /** Выбран период по умолчанию - текущий учебный год (в адрес страницы не пишется). */
+  isDefaultPeriod: boolean;
+  periodOptions: CustomSelectOption[];
   facultiesList: Faculty[];
   groupsList: Group[];
-  semesterOptions: Semester[];
   /** Смена факультета: сбрасывает курс и группу (прежняя цепочка handleFacultyChange+handleCourseChange('all')+handleGroupChange('all')). */
   changeFaculty: (value: string) => void;
   /** Смена курса: при 'all' сбрасывает группу. */
   changeCourse: (value: string) => void;
   changeGroup: (value: string) => void;
-  changeSemester: (id: number) => void;
+  changePeriod: (value: string) => void;
   /** faculty_id/course для запросов (undefined при 'all'). */
   filterParams: { faculty_id?: string; course?: string };
 }
 
-/** Начальные значения фильтров (из адреса страницы); 0 у семестра — текущий. */
+/** Начальные значения фильтров (из адреса страницы); пустой период — текущий учебный год. */
 export interface StaffFiltersInitial {
   facultyId: string;
   course: string;
   groupId: string;
-  semesterId: number;
+  period: string;
 }
 
-const NO_INITIAL: StaffFiltersInitial = { facultyId: 'all', course: 'all', groupId: 'all', semesterId: 0 };
+const NO_INITIAL: StaffFiltersInitial = { facultyId: 'all', course: 'all', groupId: 'all', period: '' };
+
+/** Учебные годы, новые сверху; под каждым — его семестры («2025-2026 уч. год — осень»). */
+function buildPeriodOptions(semesters: Semester[]): CustomSelectOption[] {
+  const years = [...new Set(semesters.map((s) => s.year_start))].sort((a, b) => b - a);
+  return years.flatMap((year) => [
+    { value: `year:${year}`, label: `${year}-${year + 1} уч. год` },
+    ...semesters
+      .filter((s) => s.year_start === year)
+      .sort((a, b) => a.start_date.localeCompare(b.start_date))
+      .map((s) => ({ value: `sem:${s.id}`, label: s.label })),
+  ]);
+}
+
+function periodParamsOf(period: string): PeriodParams {
+  const [kind, id] = period.split(':');
+  if (kind === 'year') return { year_start: id };
+  if (kind === 'sem') return { academic_year: id };
+  return {};
+}
 
 /**
  * Состояние фильтров staff-профиля: факультет/курс/группа/период с каскадными
@@ -53,8 +80,8 @@ export function useStaffFilters(
   const [facultyId, setFacultyId] = useState(initial.facultyId);
   const [course, setCourse] = useState(initial.course);
   const [groupId, setGroupId] = useState(initial.groupId);
-  // 0 — «не выбран вручную»: тогда действует текущий семестр (деривация ниже).
-  const [pickedSemesterId, setPickedSemesterId] = useState(initial.semesterId);
+  // '' — «не выбран вручную»: тогда действует текущий учебный год (деривация ниже).
+  const [pickedPeriod, setPickedPeriod] = useState(initial.period);
 
   const { data: ratingFilters } = useRatingFilters();
   const facultiesList = useMemo<Faculty[]>(
@@ -62,14 +89,17 @@ export function useStaffFilters(
     [ratingFilters]
   );
 
-  const { data: semesterOptions = [] } = useAcademicYears(enabled);
+  const { data: semesters } = useAcademicYears(enabled);
+  const periodOptions = useMemo(() => buildPeriodOptions(semesters ?? []), [semesters]);
 
-  // Текущий семестр — значение по умолчанию (деривация вместо setState-в-эффекте). Период из
-  // адреса, которого нет в списке (удалён, опечатка), тоже даёт текущий.
-  const currentSemester = semesterOptions.find((s) => s.is_current);
-  const pickedKnown = semesterOptions.length === 0 || semesterOptions.some((s) => s.id === pickedSemesterId);
-  const semesterId = pickedSemesterId !== 0 && pickedKnown ? pickedSemesterId : currentSemester?.id ?? 0;
-  const semesterLabel = semesterOptions.find((s) => s.id === semesterId)?.label ?? '';
+  // Текущий учебный год — значение по умолчанию (деривация вместо setState-в-эффекте). Период из
+  // адреса, которого нет в списке (удалён, опечатка), тоже даёт текущий год.
+  const current = semesters?.find((s) => s.is_current);
+  const defaultPeriod = current ? `year:${current.year_start}` : '';
+  const pickedKnown = periodOptions.length === 0 || periodOptions.some((o) => o.value === pickedPeriod);
+  const period = pickedPeriod && pickedKnown ? pickedPeriod : defaultPeriod;
+  const periodLabel = periodOptions.find((o) => o.value === period)?.label ?? '';
+  const periodParams = useMemo(() => periodParamsOf(period), [period]);
 
   const { data: groupsData } = useGroups(
     {
@@ -110,8 +140,8 @@ export function useStaffFilters(
     onFilterChange?.();
   };
 
-  const changeSemester = (id: number) => {
-    setPickedSemesterId(id);
+  const changePeriod = (value: string) => {
+    setPickedPeriod(value);
     onFilterChange?.();
   };
 
@@ -127,15 +157,17 @@ export function useStaffFilters(
     facultyId,
     course,
     groupId,
-    semesterId,
-    semesterLabel,
+    period,
+    periodLabel,
+    periodParams,
+    isDefaultPeriod: period === defaultPeriod,
+    periodOptions,
     facultiesList,
     groupsList,
-    semesterOptions,
     changeFaculty,
     changeCourse,
     changeGroup,
-    changeSemester,
+    changePeriod,
     filterParams,
   };
 }

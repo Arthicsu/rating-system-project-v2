@@ -42,7 +42,7 @@ const TAB_IDS = ['my-group', 'pending-requests', 'reviewed-requests', 'statistic
 // Состояние кабинета живёт в адресе: «Подробнее» → «Назад» возвращает в то же место,
 // ссылку можно переслать. В адрес попадает только отличное от значения по умолчанию.
 const URL_DEFAULTS = {
-  tab: 'my-group', faculty: 'all', course: 'all', group: 'all', semester: '',
+  tab: 'my-group', faculty: 'all', course: 'all', group: 'all', period: '',
   cat: 'common', q: '', page: '1',
   rstate: 'all', rq: '', rpage: '1',
   vstate: 'all', vq: '', vpage: '1',
@@ -64,7 +64,7 @@ function readUrlState(params: { get(key: string): string | null }): UrlState {
     faculty: get('faculty', id),
     course: get('course', oneOf('1', '2', '3', '4', '5')),
     group: get('group', id),
-    semester: get('semester', id),
+    period: get('period', (v) => /^(year|sem):\d{1,9}$/.test(v)),
     // Неизвестную категорию сервер сортирует по общему баллу.
     cat: get('cat', (v) => /^\w{1,50}$/.test(v)),
     q: get('q', text),
@@ -183,10 +183,10 @@ function StaffDashboard() {
       facultyId: isRectorate ? initial.faculty : 'all',
       course: initial.course,
       groupId: initial.group,
-      semesterId: Number(initial.semester) || 0,
+      period: initial.period,
     },
   );
-  const { groupId, semesterId, semesterLabel, groupsList } = filters;
+  const { groupId, period, periodLabel, periodParams, groupsList } = filters;
 
   // Поиск сбрасывает пагинацию соответствующего списка (обработчики вместо эффектов).
   const handleGroupSearch = (value: string) => {
@@ -214,8 +214,8 @@ function StaffDashboard() {
     setReviewedPage(1);
   };
 
-  // Прежний guard: без выбранной группы/семестра запросы не выполняются.
-  const ready = !!groupId && !!semesterId;
+  // Прежний guard: без выбранной группы/периода запросы не выполняются.
+  const ready = !!groupId && !!period;
 
   // Подвкладки категорий рейтинга («Общий рейтинг» + категории достижений).
   const { data: categoriesData, error: categoriesError } = useCategories();
@@ -241,7 +241,7 @@ function StaffDashboard() {
     categoriesData && !categoriesData.some((c) => c.code === pickedCategory) ? 'common' : pickedCategory;
   const scoreKey = category === 'common' ? 'total_score' : `${category}_score`;
 
-  // Таблица студентов — ручка рейтинга: семестр из фильтров кабинета,
+  // Таблица студентов — ручка рейтинга: период из фильтров кабинета,
   // категория/направление сортировки и поиск по ФИО/зачётке.
   const ratingParams = useMemo<RatingParams>(
     () => ({
@@ -250,11 +250,11 @@ function StaffDashboard() {
       page: currentPage,
       page_size: pageSize,
       search: groupSearchValue || undefined,
-      academic_year: String(semesterId),
+      ...periodParams,
       group_id: groupId,
       ...filters.filterParams,
     }),
-    [category, direction, currentPage, groupSearchValue, semesterId, groupId, filters.filterParams]
+    [category, direction, currentPage, groupSearchValue, periodParams, groupId, filters.filterParams]
   );
 
   const studentsQuery = useRating(ratingParams, ready);
@@ -268,12 +268,12 @@ function StaffDashboard() {
   const pendingParams = useMemo<DashboardStatsParams>(
     () => ({
       group_id: groupId,
-      academic_year: String(semesterId),
+      ...periodParams,
       page: requestsPage,
       page_size: requestsPageSize,
       ...filters.filterParams,
     }),
-    [groupId, semesterId, requestsPage, filters.filterParams]
+    [groupId, periodParams, requestsPage, filters.filterParams]
   );
 
   // Поллинг 15с заменяет прежний ручной setInterval: заявки появляются/исчезают
@@ -299,7 +299,7 @@ function StaffDashboard() {
   const reviewedParams = useMemo<DashboardStatsParams>(
     () => ({
       group_id: groupId,
-      academic_year: String(semesterId),
+      ...periodParams,
       page: reviewedPage,
       page_size: requestsPageSize,
       search: reviewedSearchValue || undefined,
@@ -307,7 +307,7 @@ function StaffDashboard() {
       state: reviewedState === 'all' ? undefined : (reviewedState as DashboardStatsParams['state']),
       ...filters.filterParams,
     }),
-    [groupId, semesterId, reviewedPage, reviewedSearchValue, reviewedState, filters.filterParams]
+    [groupId, periodParams, reviewedPage, reviewedSearchValue, reviewedState, filters.filterParams]
   );
 
   const reviewedQuery = useDashboard(reviewedParams, {
@@ -323,13 +323,12 @@ function StaffDashboard() {
 
   // Состояние — в адрес. replace, а не push: «Назад» со страницы заявки возвращает сюда же,
   // а не листает назад каждый фильтр и каждую букву поиска.
-  const currentSemesterId = filters.semesterOptions.find((s) => s.is_current)?.id;
   const urlState: UrlState = {
     tab: activeTab,
     faculty: filters.facultyId,
     course: filters.course,
     group: groupId,
-    semester: semesterId && semesterId !== currentSemesterId ? String(semesterId) : '',
+    period: filters.isDefaultPeriod ? '' : period,
     cat: category,
     q: groupSearchValue,
     page: String(currentPage),
@@ -424,7 +423,7 @@ function StaffDashboard() {
                 group_id: groupId,
                 category,
                 direction,
-                academic_year: String(semesterId),
+                ...periodParams,
                 page: currentPage,
               }}
               onCategoryChange={handleCategoryChange}
@@ -444,7 +443,7 @@ function StaffDashboard() {
               requestsPage={requestsPage}
               requestsPageSize={requestsPageSize}
               currentGroupName={currentGroupName}
-              semesterLabel={semesterLabel}
+              periodLabel={periodLabel}
               title={canApprove ? 'Заявки' : 'На контроле'}
               hint={canApprove ? undefined : 'Одобренные кафедрой заявки: можно отклонить или вернуть кафедре на повторное рассмотрение.'}
               showStateFilter={canApprove}
@@ -469,7 +468,7 @@ function StaffDashboard() {
               reviewedPage={reviewedPage}
               requestsPageSize={requestsPageSize}
               currentGroupName={currentGroupName}
-              semesterLabel={semesterLabel}
+              periodLabel={periodLabel}
               stateValue={reviewedState}
               onStateChange={(value) => { setReviewedState(value); setReviewedPage(1); }}
               searchValue={reviewedSearchValue}
@@ -490,7 +489,7 @@ function StaffDashboard() {
               activeRequests={totalRequests}
               isLeadership={!canApprove}
               scopeLabel={statsScopeLabel}
-              semesterLabel={semesterLabel}
+              periodLabel={periodLabel}
             />
           ))}
           </div>

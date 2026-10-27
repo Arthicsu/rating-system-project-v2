@@ -54,7 +54,9 @@ export interface RatingParams {
   page: number;
   page_size: number;
   search?: string;
-  /** ID семестра; без него backend отдаёт текущий. */
+  /** Учебный год (год начала) целиком; без периода backend отдаёт текущий учебный год. */
+  year_start?: string;
+  /** ID одного семестра (вместо учебного года). */
   academic_year?: string;
   /** Направление сортировки по баллам, по умолчанию desc. */
   direction?: 'asc' | 'desc';
@@ -71,6 +73,7 @@ export interface ExportExcelParams {
   group_id?: string;
   category?: string;
   page?: number;
+  year_start?: string;
   academic_year?: string;
   direction?: 'asc' | 'desc';
 }

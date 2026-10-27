@@ -46,12 +46,15 @@ export interface FilterStudentsParams {
   search?: string;
   faculty_id?: string;
   course?: string;
+  year_start?: string;
   academic_year?: string;
 }
 
 export interface DashboardStatsParams {
   group_id: string;
-  academic_year: string;
+  /** Учебный год (год начала) или один семестр (academic_year); без них - текущий учебный год. */
+  year_start?: string;
+  academic_year?: string;
   page: number;
   page_size: number;
   search?: string;

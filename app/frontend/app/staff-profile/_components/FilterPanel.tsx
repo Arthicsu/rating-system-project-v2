@@ -19,22 +19,15 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
     facultyId,
     course,
     groupId,
-    semesterId,
+    period,
+    periodOptions,
     facultiesList,
     groupsList,
-    semesterOptions,
     changeFaculty,
     changeCourse,
     changeGroup,
-    changeSemester,
+    changePeriod,
   } = filters;
-
-  const handleSemesterChange = (value: string) => {
-    const selected = semesterOptions.find((opt) => opt.id === Number(value));
-    if (selected) {
-      changeSemester(selected.id);
-    }
-  };
 
   const selects = [
     ...(isRectorate
@@ -73,11 +66,13 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
       onChange: changeGroup,
     },
     {
-      id: 'semester',
+      id: 'period',
       label: 'Период',
-      value: String(semesterId),
-      options: semesterOptions.map((opt) => ({ value: String(opt.id), label: opt.label })),
-      onChange: handleSemesterChange,
+      value: period,
+      options: periodOptions,
+      onChange: changePeriod,
+      // «2025-2026 уч. год — весна» в одну колонку не входит: обрезалось бы само слово семестра.
+      className: 'md:col-span-2',
     },
   ];
 
@@ -112,6 +107,7 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
               label={s.label}
               value={s.value}
               size="sm"
+              className={s.className}
               options={s.options}
               onChange={s.onChange}
             />

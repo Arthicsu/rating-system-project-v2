@@ -13,7 +13,7 @@ interface StatisticsTabProps {
   isLeadership: boolean;
   /** По каким студентам считано: факультет / курс / группа или «Все студенты». */
   scopeLabel: string;
-  semesterLabel: string;
+  periodLabel: string;
 }
 
 function StatCard({ label, value, accent = false }: { label: string; value: React.ReactNode; accent?: boolean }) {
@@ -32,7 +32,7 @@ export default function StatisticsTab({
   activeRequests,
   isLeadership,
   scopeLabel,
-  semesterLabel,
+  periodLabel,
 }: StatisticsTabProps) {
   const { data: categoriesData = [] } = useCategories();
   const m = stats.moderation;
@@ -46,7 +46,7 @@ export default function StatisticsTab({
       <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.10)] sm:p-5">
         <h2 className="mb-5 text-sm font-semibold text-slate-900 sm:text-base">
           Статистика: {scopeLabel}{' '}
-          <span className="text-xs font-normal text-sky-700 sm:text-sm">({semesterLabel})</span>
+          <span className="text-xs font-normal text-sky-700 sm:text-sm">({periodLabel})</span>
         </h2>
 
         <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3">

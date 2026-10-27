@@ -75,11 +75,13 @@ class RejectionReasonSerializer(serializers.ModelSerializer):
 
 class AcademicYearSerializer(serializers.ModelSerializer):
     """
-    Сериализатор для .
+    Семестр для селектора периода: учебный год (year_start) и осень/весна (term) группируют
+    семестры по годам.
     """
     class Meta:
         model = AcademicYear
-        fields = ['id', 'label', 'start_date', 'end_date', 'is_current']
+        fields = ['id', 'label', 'year_start', 'term', 'start_date', 'end_date', 'is_current']
+        read_only_fields = fields
 
 class FacultyFilterSerializer(serializers.ModelSerializer):
     """

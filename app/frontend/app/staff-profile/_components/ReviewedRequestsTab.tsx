@@ -23,7 +23,7 @@ interface ReviewedRequestsTabProps {
   reviewedPage: number;
   requestsPageSize: number;
   currentGroupName: string;
-  semesterLabel: string;
+  periodLabel: string;
   stateValue: string;
   onStateChange: (value: string) => void;
   /** Уже применённый поиск - поле показывает его после смены вкладки и при открытии по ссылке. */
@@ -44,7 +44,7 @@ export default function ReviewedRequestsTab({
   reviewedPage,
   requestsPageSize,
   currentGroupName,
-  semesterLabel,
+  periodLabel,
   stateValue,
   onStateChange,
   searchValue,
@@ -65,7 +65,7 @@ export default function ReviewedRequestsTab({
     <div className="mt-5 space-y-4 animate-fade-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
-          Рассмотренные: {currentGroupName}, {semesterLabel}
+          Рассмотренные: {currentGroupName}, {periodLabel}
         </h2>
         <div className="w-full sm:w-64">
           <SearchInput key={searchKey} initialValue={searchValue} onSearch={onSearch} placeholder="ФИО, зачётка или название" />
@@ -92,7 +92,7 @@ export default function ReviewedRequestsTab({
         <EmptyRequests
           filtered={filtered}
           emptyText="Рассмотренных заявок пока нет"
-          context={`${semesterLabel} · ${currentGroupName}`}
+          context={`${periodLabel} · ${currentGroupName}`}
           onReset={resetFilters}
         />
       )}

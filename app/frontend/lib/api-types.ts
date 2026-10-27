@@ -575,25 +575,41 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** @description Сериализатор для . */
+        /**
+         * @description Семестр для селектора периода: учебный год (year_start) и осень/весна (term) группируют
+         *     семестры по годам.
+         */
         AcademicYear: {
             readonly id: number;
             /** Название периода */
             readonly label: string;
             /**
+             * Учебный год (год начала)
+             * @description 2025 - для 2025-2026 учебного года. Пусто - по дате начала.
+             */
+            readonly year_start: number;
+            /**
+             * Семестр
+             * @description Пусто - по дате начала.
+             *
+             *     * `autumn` - осень
+             *     * `spring` - весна
+             */
+            readonly term: components["schemas"]["TermEnum"];
+            /**
              * Дата начала
              * Format: date
              * @description Пусто - по шаблону: осень с 01.09, весна с 01.02.
              */
-            start_date?: string;
+            readonly start_date: string;
             /**
              * Дата окончания
              * Format: date
              * @description Пусто - по шаблону: осень по 31.01, весна по 31.08.
              */
-            end_date?: string;
+            readonly end_date: string;
             /** Текущий семестр */
-            is_current?: boolean;
+            readonly is_current: boolean;
         };
         AchievementConfig: {
             readonly structure: {
@@ -1098,6 +1114,12 @@ export interface components {
             /** Зачетка */
             record_book?: string | null;
         };
+        /**
+         * @description * `autumn` - осень
+         *     * `spring` - весна
+         * @enum {string}
+         */
+        TermEnum: "autumn" | "spring";
         UserResponse: {
             readonly id: number;
             /**

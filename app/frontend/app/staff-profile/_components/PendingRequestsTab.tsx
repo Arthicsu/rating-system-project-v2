@@ -23,7 +23,7 @@ interface PendingRequestsTabProps {
   requestsPage: number;
   requestsPageSize: number;
   currentGroupName: string;
-  semesterLabel: string;
+  periodLabel: string;
   /** «Заявки» у кафедры, «На контроле» у руководства. */
   title: string;
   /** Пояснение под заголовком (у руководства — что значит «На контроле»). */
@@ -50,7 +50,7 @@ export default function PendingRequestsTab({
   requestsPage,
   requestsPageSize,
   currentGroupName,
-  semesterLabel,
+  periodLabel,
   title,
   hint,
   showStateFilter,
@@ -75,7 +75,7 @@ export default function PendingRequestsTab({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
-            {title}: {currentGroupName}, {semesterLabel}
+            {title}: {currentGroupName}, {periodLabel}
           </h2>
           {hint && <p className="mt-1 text-xs text-slate-600 sm:text-sm">{hint}</p>}
         </div>
@@ -106,7 +106,7 @@ export default function PendingRequestsTab({
         <EmptyRequests
           filtered={filtered}
           emptyText={showStateFilter ? 'Все заявки рассмотрены' : 'Нет заявок на контроле'}
-          context={`${semesterLabel} · ${currentGroupName}`}
+          context={`${periodLabel} · ${currentGroupName}`}
           onReset={resetFilters}
         />
       )}
