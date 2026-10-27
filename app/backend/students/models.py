@@ -297,7 +297,11 @@ class Document(models.Model):
         related_name='documents', verbose_name="Семестр",
         help_text="Учебный период, к которому относится заявка (проставляется при создании).",
     )
-    
+    files_purged_at = models.DateTimeField(
+        "Файлы удалены", null=True, blank=True,
+        help_text="Когда файлы заявки удалены по истечении срока хранения после архивации студента.",
+    )
+
     def __str__(self) -> str:
         """
         Возвращает строковое представление объекта документа.

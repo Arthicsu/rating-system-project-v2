@@ -1,9 +1,13 @@
 from django import forms
+from django.conf import settings
 from django.contrib import admin
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.contrib.auth.models import Group as DjangoGroup
 from django.contrib import messages
+from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
+from django.urls import path, reverse
 from django.utils import timezone
 
 from core.admin_password_generator import generate_password
@@ -15,7 +19,7 @@ from university_structure.models import Faculty, Department, Group, Staff
 from users.models import User
 
 from .import_cleaning import REASON_LABELS, build_import_report_csv, clean_student_rows
-from .services import archive_students, unarchive_students
+from .services import archive_students, purge_archived_files, purge_candidates, purge_summary, unarchive_students
 from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus, DocumentFile, SemesterScore
 
 import logging
@@ -64,9 +68,45 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
     eos_syncer_class = StudentSyncer
     eos_sync_label = "Обновить студентов из ЭОС (не работает)"
 
+    purge_archived_files_label = "Удалить файлы архивных студентов старше срока хранения"
+
     def get_urls(self):
         urls = super().get_urls()
-        return self.get_import_urls() + self.get_eos_urls() + urls
+        purge = path(
+            'purge-archived-files/',
+            self.admin_site.admin_view(self.purge_archived_files_view),
+            name='students_purge_archived_files',
+        )
+        return [purge] + self.get_import_urls() + self.get_eos_urls() + urls
+
+    def purge_archived_files_view(self, request):
+        """
+        Чистка файлов по правилу срока, а не по выбранным строкам: GET - сводка и кнопка
+        «Подтвердить», POST с confirm=yes - удаление. Только суперпользователь.
+        """
+        if not request.user.is_superuser:
+            raise PermissionDenied
+        changelist = reverse('admin:students_student_changelist')
+        if request.method == 'POST' and request.POST.get('confirm') == 'yes':
+            result = purge_archived_files(request.user)
+            self.message_user(
+                request,
+                f"Удалено файлов: {result['files']} ({result['bytes'] / 1024 / 1024:.1f} МБ) из "
+                f"{result['documents']} заявок {result['students']} архивных студентов. "
+                f"Заявки, баллы и история сохранены.",
+                messages.SUCCESS,
+            )
+            return HttpResponseRedirect(changelist)
+        summary = purge_summary(purge_candidates())
+        return TemplateResponse(request, 'admin/purge_archived_files_confirm.html', {
+            **self.admin_site.each_context(request),
+            'title': 'Удалить файлы архивных студентов?',
+            'opts': self.model._meta,
+            'summary': summary,
+            'megabytes': f"{summary['bytes'] / 1024 / 1024:.1f}",
+            'retention_days': settings.ARCHIVED_FILES_RETENTION_DAYS,
+            'changelist': changelist,
+        })
 
     @admin.display(boolean=True, description='В архиве', ordering='archived_at')
     def is_archived(self, obj):

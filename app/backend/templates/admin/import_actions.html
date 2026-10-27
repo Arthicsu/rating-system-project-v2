@@ -11,6 +11,11 @@
     <a href="sync-eos-{{ cl.opts.model_name }}/" class="addlink">{{ cl.model_admin.eos_sync_label }}</a>
 </li>
 {% endif %}
+{% if cl.model_admin.purge_archived_files_label and request.user.is_superuser %}
+<li>
+    <a href="purge-archived-files/">{{ cl.model_admin.purge_archived_files_label }}</a>
+</li>
+{% endif %}
 {% if cl.model_admin.eos_sync_all %}
 <li>
     <a href="sync-eos-all-{{ cl.opts.model_name }}/" class="addlink">{% translate "Обновить ВСЁ из ЭОС" %}</a>

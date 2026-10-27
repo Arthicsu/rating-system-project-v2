@@ -96,7 +96,7 @@ function StaffRequest({ id }: { id: string }) {
               {reasonTitle && doc.rejection_reason && <ReasonNote title={reasonTitle} text={doc.rejection_reason} />}
 
               <AchievementDetails doc={doc} />
-              <AchievementFiles files={files} onDownload={download} />
+              <AchievementFiles files={files} purgedAt={doc.files_purged_at} onDownload={download} />
             </div>
 
             {hasFiles && (

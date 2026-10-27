@@ -127,7 +127,7 @@ export default function AchievementDetailPage() {
               )}
 
               <AchievementDetails doc={doc} />
-              <AchievementFiles files={files} onDownload={(fileId, name) => downloadFile(fileId, name)} />
+              <AchievementFiles files={files} purgedAt={doc.files_purged_at} onDownload={(fileId, name) => downloadFile(fileId, name)} />
             </div>
 
             {hasFiles && (

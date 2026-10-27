@@ -13,7 +13,9 @@ rebuild_current_semester_cache().
 import logging
 import threading
 from contextlib import contextmanager
+from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
@@ -235,6 +237,58 @@ def _delete_stored_files(document_files):
             document_file.file.delete(save=False)
         except Exception:
             logger.exception("Не удалось удалить файл достижения из хранилища")
+
+
+def purge_candidates(now=None):
+    """Файлы заявок студентов, которые в архиве дольше ARCHIVED_FILES_RETENTION_DAYS."""
+    cutoff = (now or timezone.now()) - timedelta(days=settings.ARCHIVED_FILES_RETENTION_DAYS)
+    return DocumentFile.objects.filter(
+        document__user__student_profile__archived_at__lt=cutoff,
+    ).select_related('document')
+
+
+def _stored_bytes(document_file):
+    try:
+        return document_file.file.size
+    except Exception:
+        logger.warning("Не удалось узнать размер файла достижения id=%s", document_file.pk)
+        return 0
+
+
+def purge_summary(files):
+    """
+    Сводка для страницы подтверждения: студенты, заявки, файлы, байты.
+    shortcut: размер - запрос к хранилищу на каждый файл; если файлов станут тысячи и
+    страница начнёт тормозить - хранить размер в DocumentFile при загрузке.
+    """
+    files = list(files)
+    return {
+        'students': len({f.document.user_id for f in files}),
+        'documents': len({f.document_id for f in files}),
+        'files': len(files),
+        'bytes': sum(_stored_bytes(f) for f in files),
+    }
+
+
+def purge_archived_files(actor, now=None):
+    """
+    Удалить файлы заявок студентов, архивных дольше срока хранения: строки DocumentFile
+    сразу, объекты в хранилище - после коммита; заявкам ставится files_purged_at.
+    Заявки, баллы и история остаются. Возвращает сводку (как purge_summary).
+    """
+    now = now or timezone.now()
+    with transaction.atomic():
+        removed = list(purge_candidates(now))
+        summary = purge_summary(removed)
+        Document.objects.filter(pk__in={f.document_id for f in removed}).update(files_purged_at=now)
+        DocumentFile.objects.filter(pk__in=[f.pk for f in removed]).delete()
+        transaction.on_commit(lambda: _delete_stored_files(removed))
+    audit_logger.info(
+        "purge archived files by=%s students=%s documents=%s files=%s bytes=%s retention_days=%s",
+        actor.pk, summary['students'], summary['documents'], summary['files'], summary['bytes'],
+        settings.ARCHIVED_FILES_RETENTION_DAYS,
+    )
+    return summary
 
 
 # Вариант А (спек 2д): кафедра решает, руководство контролирует.

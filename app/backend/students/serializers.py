@@ -329,9 +329,10 @@ class DocumentSerializer(serializers.ModelSerializer):
             'doc_type', 'doc_type_display',
             'category_code', 'sub_type_code', 'level_code', 'result_code', 'doc_type_code',
             'semester_label',
-            'files',
+            'files', 'files_purged_at',
             'date_received', 'uploaded_at',
         ]
+        read_only_fields = ['files_purged_at']
 
 class PendingDocumentSerializer(DocumentSerializer):
     user_id = serializers.IntegerField(source='user.id', read_only=True)

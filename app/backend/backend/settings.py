@@ -319,6 +319,8 @@ CELERY_TASK_TIME_LIMIT = 60 * 30
 
 BACKUPS_DIR = os.getenv('BACKUPS_DIR', str(SHARED_DIR / 'backups'))
 BACKUP_KEEP = int(os.getenv('BACKUP_KEEP', 3))
+# Через сколько дней после архивации студента его файлы можно удалить кнопкой в админке.
+ARCHIVED_FILES_RETENTION_DAYS = int(os.getenv('ARCHIVED_FILES_RETENTION_DAYS', 365))
 
 CELERY_BEAT_SCHEDULE = {
     'backup-all-daily': {

@@ -700,6 +700,12 @@ export interface components {
             readonly semester_label: string | null;
             readonly files: components["schemas"]["DocumentFile"][];
             /**
+             * Файлы удалены
+             * Format: date-time
+             * @description Когда файлы заявки удалены по истечении срока хранения после архивации студента.
+             */
+            readonly files_purged_at: string | null;
+            /**
              * Дата получения
              * Format: date
              */
@@ -917,6 +923,12 @@ export interface components {
             readonly doc_type_code: string;
             readonly semester_label: string | null;
             readonly files: components["schemas"]["DocumentFile"][];
+            /**
+             * Файлы удалены
+             * Format: date-time
+             * @description Когда файлы заявки удалены по истечении срока хранения после архивации студента.
+             */
+            readonly files_purged_at: string | null;
             /**
              * Дата получения
              * Format: date

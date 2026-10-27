@@ -1,12 +1,15 @@
 import type { DocumentFileDto } from '@/lib/api';
+import { formatDate } from './AchievementDetails';
 
 interface AchievementFilesProps {
   files: DocumentFileDto[];
+  /** Когда файлы удалены по сроку хранения после архивации студента. */
+  purgedAt?: string | null;
   onDownload: (fileId: number, fileName: string) => void;
 }
 
 /** Список прикреплённых файлов со скачиванием. */
-export default function AchievementFiles({ files, onDownload }: AchievementFilesProps) {
+export default function AchievementFiles({ files, purgedAt, onDownload }: AchievementFilesProps) {
   return (
     <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Файлы</h2>
@@ -30,7 +33,11 @@ export default function AchievementFiles({ files, onDownload }: AchievementFiles
           })}
         </ul>
       ) : (
-        <p className="text-sm text-slate-600">К заявке не прикреплены файлы.</p>
+        <p className="text-sm text-slate-600">
+          {purgedAt
+            ? `Файлы удалены по истечении срока хранения (${formatDate(purgedAt)}).`
+            : 'К заявке не прикреплены файлы.'}
+        </p>
       )}
     </section>
   );

@@ -1,0 +1,27 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<p>Будут удалены файлы заявок студентов, которые находятся в архиве дольше {{ retention_days }} дн.:</p>
+<ul>
+    <li>студентов: {{ summary.students }}</li>
+    <li>заявок: {{ summary.documents }}</li>
+    <li>файлов: {{ summary.files }} ({{ megabytes }} МБ)</li>
+</ul>
+
+{% if summary.files %}
+<p><strong>Файлы удаляются из хранилища безвозвратно.</strong></p>
+<p>
+    Заявки, баллы и история семестров остаются; на странице заявки будет пометка
+    «Файлы удалены по истечении срока хранения». Копии файлов в бэкапах хранилища
+    исчезнут после очередной ротации бэкапов.
+</p>
+<form method="post" onsubmit="this.querySelector('[type=submit]').disabled = true;">
+    {% csrf_token %}
+    <input type="hidden" name="confirm" value="yes">
+    <input type="submit" value="Подтвердить: удалить файлы">
+    <a href="{{ changelist }}" class="button cancel-link">Отмена</a>
+</form>
+{% else %}
+<p>Удалять нечего.</p>
+<p><a href="{{ changelist }}">Вернуться к списку «{{ opts.verbose_name_plural|capfirst }}»</a></p>
+{% endif %}
+{% endblock %}

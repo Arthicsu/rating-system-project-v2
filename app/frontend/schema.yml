@@ -1381,6 +1381,14 @@ components:
           items:
             $ref: '#/components/schemas/DocumentFile'
           readOnly: true
+        files_purged_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Файлы удалены
+          description: Когда файлы заявки удалены по истечении срока хранения после
+            архивации студента.
         date_received:
           type: string
           format: date
@@ -1398,6 +1406,7 @@ components:
       - doc_type_code
       - doc_type_display
       - files
+      - files_purged_at
       - id
       - level_code
       - level_display
@@ -1826,6 +1835,14 @@ components:
           items:
             $ref: '#/components/schemas/DocumentFile'
           readOnly: true
+        files_purged_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Файлы удалены
+          description: Когда файлы заявки удалены по истечении срока хранения после
+            архивации студента.
         date_received:
           type: string
           format: date
@@ -1883,6 +1900,7 @@ components:
       - doc_type_display
       - faculty
       - files
+      - files_purged_at
       - group
       - group_id
       - id
