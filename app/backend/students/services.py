@@ -14,7 +14,9 @@ import logging
 import threading
 from contextlib import contextmanager
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from core.cache_utils import invalidate_view_cache
@@ -24,6 +26,7 @@ from university_structure.models import AcademicYear
 from students.models import Document, DocumentFile, DocumentStatus, Student, SemesterScore
 from students.tasks import send_review_decision_email
 
+User = get_user_model()
 logger = logging.getLogger(__name__)
 # Решения по заявкам — в аудит-лог (SHARED_DIR/logs/audit.log, см. LOGGING).
 audit_logger = logging.getLogger('audit')
@@ -413,3 +416,43 @@ def rollover_semester(to_semester=None):
     # Живые поля приводим к новому текущему семестру (для свежего семестра — нули).
     result['students_reset'] = rebuild_current_semester_cache()
     return result
+
+
+def _plain_student_users(student_ids):
+    """
+    Учётки студентов без прав сотрудника. Архивация студента не трогает вход сотрудника
+    или администратора с тем же аккаунтом: иначе выпуск закрыл бы работнику кабинет, а
+    возврат из архива включил бы учётку уволенного.
+    """
+    return User.objects.filter(
+        student_profile__in=student_ids, staff_profile__isnull=True, is_staff=False, is_superuser=False,
+    )
+
+
+def archive_students(queryset, *, status=None, status_decoding=None, when=None):
+    """
+    Перевести студентов в архив и закрыть им вход: archived_at, итоговый код статуса (если
+    задан; расшифровка - переданная или по STATUS_DECODINGS) и User.is_active=False. История
+    баллов и файлы остаются, живые сессии гаснут сами: неактивный пользователь не проходит
+    аутентификацию. Уже архивные не меняются. Возвращает число архивированных.
+    """
+    fields = {'archived_at': when or timezone.now()}
+    if status is not None:
+        fields['status'] = str(status)
+        fields['status_decoding'] = Student.STATUS_DECODINGS.get(str(status), '')
+    if status_decoding is not None:
+        fields['status_decoding'] = status_decoding
+    with transaction.atomic():
+        ids = list(queryset.filter(archived_at__isnull=True).values_list('pk', flat=True))
+        Student.objects.filter(pk__in=ids).update(**fields)
+        _plain_student_users(ids).update(is_active=False)
+    return len(ids)
+
+
+def unarchive_students(queryset):
+    """Вернуть студентов из архива и снова открыть им вход. Возвращает число возвращённых."""
+    with transaction.atomic():
+        ids = list(queryset.filter(archived_at__isnull=False).values_list('pk', flat=True))
+        Student.objects.filter(pk__in=ids).update(archived_at=None)
+        _plain_student_users(ids).update(is_active=True)
+    return len(ids)

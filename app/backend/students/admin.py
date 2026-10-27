@@ -15,6 +15,7 @@ from university_structure.models import Faculty, Department, Group, Staff
 from users.models import User
 
 from .import_cleaning import REASON_LABELS, build_import_report_csv, clean_student_rows
+from .services import archive_students, unarchive_students
 from .models import Student, Document, Category, AchievementType, ScoringRule, Level, AchievementResult, DocType, DocumentStatus, DocumentFile, SemesterScore
 
 import logging
@@ -64,15 +65,15 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
     def is_archived(self, obj):
         return obj.archived_at is not None
 
-    @admin.action(description="Архивировать выбранных студентов")
+    @admin.action(description="Архивировать выбранных студентов (вход в портфолио закрывается)")
     def action_archive(self, request, queryset):
-        updated = queryset.filter(archived_at__isnull=True).update(archived_at=timezone.now())
-        self.message_user(request, f"Архивировано студентов: {updated}.", messages.SUCCESS)
+        updated = archive_students(queryset)
+        self.message_user(request, f"Архивировано студентов: {updated}. Вход в портфолио им закрыт.", messages.SUCCESS)
 
-    @admin.action(description="Вернуть из архива выбранных студентов")
+    @admin.action(description="Вернуть из архива выбранных студентов (вход открывается)")
     def action_unarchive(self, request, queryset):
-        updated = queryset.filter(archived_at__isnull=False).update(archived_at=None)
-        self.message_user(request, f"Возвращено из архива: {updated}.", messages.SUCCESS)
+        updated = unarchive_students(queryset)
+        self.message_user(request, f"Возвращено из архива: {updated}. Вход в портфолио им снова открыт.", messages.SUCCESS)
 
     def process_import(self, request, data):
         new_credentials = []  # НЕ ЗАДЕЙСТВОВАНО: см. блок про CSV с паролями ниже
@@ -151,11 +152,11 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                         # Студента нет в БД и он уже терминальный — заводить нет смысла.
                         continue
                     if student.archived_at is None:
-                        # soft-delete: пользователь, история баллов и файлы не трогаются.
-                        student.status = status_raw
-                        student.status_decoding = status_decoding
-                        student.archived_at = now
-                        student.save(update_fields=['status', 'status_decoding', 'archived_at'])
+                        # soft-delete: история баллов и файлы остаются, вход закрывается.
+                        archive_students(
+                            Student.objects.filter(pk=student.pk),
+                            status=status_raw, status_decoding=status_decoding, when=now,
+                        )
                         archived_terminal += 1
                     elif student.status != status_raw or student.status_decoding != status_decoding:
                         # Уже в архиве — просто держим код/расшифровку статуса актуальными.
@@ -202,6 +203,9 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 is_monitor = clean_val('Староста') == '1'
                 admission_year_raw = clean_val('Год_Поступления')
                 admission_year = int(admission_year_raw) if admission_year_raw.isdigit() else None
+                if student is not None and student.archived_at is not None:
+                    # Вернулся (академ/восстановление): снова открываем вход.
+                    unarchive_students(Student.objects.filter(pk=student.pk))
                 # TODO нужно обновлять всё у студента
                 if student:
                     # Если студент есть, работаем с его существующим юзером
@@ -289,15 +293,9 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
             # выгрузка (например, один факультет) не заархивировала всех остальных.
             archived_absent = 0
             if archive_absent and seen_group_ids:
-                archived_absent = (
-                    Student.objects
-                    .filter(group_id__in=seen_group_ids, archived_at__isnull=True)
-                    .exclude(external_id__in=seen_external_ids)
-                    .update(
-                        archived_at=now,
-                        status='6',
-                        status_decoding=Student.STATUS_DECODINGS['6'],
-                    )
+                archived_absent = archive_students(
+                    Student.objects.filter(group_id__in=seen_group_ids).exclude(external_id__in=seen_external_ids),
+                    status='6', when=now,
                 )
 
         logger.info("Импорт студентов завершён: обработано активных %s", active_processed)

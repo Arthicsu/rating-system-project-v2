@@ -50,6 +50,8 @@ class CreateTestAccountsTests(TestCase):
         self.assertIsNone(student.archived_at)
         self.assertEqual(student.group.specialty.department, self.department)
         self.assertIsNotNone(Student.objects.get(user__username="test_archived@bgitu.test").archived_at)
+        self.assertFalse(User.objects.get(username="test_archived@bgitu.test").is_active)
+        self.assertTrue(User.objects.get(username="test_student@bgitu.test").is_active)
 
         dept = User.objects.get(username="test_dept")
         self.assertEqual(dept.staff_profile.department, self.department)

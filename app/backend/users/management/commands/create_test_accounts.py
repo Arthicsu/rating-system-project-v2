@@ -79,6 +79,7 @@ class Command(BaseCommand):
     def _student(self, username, last_name, group, *, archived):
         user, password = self._user(
             username, "Student", email=username, last_name=last_name, first_name="Тестовый",
+            is_active=not archived,
         )
         department = group.specialty.department
         Student.objects.update_or_create(

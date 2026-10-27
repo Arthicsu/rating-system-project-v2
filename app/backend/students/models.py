@@ -99,30 +99,25 @@ class Student(models.Model):
         """True, если студент не в архиве (участвует в текущих рейтингах/списках)."""
         return self.archived_at is None
 
-    def archive(self, status=None, status_decoding=None, when=None, save=True):
+    def archive(self, status=None, status_decoding=None, when=None):
         """
-        Пометить студента архивным (soft-delete). НЕ трогает пользователя, историю
-        баллов (SemesterScore) и файлы достижений - только скрывает из «живых» списков.
-        Опционально фиксирует итоговый код статуса и его расшифровку.
+        Пометить студента архивным (soft-delete) через students.services.archive_students:
+        скрывает из «живых» списков и закрывает вход. История баллов (SemesterScore) и файлы
+        достижений остаются. Опционально фиксирует итоговый код статуса и его расшифровку.
         """
-        self.archived_at = when or timezone.now()
-        fields = ['archived_at']
-        if status is not None:
-            self.status = str(status)
-            fields.append('status')
-        if status_decoding is not None:
-            self.status_decoding = status_decoding
-            fields.append('status_decoding')
-        if save:
-            self.save(update_fields=fields)
+        from students.services import archive_students
 
-    def unarchive(self, save=True):
-        """Вернуть студента из архива (вышел из академ. отпуска / восстановлен)."""
-        if self.archived_at is None:
-            return
-        self.archived_at = None
-        if save:
-            self.save(update_fields=['archived_at'])
+        archive_students(
+            Student.objects.filter(pk=self.pk), status=status, status_decoding=status_decoding, when=when,
+        )
+        self.refresh_from_db(fields=['archived_at', 'status', 'status_decoding'])
+
+    def unarchive(self):
+        """Вернуть студента из архива (вышел из академ. отпуска / восстановлен) и открыть вход."""
+        from students.services import unarchive_students
+
+        unarchive_students(Student.objects.filter(pk=self.pk))
+        self.refresh_from_db(fields=['archived_at'])
 
 class SemesterScore(models.Model):
     """
