@@ -65,6 +65,9 @@ services:
       context: ./app/frontend
       dockerfile: Dockerfile.dev
     container_name: app_frontend
+    # Turbopack не видит правок на Windows-хосте (событий файлов через bind mount нет, а
+    # WATCHPACK_POLLING он игнорирует); webpack опрашивает файлы. На Linux/WSL можно turbopack.
+    command: ["pnpm", "exec", "next", "dev", "--${DEV_NEXT_BUNDLER:-webpack}", "-H", "0.0.0.0", "-p", "3000"]
     volumes:
       - ./app/frontend:/app
       - /app/node_modules
