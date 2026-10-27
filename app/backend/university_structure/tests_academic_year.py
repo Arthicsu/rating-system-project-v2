@@ -4,13 +4,14 @@
 """
 from datetime import date
 
-from unittest.mock import patch
-
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.urls import reverse
 
-from core.testing import make_semester
+from rest_framework.test import APITestCase
+
+from core.testing import TEST_SETTINGS, make_semester, make_staff
 from university_structure.models import AcademicYear
 
 
@@ -86,10 +87,17 @@ class AcademicYearTests(TestCase):
 
 
 
-class AcademicYearListCacheTests(TestCase):
-    def test_semester_change_drops_selector_cache(self):
-        # cache_page списка семестров живёт 2 часа: новый семестр или подпись должны быть видны сразу.
-        with patch("students.signals.invalidate_view_cache") as invalidate:
-            make_semester(2025, "spring")
+@override_settings(**TEST_SETTINGS)
+class AcademicYearListTests(APITestCase):
+    def test_new_semester_shows_up_at_once(self):
+        # Список для селектора «Период»: после перехода на новый год он нужен сразу, а не через
+        # 2 часа кэша (и браузерного тоже).
+        self.client.force_authenticate(make_staff("rector", "Rectorate"))
+        make_semester(2025, "autumn", current=True)
+        first = self.client.get(reverse("api:academic-years-list"))
 
-        invalidate.assert_any_call("academic-years")
+        make_semester(2025, "spring")
+        labels = [s["label"] for s in self.client.get(reverse("api:academic-years-list")).data]
+
+        self.assertEqual(first["Cache-Control"], "no-store")
+        self.assertIn("2025-2026 уч. год — весна", labels)

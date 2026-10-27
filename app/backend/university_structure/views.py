@@ -111,7 +111,10 @@ class RejectionReasonViewSet(mixins.ListModelMixin, GenericViewSet):
 
 @extend_schema(tags=['academic-years'])
 class AcademicYearViewSet(mixins.ListModelMixin, GenericViewSet):
-    """Учебные периоды для селектора семестра (кэш 2 часа)."""
+    """
+    Семестры для селектора «Период». Без кэша: строк по две на учебный год, а после перехода
+    на новый год список нужен сразу, а cache_page разрешил бы и браузеру держать его 2 часа.
+    """
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsStaffProfile]
     serializer_class = AcademicYearSerializer
@@ -119,6 +122,5 @@ class AcademicYearViewSet(mixins.ListModelMixin, GenericViewSet):
     pagination_class = None
 
     @extend_schema(responses={200: AcademicYearSerializer(many=True)})
-    @method_decorator(cache_page(60 * 60 * 2, key_prefix='academic-years'))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
