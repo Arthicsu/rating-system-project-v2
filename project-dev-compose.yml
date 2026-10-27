@@ -20,7 +20,8 @@ services:
       - .env
     environment:
       - DEBUG=true
-      - USE_GUNICORN=${USE_GUNICORN:-false}
+      # Свой ключ dev-среды: USE_GUNICORN из .env остаётся для прода.
+      - USE_GUNICORN=${DEV_USE_GUNICORN:-false}
     depends_on:
       db:
         condition: service_healthy
@@ -96,7 +97,11 @@ services:
     container_name: postgres_db
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-      - ${SHARED_HOST_DIR:-./shared}/dumps/Project_20260706_121210.sql:/docker-entrypoint-initdb.d/dump.sql
+      # Дампы и бэкапы БД только для чтения и загрузка DEV_DB_DUMP при первом старте пустого тома.
+      # Сменить дамп у работающей базы: scripts/dev db-restore.
+      - ${SHARED_HOST_DIR:-./shared}/dumps:/dumps:ro
+      - ${SHARED_HOST_DIR:-./shared}/backups/db:/backups/db:ro
+      - ./scripts/dev-db-restore.sh:/docker-entrypoint-initdb.d/10-dev-db-restore.sh:ro
     deploy:
       resources:
         limits:
@@ -109,6 +114,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_DB: ${POSTGRES_DB}
+      DEV_DB_DUMP: ${DEV_DB_DUMP:-}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
