@@ -16,8 +16,8 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
     // Ручной pulse на время загрузки; кости boneyard снимаются
     // с реальной карточки ниже.
     return (
-        <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:p-4.5 animate-pulse">
-          <div className="flex flex-1 items-start gap-3">
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-4.5 animate-pulse">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
             <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-slate-200" />
             <div className="min-w-0 space-y-2 flex-1">
               <div className="h-4 w-3/4 rounded bg-slate-200" />
@@ -42,8 +42,8 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
     {/* Skeleton вокруг РЕАЛЬНОЙ карточки: сканер boneyard снимает кости с
         настоящего DOM (loading={false} — рантайм не меняется до скана). */}
     <Skeleton name="achievement-item" loading={false}>
-    <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:p-4.5">
-      <div className="flex flex-1 items-start gap-3">
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-4.5">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
         <div className="mt-1 flex px-1.5 sm:px-2 lg:px-2 py-1.5 sm:py-2 lg:py-2 items-center justify-center rounded-full bg-sky-700 text-white">
           <i className={`fa-regular ${statusIcon} text-sm`} />
         </div>
@@ -85,7 +85,7 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
                 <button
                   key={file.id}
                   onClick={() => downloadFile(file.id, file.original_file_name ?? `Файл ${index + 1}`)}
-                  className="cursor-pointer inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-sky-700 hover:text-sky-900"
+                  className="cursor-pointer inline-flex items-baseline gap-1 text-left text-[11px] font-medium text-sky-700 wrap-anywhere hover:text-sky-900"
                 >
                   <i className="fa-solid fa-file" />
                   {file.original_file_name || `Файл ${index + 1}`}
@@ -102,21 +102,22 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
         </div>
       </div>
 
-      <div className="ml-2 flex flex-col items-end gap-2">
+      {/* На телефоне балл и кнопки - нижней строкой, чтобы текст занимал всю ширину карточки. */}
+      <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3 sm:ml-2 sm:flex-col sm:items-end sm:justify-start sm:border-0 sm:pt-0">
         <div className="flex items-center whitespace-nowrap rounded-full border tracking-wide border-emerald-100 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
           +{doc?.score}
         </div>
         {(onEdit || onDelete) && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2 sm:gap-1.5">
             {onEdit && (
               <button
                 type="button"
                 onClick={() => onEdit(doc)}
                 aria-label="Редактировать достижение"
                 title="Редактировать"
-                className="cursor-pointer inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700"
+                className="cursor-pointer inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition sm:h-7 sm:w-7 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700"
               >
-                <i className="fa-solid fa-pen text-xs" />
+                <i className="fa-solid fa-pen text-sm sm:text-xs" />
               </button>
             )}
             {onDelete && (
@@ -125,9 +126,9 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
                 onClick={() => onDelete(doc)}
                 aria-label="Удалить достижение"
                 title="Удалить"
-                className="cursor-pointer inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                className="cursor-pointer inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition sm:h-7 sm:w-7 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
               >
-                <i className="fa-solid fa-trash text-xs" />
+                <i className="fa-solid fa-trash text-sm sm:text-xs" />
               </button>
             )}
           </div>
