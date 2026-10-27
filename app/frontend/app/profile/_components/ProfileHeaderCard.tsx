@@ -30,7 +30,7 @@ export default function ProfileHeaderCard({
           <span className="mx-1 text-slate-300">•</span>
           группа {profile.group}
         </p>
-        {onChangePassword && (
+        {/* {onChangePassword && (
           <button
             type="button"
             onClick={onChangePassword}
@@ -42,7 +42,7 @@ export default function ProfileHeaderCard({
             </svg>
             Сменить пароль
           </button>
-        )}
+        )} */}
       </div>
       <div className="mt-2 flex items-center justify-start sm:mt-0 sm:justify-end">
         <div className="rounded-2xl border items-center border-sky-100 bg-sky-50 px-4 py-3 text-center shadow-sm">
