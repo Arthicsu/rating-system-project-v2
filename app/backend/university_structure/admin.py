@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
@@ -7,6 +9,7 @@ from django.urls import path, reverse
 from django.contrib.auth.models import Group as DjangoGroup
 
 from core.admin_import import CsvImport
+from core.tasks import backup_db_before_transition
 from core.admin_staff_passwords import staff_passwords_action
 from core.eos.admin_mixin import EosSyncActionsMixin
 from core.eos.syncers import FacultySyncer, DepartmentSyncer, GroupSyncer
@@ -14,6 +17,8 @@ from core.eos.syncers import FacultySyncer, DepartmentSyncer, GroupSyncer
 from students.services import transition_preview, transition_to_next_year
 from users.models import User
 from .models import Faculty, Department, Group, Staff, Specialty, RejectionReason, AcademicYear
+
+logger = logging.getLogger(__name__)
 
 
 @admin.register(Staff)
@@ -350,12 +355,28 @@ class AcademicYearAdmin(admin.ModelAdmin):
             raise PermissionDenied
         changelist = reverse('admin:university_structure_academicyear_changelist')
         if request.method == 'POST' and request.POST.get('confirm') == 'yes':
+            block_reason = transition_preview()['block_reason']
+            if block_reason:
+                self.message_user(request, f"Переход не выполнен. {block_reason}", messages.WARNING)
+                return HttpResponseRedirect(changelist)
+            try:
+                backup = backup_db_before_transition()
+            except Exception:
+                # Текст ошибки pg_dump (хост, пользователь БД) - только в лог, не на страницу.
+                logger.exception("pre-transition DB backup failed")
+                self.message_user(
+                    request,
+                    "Копия базы данных не создана, переход не выполнен. Подробности - в логе сервера.",
+                    messages.ERROR,
+                )
+                return HttpResponseRedirect(changelist)
             result = transition_to_next_year(request.user)
             if result['changed']:
                 self.message_user(
                     request,
                     f"Начался {result['to_label']}. Живой рейтинг пересчитан ({result['students_reset']} студентов), "
-                    f"история {result['from_label']} сохранена.",
+                    f"история {result['from_label']} сохранена. Копия базы до перехода: {backup.name} "
+                    f"(папка backups/db/pre-transition).",
                     messages.SUCCESS,
                 )
             else:

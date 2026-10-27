@@ -76,6 +76,16 @@ def dump_database(dest_dir: Path, ts: str) -> Path:
     return out
 
 
+def backup_db_before_transition() -> Path:
+    """
+    Копия БД перед переходом на следующий учебный год - в отдельную папку db/pre-transition:
+    дневная ротация смотрит только в db/ (без подпапок) и её не удаляет. Возвращает путь к файлу.
+    """
+    dest = Path(settings.BACKUPS_DIR) / "db" / "pre-transition"
+    dest.mkdir(parents=True, exist_ok=True)
+    return dump_database(dest, _timestamp())
+
+
 def _s3_client():
     return boto3.client(
         "s3",

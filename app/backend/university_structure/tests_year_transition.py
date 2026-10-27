@@ -1,9 +1,13 @@
 """
 Переход на следующий учебный год из админки: страница подтверждения ничего не меняет,
-POST создаёт семестры нового года, фиксирует фактические даты и обнуляет живой рейтинг
-(история цела). Плашка в админке напоминает о переходе, авто-ролловера в расписании нет.
+POST сначала делает копию БД, затем создаёт семестры нового года, фиксирует фактические
+даты и обнуляет живой рейтинг (история цела). Плашка в админке напоминает о переходе,
+авто-ролловера в расписании нет.
 """
+import tempfile
 from datetime import timedelta
+from pathlib import Path
+from unittest.mock import ANY, patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -11,6 +15,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from core.tasks import backup_db_before_transition
 from core.testing import DEFAULT_PASSWORD, TEST_SETTINGS, make_semester, make_student
 from students.models import SemesterScore
 from students.services import rebuild_current_semester_cache
@@ -37,9 +42,42 @@ class YearTransitionTests(TestCase):
         rebuild_current_semester_cache()
         self.admin = User.objects.create_superuser("oi-admin", password=DEFAULT_PASSWORD)
         self.client.force_login(self.admin)
+        # Настоящий pg_dump в тестах снял бы копию рабочей dev-базы: копию подменяем.
+        backup = patch(
+            "university_structure.admin.backup_db_before_transition",
+            return_value=Path("/shared/backups/db/pre-transition/Project_20260901_100000.sql.gz"),
+        )
+        self.backup = backup.start()
+        self.addCleanup(backup.stop)
 
     def _transition(self):
         return self.client.post(reverse(URL), {"confirm": "yes"})
+
+    def test_transition_backs_up_database_first(self):
+        resp = self.client.post(reverse(URL), {"confirm": "yes"}, follow=True)
+
+        self.backup.assert_called_once_with()
+        self.assertIn("Project_20260901_100000.sql.gz", resp.content.decode())
+        self.assertEqual(AcademicYear.get_current().year_start, self.year + 1)
+
+    def test_failed_backup_cancels_transition(self):
+        self.backup.side_effect = RuntimeError("pg_dump failed (code 1): no space left")
+
+        resp = self.client.post(reverse(URL), {"confirm": "yes"}, follow=True)
+
+        self.assertIn("Копия базы данных не создана", resp.content.decode())
+        self.assertEqual(AcademicYear.get_current(), self.autumn)
+        self.assertEqual(AcademicYear.objects.count(), 2)
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.total_score, 10)
+
+    def test_refused_transition_makes_no_backup(self):
+        self._transition()
+        self.backup.reset_mock()
+
+        self._transition()
+
+        self.backup.assert_not_called()
 
     def test_preview_changes_nothing(self):
         resp = self.client.get(reverse(URL))
@@ -124,6 +162,15 @@ class YearTransitionTests(TestCase):
         AcademicYear.objects.update(is_current=False)
 
         self.assertIn("Текущий период не задан", self.client.get(reverse("admin:index")).content.decode())
+
+    def test_backup_goes_to_its_own_folder(self):
+        with tempfile.TemporaryDirectory() as tmp, override_settings(BACKUPS_DIR=tmp), \
+                patch("core.tasks.dump_database", side_effect=lambda dest, ts: dest / f"db_{ts}.sql.gz") as dump:
+            path = backup_db_before_transition()
+
+            dump.assert_called_once_with(Path(tmp) / "db" / "pre-transition", ANY)
+            self.assertTrue((Path(tmp) / "db" / "pre-transition").is_dir())
+            self.assertEqual(path.parent, Path(tmp) / "db" / "pre-transition")
 
     def test_beat_has_no_auto_rollover(self):
         self.assertNotIn("auto-semester-rollover-daily", settings.CELERY_BEAT_SCHEDULE)
