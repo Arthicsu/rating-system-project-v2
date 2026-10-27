@@ -166,6 +166,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.site_urls',
+                'core.context_processors.semester_status',
             ],
         },
     },
@@ -333,11 +334,11 @@ CELERY_BEAT_SCHEDULE = {
         # У нас по умолчанию в 3:00 по МСК
         'schedule': crontab(hour=int(os.getenv('SCHEDULE_HOUR', 3)), minute=int(os.getenv('SCHEDULE_MINUTE', 0))),
     },
-    # Ежедневная проверка: если текущий семестр закончился - авто-ролловер на следующий.
-    'auto-semester-rollover-daily': {
-        'task': 'students.tasks.auto_rollover_semester',
-        'schedule': crontab(hour=int(os.getenv('ROLLOVER_HOUR', 4)), minute=int(os.getenv('ROLLOVER_MINUTE', 30))),
-    },
+    # НЕ ЗАДЕЙСТВОВАНО: переход выполняется вручную из админки (решение 2026-10-20).
+    # 'auto-semester-rollover-daily': {
+    #     'task': 'students.tasks.auto_rollover_semester',
+    #     'schedule': crontab(hour=int(os.getenv('ROLLOVER_HOUR', 4)), minute=int(os.getenv('ROLLOVER_MINUTE', 30))),
+    # },
 }
 
 

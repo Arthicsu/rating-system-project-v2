@@ -480,6 +480,95 @@ def rollover_semester(to_semester=None):
     return result
 
 
+def _year_label(year_start):
+    return f"{year_start}-{year_start + 1} уч. год"
+
+
+def ensure_next_year_semesters():
+    """Осень и весна учебного года после текущего (по шаблону дат); уже заведённые не трогаются."""
+    year_start = AcademicYear.get_current().year_start + 1
+    # Пустые даты AcademicYear.save() берёт из шаблона.
+    return tuple(
+        AcademicYear.objects.get_or_create(year_start=year_start, term=term)[0] for term in ('autumn', 'spring')
+    )
+
+
+def _transition_block_reason(current, today):
+    """Почему переход сейчас невозможен (текст для админки) или None."""
+    if current is None:
+        return "Текущий период не задан: отметьте текущий семестр в «Учебных периодах»."
+    last = AcademicYear.year_semesters(current.year_start).last()
+    if today <= last.start_date:
+        # Иначе конец последнего семестра (сегодня - 1 день) встал бы раньше его начала.
+        return (
+            f"Учебный год {current.year_start}-{current.year_start + 1} ещё идёт: переход возможен после начала "
+            f"семестра «{last.label}» ({last.start_date:%d.%m.%Y})."
+        )
+    _, next_autumn_end = AcademicYear.template_dates(current.year_start + 1, 'autumn')
+    if today > next_autumn_end:
+        return (
+            f"Осень {current.year_start + 1}-{current.year_start + 2} учебного года по шаблону дат уже закончилась - "
+            f"проверьте даты семестров в «Учебных периодах»."
+        )
+    return None
+
+
+def transition_preview(today=None):
+    """Сводка для страницы подтверждения перехода на следующий учебный год; ничего не меняет."""
+    current = AcademicYear.get_current()
+    block_reason = _transition_block_reason(current, today or timezone.localdate())
+    if current is None:
+        return {'block_reason': block_reason}
+    return {
+        'from_label': _year_label(current.year_start),
+        'to_label': _year_label(current.year_start + 1),
+        'students_with_scores': Student.objects.active().filter(total_score__gt=0).count(),
+        'pending_in_old_year': Document.objects.filter(
+            semester__year_start=current.year_start, status__code='pending',
+        ).count(),
+        'block_reason': block_reason,
+    }
+
+
+@transaction.atomic
+def transition_to_next_year(actor, today=None):
+    """
+    Перейти на следующий учебный год: создать его семестры (если их нет), зафиксировать
+    фактические даты - последний семестр старого года закончился вчера, осень нового началась
+    сегодня, - сделать текущей осень нового года и пересобрать живой кэш (рейтинг нового года
+    начинается с нуля, история SemesterScore не меняется).
+
+    Повторное подтверждение - не ошибка, а отказ с причиной: новый год уже идёт, его весна ещё
+    не началась. Возвращает {'changed': bool, ...}.
+    """
+    today = today or timezone.localdate()
+    current = AcademicYear.objects.select_for_update().filter(is_current=True).first()
+    block_reason = _transition_block_reason(current, today)
+    if block_reason:
+        return {'changed': False, 'reason': block_reason}
+
+    last = AcademicYear.year_semesters(current.year_start).last()
+    autumn, _ = ensure_next_year_semesters()
+    with suspend_cache_sync():
+        last.end_date = today - timedelta(days=1)
+        last.save(update_fields=['end_date'])
+        AcademicYear.objects.filter(is_current=True).update(is_current=False)
+        autumn.start_date = today
+        autumn.is_current = True
+        autumn.save(update_fields=['start_date', 'is_current'])
+    students_reset = rebuild_current_semester_cache()
+    audit_logger.info(
+        "academic year transition by=%s from=%s to=%s date=%s",
+        actor.pk, current.year_start, autumn.year_start, today.isoformat(),
+    )
+    return {
+        'changed': True,
+        'from_label': _year_label(current.year_start),
+        'to_label': _year_label(autumn.year_start),
+        'students_reset': students_reset,
+    }
+
+
 def _plain_student_users(student_ids):
     """
     Учётки студентов без прав сотрудника. Архивация студента не трогает вход сотрудника

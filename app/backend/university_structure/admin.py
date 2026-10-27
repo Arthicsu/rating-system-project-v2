@@ -1,5 +1,9 @@
 from django.contrib import admin, messages
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.http import HttpResponseRedirect
+from django.template.response import TemplateResponse
+from django.urls import path, reverse
 from django.contrib.auth.models import Group as DjangoGroup
 
 from core.admin_import import CsvImport
@@ -7,7 +11,7 @@ from core.admin_staff_passwords import staff_passwords_action
 from core.eos.admin_mixin import EosSyncActionsMixin
 from core.eos.syncers import FacultySyncer, DepartmentSyncer, GroupSyncer
 
-from students.services import rollover_semester
+from students.services import transition_preview, transition_to_next_year
 from users.models import User
 from .models import Faculty, Department, Group, Staff, Specialty, RejectionReason, AcademicYear
 
@@ -308,22 +312,59 @@ class AcademicYearAdmin(admin.ModelAdmin):
     list_display = ('label', 'start_date', 'end_date', 'is_current')
     list_filter = ('is_current',)
     search_fields = ('label',)
-    actions = ['rollover_to_selected']
+    change_list_template = "admin/academic_year_change_list.html"
+    # НЕ ЗАДЕЙСТВОВАНО: ролловер на выбранный семестр заменён переходом на следующий учебный год
+    # (кнопка на списке периодов, решение 2026-10-20).
+    # actions = ['rollover_to_selected']
+    #
+    # @admin.action(description="Завершить текущий семестр и активировать выбранный (ролловер)")
+    # def rollover_to_selected(self, request, queryset):
+    #     """
+    #     Ролловер семестра: обнуляет живые баллы студентов (история сохраняется в
+    #     SemesterScore) и делает выбранный период текущим. Нужно выбрать ровно один период.
+    #     """
+    #     if queryset.count() != 1:
+    #         self.message_user(request, "Выберите ровно один семестр для активации.", level=messages.ERROR)
+    #         return
+    #     target = queryset.first()
+    #     result = rollover_semester(to_semester=target)
+    #     self.message_user(
+    #         request,
+    #         f"Ролловер выполнен: архивирован «{result['archived']}», активирован «{result['activated']}», "
+    #         f"пересчитано студентов: {result['students_reset']}.",
+    #         level=messages.SUCCESS,
+    #     )
 
-    @admin.action(description="Завершить текущий семестр и активировать выбранный (ролловер)")
-    def rollover_to_selected(self, request, queryset):
-        """
-        Ролловер семестра: обнуляет живые баллы студентов (история сохраняется в
-        SemesterScore) и делает выбранный период текущим. Нужно выбрать ровно один период.
-        """
-        if queryset.count() != 1:
-            self.message_user(request, "Выберите ровно один семестр для активации.", level=messages.ERROR)
-            return
-        target = queryset.first()
-        result = rollover_semester(to_semester=target)
-        self.message_user(
-            request,
-            f"Ролловер выполнен: архивирован «{result['archived']}», активирован «{result['activated']}», "
-            f"пересчитано студентов: {result['students_reset']}.",
-            level=messages.SUCCESS,
+    def get_urls(self):
+        transition = path(
+            'transition/', self.admin_site.admin_view(self.transition_view), name='academic_year_transition',
         )
+        return [transition] + super().get_urls()
+
+    def transition_view(self, request):
+        """
+        Переход на следующий учебный год: GET - сводка и чек-лист регламента, POST с confirm=yes -
+        переход. Только суперпользователь.
+        """
+        if not request.user.is_superuser:
+            raise PermissionDenied
+        changelist = reverse('admin:university_structure_academicyear_changelist')
+        if request.method == 'POST' and request.POST.get('confirm') == 'yes':
+            result = transition_to_next_year(request.user)
+            if result['changed']:
+                self.message_user(
+                    request,
+                    f"Начался {result['to_label']}. Живой рейтинг пересчитан ({result['students_reset']} студентов), "
+                    f"история {result['from_label']} сохранена.",
+                    messages.SUCCESS,
+                )
+            else:
+                self.message_user(request, f"Переход не выполнен. {result['reason']}", messages.WARNING)
+            return HttpResponseRedirect(changelist)
+        return TemplateResponse(request, 'admin/academic_year_transition_confirm.html', {
+            **self.admin_site.each_context(request),
+            'title': 'Перейти на следующий учебный год?',
+            'opts': self.model._meta,
+            'preview': transition_preview(),
+            'changelist': changelist,
+        })

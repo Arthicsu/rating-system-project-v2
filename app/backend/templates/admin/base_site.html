@@ -31,3 +31,15 @@
 {% endblock %}
 
 {% block nav-global %}{% endblock %}
+
+{% block messages %}
+{% if semester_warning %}
+<ul class="messagelist">
+  <li class="warning">
+    {{ semester_warning }}
+    {% if semester_transition_url %}<a href="{{ semester_transition_url }}">Перейти на следующий учебный год</a>{% endif %}
+  </li>
+</ul>
+{% endif %}
+{{ block.super }}
+{% endblock %}
