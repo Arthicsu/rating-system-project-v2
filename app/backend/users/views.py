@@ -60,7 +60,7 @@ from students.serializers import (
     SemesterStudentListSerializer,
     StudentRatingSerializer,
 )
-from university_structure.models import AcademicYear, Faculty, Group
+from university_structure.models import Faculty, Group
 from university_structure.serializers import RatingFiltersResponseSerializer
 
 from .serializers import (
@@ -234,7 +234,9 @@ _RATING_PARAMS = [
                      description="Категория сортировки: common (по умолчанию) | academic | research | sport | social | cultural"),
     OpenApiParameter('direction', OpenApiTypes.STR,
                      description="Направление сортировки: desc (по умолчанию) | asc"),
-    OpenApiParameter('academic_year', OpenApiTypes.INT, description='ID семестра (по умолчанию — текущий)'),
+    OpenApiParameter('year_start', OpenApiTypes.INT,
+                     description='Учебный год (год начала), все его семестры; по умолчанию — текущий учебный год'),
+    OpenApiParameter('academic_year', OpenApiTypes.INT, description='ID одного семестра (вместо учебного года)'),
     OpenApiParameter('semester', OpenApiTypes.INT, description='Синоним academic_year'),
 ]
 
@@ -242,11 +244,11 @@ _RATING_PARAMS = [
 @extend_schema(tags=['rating'])
 class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
     """
-    Рейтинг студентов за выбранный семестр (по умолчанию текущий). Доступ
+    Рейтинг студентов за выбранный период (по умолчанию текущий учебный год). Доступ
     только сотрудникам: ФИО и баллы всех студентов - не для любого
     авторизованного.
 
-    - list — пагинированный рейтинг с фильтрами, выбором семестра и
+    - list — пагинированный рейтинг с фильтрами, выбором периода и
       сортировкой по категории/направлению;
     - filters — данные для построения фильтров (кэш 2 часа);
     - export — выгрузка рейтинга в Excel (те же параметры, что и list).
@@ -272,9 +274,9 @@ class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return StudentRatingSerializer
 
-        # Прошлый семестр — баллы из аннотаций sem_* (история SemesterScore).
-        _, is_past = querysets.get_requested_semester(self.request)
-        return SemesterStudentListSerializer if is_past else StudentRatingSerializer
+        # Прошлый период или отдельный семестр — баллы из аннотаций sem_* (история SemesterScore).
+        live = querysets.get_requested_period(self.request).is_live
+        return StudentRatingSerializer if live else SemesterStudentListSerializer
 
     @extend_schema(
         parameters=_RATING_PARAMS,
@@ -306,19 +308,18 @@ class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
                    responses={200: OpenApiTypes.BINARY})
     @action(detail=False, methods=['get'])
     def export(self, request):
-        # Выгружается ровно тот срез, что виден в таблице: семестр, фильтры,
+        # Выгружается ровно тот срез, что виден в таблице: период, фильтры,
         # категория и направление сортировки берутся из тех же параметров.
-        semester_id, is_past = querysets.get_requested_semester(request)
-        semester = AcademicYear.objects.filter(pk=semester_id).first() if semester_id else None
+        period = querysets.get_requested_period(request)
 
         queryset = self.filter_queryset(self.get_queryset())
         excel_bytes = generate_rating_excel(
             queryset,
-            score_prefix='sem_' if is_past else '',
-            semester_label=semester.label if semester else '',
+            score_prefix='' if period.is_live else 'sem_',
+            semester_label=period.label,
         )
 
-        filename = f"student_rating_{semester.label}.xlsx" if semester else "student_rating.xlsx"
+        filename = f"student_rating_{period.label}.xlsx" if period.label else "student_rating.xlsx"
         response = HttpResponse(
             excel_bytes,
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

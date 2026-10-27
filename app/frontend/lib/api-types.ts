@@ -394,11 +394,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Рейтинг студентов за выбранный семестр (по умолчанию текущий). Доступ
+         * @description Рейтинг студентов за выбранный период (по умолчанию текущий учебный год). Доступ
          *     только сотрудникам: ФИО и баллы всех студентов - не для любого
          *     авторизованного.
          *
-         *     - list — пагинированный рейтинг с фильтрами, выбором семестра и
+         *     - list — пагинированный рейтинг с фильтрами, выбором периода и
          *       сортировкой по категории/направлению;
          *     - filters — данные для построения фильтров (кэш 2 часа);
          *     - export — выгрузка рейтинга в Excel (те же параметры, что и list).
@@ -421,11 +421,11 @@ export interface paths {
         };
         /**
          * Экспорт рейтинга в Excel
-         * @description Рейтинг студентов за выбранный семестр (по умолчанию текущий). Доступ
+         * @description Рейтинг студентов за выбранный период (по умолчанию текущий учебный год). Доступ
          *     только сотрудникам: ФИО и баллы всех студентов - не для любого
          *     авторизованного.
          *
-         *     - list — пагинированный рейтинг с фильтрами, выбором семестра и
+         *     - list — пагинированный рейтинг с фильтрами, выбором периода и
          *       сортировкой по категории/направлению;
          *     - filters — данные для построения фильтров (кэш 2 часа);
          *     - export — выгрузка рейтинга в Excel (те же параметры, что и list).
@@ -447,11 +447,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Рейтинг студентов за выбранный семестр (по умолчанию текущий). Доступ
+         * @description Рейтинг студентов за выбранный период (по умолчанию текущий учебный год). Доступ
          *     только сотрудникам: ФИО и баллы всех студентов - не для любого
          *     авторизованного.
          *
-         *     - list — пагинированный рейтинг с фильтрами, выбором семестра и
+         *     - list — пагинированный рейтинг с фильтрами, выбором периода и
          *       сортировкой по категории/направлению;
          *     - filters — данные для построения фильтров (кэш 2 часа);
          *     - export — выгрузка рейтинга в Excel (те же параметры, что и list).
@@ -579,17 +579,19 @@ export interface components {
         AcademicYear: {
             readonly id: number;
             /** Название периода */
-            label: string;
+            readonly label: string;
             /**
              * Дата начала
              * Format: date
+             * @description Пусто - по шаблону: осень с 01.09, весна с 01.02.
              */
-            start_date: string;
+            start_date?: string;
             /**
              * Дата окончания
              * Format: date
+             * @description Пусто - по шаблону: осень по 31.01, весна по 31.08.
              */
-            end_date: string;
+            end_date?: string;
             /** Текущий семестр */
             is_current?: boolean;
         };
@@ -1178,7 +1180,7 @@ export interface operations {
     v1_achievements_list: {
         parameters: {
             query?: {
-                /** @description ID семестра (по умолчанию — текущий) */
+                /** @description ID одного семестра (вместо учебного года) */
                 academic_year?: number;
                 course?: string;
                 faculty_id?: string;
@@ -1200,6 +1202,8 @@ export interface operations {
                  *     * `rejected` - Отклонённые
                  */
                 state?: "approved" | "new" | "rejected" | "returned";
+                /** @description Учебный год (год начала), все его семестры; по умолчанию — текущий учебный год */
+                year_start?: number;
             };
             header?: never;
             path?: never;
@@ -1709,7 +1713,7 @@ export interface operations {
     v1_rating_list: {
         parameters: {
             query?: {
-                /** @description ID семестра (по умолчанию — текущий) */
+                /** @description ID одного семестра (вместо учебного года) */
                 academic_year?: number;
                 /** @description Категория сортировки: common (по умолчанию) | academic | research | sport | social | cultural */
                 category?: string;
@@ -1726,6 +1730,8 @@ export interface operations {
                 search?: string;
                 /** @description Синоним academic_year */
                 semester?: number;
+                /** @description Учебный год (год начала), все его семестры; по умолчанию — текущий учебный год */
+                year_start?: number;
             };
             header?: never;
             path?: never;
@@ -1746,7 +1752,7 @@ export interface operations {
     v1_rating_export_retrieve: {
         parameters: {
             query?: {
-                /** @description ID семестра (по умолчанию — текущий) */
+                /** @description ID одного семестра (вместо учебного года) */
                 academic_year?: number;
                 /** @description Категория сортировки: common (по умолчанию) | academic | research | sport | social | cultural */
                 category?: string;
@@ -1754,6 +1760,8 @@ export interface operations {
                 direction?: string;
                 /** @description Синоним academic_year */
                 semester?: number;
+                /** @description Учебный год (год начала), все его семестры; по умолчанию — текущий учебный год */
+                year_start?: number;
             };
             header?: never;
             path?: never;
@@ -1831,7 +1839,7 @@ export interface operations {
     v1_students_list: {
         parameters: {
             query?: {
-                /** @description ID семестра (по умолчанию — текущий) */
+                /** @description ID одного семестра (вместо учебного года) */
                 academic_year?: number;
                 course?: string;
                 faculty_id?: string;
@@ -1844,6 +1852,8 @@ export interface operations {
                 search?: string;
                 /** @description Синоним academic_year */
                 semester?: number;
+                /** @description Учебный год (год начала), все его семестры; по умолчанию — текущий учебный год */
+                year_start?: number;
             };
             header?: never;
             path?: never;

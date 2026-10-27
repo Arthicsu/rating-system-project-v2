@@ -3,9 +3,11 @@
 
 Параметрические фильтры (faculty_id / course / group_id) и поиск обрабатываются
 filter backends на уровне ViewSet (core/filters.py + SearchFilter). Здесь живёт
-то, что на django-filter не ложится: scope-фильтрация, выбор семестра с
-аннотациями истории, агрегаты дашборда и сборка полного профиля студента.
+то, что на django-filter не ложится: scope-фильтрация, выбор периода (учебный год или
+семестр) с аннотациями истории, агрегаты дашборда и сборка полного профиля студента.
 """
+from typing import NamedTuple
+
 from django.contrib.auth.models import Group as AuthGroup
 from django.db.models import Avg, Count, IntegerField, Max, Min, OuterRef, Q, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
@@ -17,10 +19,88 @@ from students.models import Category, Document, SemesterScore, Student
 from university_structure.models import AcademicYear
 
 
-# --- Семестры ---------------------------------------------------------------
+# --- Период: учебный год или семестр ---------------------------------------
+
+class Period(NamedTuple):
+    """
+    Выбранный период. semester_ids - его семестры (None - без ограничения: в базе нет ни
+    одного семестра); is_live - баллы из живого кэша Student (текущий учебный год целиком),
+    иначе - суммы SemesterScore по semester_ids; label - подпись для Excel.
+    """
+    semester_ids: list | None
+    is_live: bool
+    label: str
+
+
+def _year_label(year_start):
+    return f"{year_start}-{year_start + 1} уч. год"
+
+
+def _int_param(request, *names):
+    """Первый числовой параметр из names; нечисловой - как не переданный (иначе 500 на фильтре)."""
+    for name in names:
+        value = request.query_params.get(name)
+        if value and str(value).isdigit():
+            return int(value)
+    return None
+
+
+def get_requested_period(request):
+    """
+    Период для списков, статистики и экспорта кабинета.
+
+    `academic_year` (синоним `semester`) - id одного семестра, баллы из истории (даже у семестра
+    текущего года); `year_start` - учебный год целиком; без параметров - текущий учебный год.
+    Текущий учебный год целиком (явно или по умолчанию) читается из живого кэша Student.
+    """
+    current = AcademicYear.get_current()
+    semester_id = _int_param(request, 'academic_year', 'semester')
+    if semester_id is not None:
+        semester = AcademicYear.objects.filter(pk=semester_id).first()
+        return Period([semester_id], False, semester.label if semester else '')
+
+    year_start = _int_param(request, 'year_start')
+    if year_start is None:
+        if current is None:
+            return Period(None, True, '')
+        year_start = current.year_start
+    ids = list(AcademicYear.year_semesters(year_start).values_list('pk', flat=True))
+    is_live = current is not None and current.year_start == year_start
+    return Period(ids, is_live, _year_label(year_start))
+
+
+def requested_period_filter(request):
+    """Фильтр-словарь по периоду для Document (по умолчанию - текущий учебный год)."""
+    ids = get_requested_period(request).semester_ids
+    return {} if ids is None else {'semester_id__in': ids}
+
+
+def period_score_annotations(semester_ids):
+    """
+    Баллы за семестры периода для queryset `Student`: по коррелированному подзапросу-сумме
+    SemesterScore на категорию и итог, 0 у студентов без строк. Позволяет показывать ВСЕХ
+    отфильтрованных студентов за прошлый период. Ключи: `sem_<code>_score`, `sem_total_score`.
+
+    Набор полей фиксирован (CATEGORY_SCORE_FIELDS), а не берётся из таблицы Category:
+    сериализаторы и Excel-экспорт ожидают все пять sem_*-полей.
+    """
+    rows = (
+        SemesterScore.objects.filter(student=OuterRef('pk'), semester_id__in=semester_ids)
+        .order_by().values('student')
+    )
+    annotations = {}
+    for field in (*CATEGORY_SCORE_FIELDS, 'total_score'):
+        annotations[f'sem_{field}'] = Coalesce(
+            Subquery(rows.annotate(points=Sum(field)).values('points')[:1], output_field=IntegerField()),
+            Value(0),
+        )
+    return annotations
+
 
 def get_requested_semester(request):
     """
+    НЕ ЗАДЕЙСТВОВАНО: заменено get_requested_period / period_score_annotations (решение 2026-10-21).
+
     (semester_id, is_past) для представлений с выбором семестра.
 
     Основной параметр — `academic_year`, поддерживается и `semester`.
@@ -41,13 +121,19 @@ def get_requested_semester(request):
 
 
 def requested_semester_filter(request):
-    """Фильтр-словарь по семестру для Document (по умолчанию — текущий семестр)."""
+    """
+    НЕ ЗАДЕЙСТВОВАНО: заменено requested_period_filter (решение 2026-10-21).
+
+    Фильтр-словарь по семестру для Document (по умолчанию — текущий семестр).
+    """
     semester_id, _ = get_requested_semester(request)
     return {'semester_id': semester_id} if semester_id else {}
 
 
 def semester_score_annotations(semester_id):
     """
+    НЕ ЗАДЕЙСТВОВАНО: заменено period_score_annotations (решение 2026-10-21).
+
     Аннотации баллов выбранного семестра для queryset `Student` (по одному
     коррелированному подзапросу на категорию + итог), с дефолтом 0. Позволяет
     показывать ВСЕХ отфильтрованных студентов за прошлый семестр (0 у тех, у
@@ -103,11 +189,11 @@ def filtered_students(user, request):
 
 def rating_queryset(request):
     """
-    Базовый queryset рейтинга за выбранный семестр (только активные студенты
+    Базовый queryset рейтинга за выбранный период (только активные студенты
     в области видимости сотрудника: кафедра - своя, декан - факультет, ректорат - все).
 
-    Текущий семестр (по умолчанию) — живой кэш баллов Student; прошлый —
-    аннотации sem_* из истории SemesterScore (0 у студентов без строки).
+    Текущий учебный год (по умолчанию) — живой кэш баллов Student; прошлый год или
+    отдельный семестр — аннотации sem_* из истории SemesterScore (0 у студентов без строк).
     Сортировка — по категории из `category`, направление — `direction`
     (asc|desc, по умолчанию desc).
     """
@@ -119,10 +205,10 @@ def rating_queryset(request):
         request.user, Student.objects.active().select_related('group', 'faculty', 'user')
     )
 
-    semester_id, is_past = get_requested_semester(request)
+    period = get_requested_period(request)
     prefix = ''
-    if is_past and semester_id:
-        queryset = queryset.annotate(**semester_score_annotations(semester_id))
+    if not period.is_live:
+        queryset = queryset.annotate(**period_score_annotations(period.semester_ids))
         prefix = 'sem_'
 
     return queryset.by_category(category, direction=direction, prefix=prefix)
@@ -163,7 +249,7 @@ def student_full_profile(student, request, is_own_profile=False):
 def _stats_aggregates(category_codes, score_prefix=''):
     """
     Агрегаты статистики; per-category суммы под ключом '<code>_sum'.
-    `score_prefix`='sem_' переключает на аннотации прошлого семестра.
+    `score_prefix`='sem_' переключает на аннотации прошлого периода.
     """
     aggregates = {
         'total_students': Count('id'),
@@ -178,18 +264,18 @@ def _stats_aggregates(category_codes, score_prefix=''):
 
 def dashboard_stats(user, request):
     """
-    Статистика по отфильтрованным студентам за выбранный семестр.
+    Статистика по отфильтрованным студентам за выбранный период.
 
-    Текущий семестр — живой кэш Student; прошлый — аннотации баллов семестра
-    поверх ВСЕГО отфильтрованного списка (0 у тех, у кого нет истории), чтобы
-    состав и статистика совпадали с текущим семестром.
+    Текущий учебный год — живой кэш Student; прошлый период — аннотации баллов поверх
+    ВСЕГО отфильтрованного списка (0 у тех, у кого нет истории), чтобы состав и
+    статистика совпадали с текущим годом.
     """
     students = filtered_students(user, request)
-    semester_id, is_past = get_requested_semester(request)
+    period = get_requested_period(request)
     category_codes = list(Category.objects.values_list('code', flat=True))
 
-    if is_past and semester_id:
-        source = students.annotate(**semester_score_annotations(semester_id))
+    if not period.is_live:
+        source = students.annotate(**period_score_annotations(period.semester_ids))
         aggregates = _stats_aggregates(category_codes, score_prefix='sem_')
     else:
         source = students
@@ -209,13 +295,13 @@ def dashboard_stats(user, request):
 
 def _moderation_stats(students, request):
     """
-    Показатели модерации за выбранный семестр по тем же студентам, что и остальная
+    Показатели модерации за выбранный период по тем же студентам, что и остальная
     статистика, одним запросом: подано, одобрено, отклонено, ждут решения кафедры,
     из них повторных/возвращённых (с причиной) и сколько дней ждёт самая старая.
     """
     pending = Q(status__code='pending')
     data = Document.objects.filter(
-        user__student_profile__in=students, **requested_semester_filter(request)
+        user__student_profile__in=students, **requested_period_filter(request)
     ).aggregate(
         submitted=Count('id'),
         approved=Count('id', filter=Q(status__code='approved')),
@@ -231,15 +317,15 @@ def _moderation_stats(students, request):
 
 def top5_students(user, request):
     """
-    Топ-5 студентов за выбранный семестр (по сумме баллов) среди
+    Топ-5 студентов за выбранный период (по сумме баллов) среди
     отфильтрованных. Контракт строки: {id, full_name, total_score}.
     """
     students = filtered_students(user, request)
-    semester_id, is_past = get_requested_semester(request)
+    period = get_requested_period(request)
 
-    if is_past and semester_id:
+    if not period.is_live:
         top = (
-            students.annotate(**semester_score_annotations(semester_id))
+            students.annotate(**period_score_annotations(period.semester_ids))
             .order_by('-sem_total_score', 'full_name')[:5]
         )
         return [
@@ -284,7 +370,7 @@ def pending_documents(user, request):
         Document.objects.filter(
             user__student_profile__in=allowed_students(user),
             status__code=doc_status,
-            **requested_semester_filter(request),
+            **requested_period_filter(request),
         )
         .select_related(*_DOCUMENT_LIST_RELATED)
         .prefetch_related('files')
@@ -305,7 +391,7 @@ def reviewed_documents(user, request):
         Document.objects.filter(
             user__student_profile__in=allowed_students(user),
             status__code__in=['approved', 'rejected'],
-            **requested_semester_filter(request),
+            **requested_period_filter(request),
         )
         .select_related(*_DOCUMENT_LIST_RELATED)
         .prefetch_related('files')

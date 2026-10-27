@@ -73,8 +73,8 @@ class FilteredStudentsSemesterTests(APITestCase):
         results = resp.data["results"] if isinstance(resp.data, dict) and "results" in resp.data else resp.data
         return {r["id"]: r["total_score"] for r in results}
 
-    def test_current_semester_shows_live_scores_for_all(self):
-        totals = self._totals({"academic_year": self.current.id})
+    def test_current_year_shows_live_scores_for_all(self):
+        totals = self._totals({"year_start": self.current.year_start})
         self.assertEqual(totals.get(self.a.id), 15)
         self.assertEqual(totals.get(self.b.id), 3)
         self.assertEqual(totals.get(self.c.id), 14)

@@ -220,11 +220,11 @@ def get_pending_docs_count(user) -> int:
         return 0
 
     doc_status = 'approved' if user.is_leadership else 'pending'
-    # Текущий семестр, как вкладка кабинета по умолчанию: иначе шапка и вкладка расходятся,
-    # а заявки прошлых лет навсегда накручивают счётчик (их разбор — задача 7.9).
+    # Текущий учебный год, как вкладка кабинета по умолчанию: иначе шапка и вкладка расходятся,
+    # а заявки прошлых лет навсегда накручивают счётчик.
     current = AcademicYear.get_current()
     return Document.objects.filter(
         user__student_profile__in=allowed_students(user),
         status__code=doc_status,
-        **({'semester': current} if current else {}),
+        **({'semester__year_start': current.year_start} if current else {}),
     ).count()

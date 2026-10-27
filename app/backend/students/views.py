@@ -49,7 +49,9 @@ from .serializers import (
 )
 
 _SEMESTER_PARAMS = [
-    OpenApiParameter('academic_year', OpenApiTypes.INT, description='ID семестра (по умолчанию — текущий)'),
+    OpenApiParameter('year_start', OpenApiTypes.INT,
+                     description='Учебный год (год начала), все его семестры; по умолчанию — текущий учебный год'),
+    OpenApiParameter('academic_year', OpenApiTypes.INT, description='ID одного семестра (вместо учебного года)'),
     OpenApiParameter('semester', OpenApiTypes.INT, description='Синоним academic_year'),
 ]
 
@@ -300,8 +302,8 @@ class StudentViewSet(mixins.ListModelMixin,
             return StudentProfileSerializer
 
         if self.action == 'list':
-            _, is_past = querysets.get_requested_semester(self.request)
-            return SemesterStudentListSerializer if is_past else StudentProfileSerializer
+            live = querysets.get_requested_period(self.request).is_live
+            return StudentProfileSerializer if live else SemesterStudentListSerializer
         return StudentProfileSerializer
 
     def get_queryset(self):
@@ -310,9 +312,9 @@ class StudentViewSet(mixins.ListModelMixin,
 
         if self.action == 'list':
             queryset = querysets.allowed_students(self.request.user)
-            semester_id, is_past = querysets.get_requested_semester(self.request)
-            if is_past and semester_id:
-                queryset = queryset.annotate(**querysets.semester_score_annotations(semester_id))
+            period = querysets.get_requested_period(self.request)
+            if not period.is_live:
+                queryset = queryset.annotate(**querysets.period_score_annotations(period.semester_ids))
             return queryset
         return Student.objects.select_related('user', 'faculty', 'department')
 

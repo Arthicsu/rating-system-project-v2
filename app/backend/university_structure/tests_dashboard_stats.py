@@ -82,8 +82,9 @@ class DashboardStatsSemesterTests(APITestCase):
         self.client.force_authenticate(self.staff_user)
         return self.client.get(reverse(URL_NAME), params or {})
 
-    def test_current_semester_uses_live_cache(self):
-        resp = self._get({"academic_year": self.current.id})
+    def test_current_year_uses_live_cache(self):
+        # Отдельный семестр (даже текущий) читается из истории; живой кэш - весь текущий учебный год.
+        resp = self._get({"year_start": self.current.year_start})
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
 
         stats = resp.data["stats"]
@@ -133,7 +134,7 @@ class DashboardStatsSemesterTests(APITestCase):
         self.assertEqual(past["categories"]["sport"], 2)
 
     def test_top5_shape_and_semester_ordering(self):
-        current_top = self._get({"academic_year": self.current.id}).data["top5"]
+        current_top = self._get({"year_start": self.current.year_start}).data["top5"]
         self.assertEqual([s["total_score"] for s in current_top], [15, 3])
         self.assertEqual(current_top[0]["id"], self.student_a.id)
         # Контракт StudentSimple: id, full_name, total_score.
