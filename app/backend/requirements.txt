@@ -1,25 +1,26 @@
 # Прямые зависимости. Транзитивные pip дотянет сам.
 
 # Django и REST
-Django==6.0.2
-djangorestframework==3.17.1
+Django==6.1.2
+djangorestframework==3.18.3
 django-cors-headers==4.9.0
-django-filter==25.2
-django-redis==6.0.0
+django-filter==26.2
+django-redis==7.0.0
 django-storages==1.14.6
-drf-spectacular==0.29.0
+drf-spectacular==0.30.0
 
 # Очереди и кэш
 celery==5.6.3
+# kombu (транспорт celery) требует redis<6.5: redis 7/8 не ставить, пока kombu их не поддержит.
 redis==6.4.0
 
 # БД, хранилище объектов, сервер
-psycopg[binary]==3.3.2
-boto3==1.42.80
-gunicorn==25.3.0
+psycopg[binary]==3.3.6
+boto3==1.43.119
+gunicorn==26.2.0
 
 # Утилиты
-python-dotenv==1.2.1
-requests==2.32.5
-tenacity==9.1.4
-xlsxwriter==3.2.9
+python-dotenv==1.2.4
+requests==2.34.2
+tenacity==9.2.1
+xlsxwriter==3.3.0

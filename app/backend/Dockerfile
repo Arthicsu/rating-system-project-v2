@@ -1,4 +1,4 @@
-FROM python:3.12.6-slim-bookworm AS builder
+FROM python:3.12.16-slim-bookworm AS builder
 LABEL authors="Arthicsu"
 
 WORKDIR /app
@@ -8,13 +8,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.6 /uv /uvx /bin/
 
 COPY requirements.txt .
 
 RUN uv pip install -r requirements.txt --system --no-cache
 
-FROM python:3.12-slim-bookworm
+FROM python:3.12.16-slim-bookworm
 
 LABEL authors="Arthicsu"
 

@@ -600,6 +600,7 @@ export interface components {
              *
              *     * `autumn` - осень
              *     * `spring` - весна
+             * @default
              */
             readonly term: components["schemas"]["TermEnum"];
             /**
@@ -1058,8 +1059,7 @@ export interface components {
              */
             full_name: string;
             readonly short_name: string;
-            /** Format: email */
-            email?: string | null;
+            email?: (string) | null;
             /** Зачетка */
             record_book?: string | null;
             /** @default Без группы */

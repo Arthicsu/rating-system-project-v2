@@ -1154,6 +1154,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/TermEnum'
           readOnly: true
+          default: ''
           title: Семестр
           description: |-
             Пусто - по дате начала.
@@ -2174,10 +2175,13 @@ components:
           type: string
           readOnly: true
         email:
-          type: string
-          format: email
           nullable: true
-          maxLength: 254
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
         record_book:
           type: string
           nullable: true
