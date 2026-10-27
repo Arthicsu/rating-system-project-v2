@@ -34,6 +34,13 @@ class StudentCsvImportForm(ImportForm):
                   "а студента этой группы в файле нет (например, отчислен, но статус не пришёл), "
                   "он уйдёт в архив. Студентов групп, которых в файле нет совсем, это не затронет).",
     )
+    archive_orphan_groups = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="Также архивировать студентов из групп, отсутствующих в файле (только полная выгрузка вуза)",
+        help_text="(работает только вместе с предыдущей галочкой. Без неё такие студенты попадают "
+                  "в отчёт после импорта: например, выпустившаяся группа, которой нет в новой выгрузке).",
+    )
     clean_duplicates = forms.BooleanField(
         required=False,
         initial=True,
@@ -86,6 +93,7 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
         total_rows = len(data)
         # Архивация отсутствующих — только при загрузке ПОЛНОЙ выгрузки (галочка в форме).
         archive_absent = request.POST.get('archive_absent') in ('on', 'true', 'True', '1')
+        archive_orphans = request.POST.get('archive_orphan_groups') in ('on', 'true', 'True', '1')
         # Очистка дублей до импорта: иначе два новых студента с одной почтой роняли весь
         # импорт (IntegrityError по username), а почта становилась неоднозначной для входа.
         rows_in_file = len(data)
@@ -292,11 +300,20 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
             # Ограничиваемся группами, реально присутствующими в файле, чтобы частичная
             # выгрузка (например, один факультет) не заархивировала всех остальных.
             archived_absent = 0
+            # «Сироты» - активные студенты групп, которых в полной выгрузке нет совсем
+            # (например, выпустилась). Архивируются только по второй галочке.
+            archived_orphans = 0
+            orphan_names = []
             if archive_absent and seen_group_ids:
                 archived_absent = archive_students(
                     Student.objects.filter(group_id__in=seen_group_ids).exclude(external_id__in=seen_external_ids),
                     status='6', when=now,
                 )
+                orphans = Student.objects.active().filter(group__isnull=False).exclude(group_id__in=seen_group_ids)
+                if archive_orphans:
+                    archived_orphans = archive_students(orphans, status='6', when=now)
+                else:
+                    orphan_names = list(orphans.order_by('full_name').values_list('full_name', flat=True))
 
         logger.info("Импорт студентов завершён: обработано активных %s", active_processed)
         if skipped_no_group:
@@ -319,6 +336,32 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 request,
                 f"Переведено в архив как отсутствующие в выгрузке: {archived_absent} "
                 f"(в рамках {len(seen_group_ids)} групп из файла).",
+                messages.WARNING,
+            )
+        if orphan_names:
+            logger.warning(
+                "Импорт: активные студенты из групп, которых нет в файле (%s): %s",
+                len(orphan_names), "; ".join(orphan_names),
+            )
+            shown = ", ".join(orphan_names[:20]) + ("…" if len(orphan_names) > 20 else "")
+            self.message_user(
+                request,
+                f"Активных студентов из групп, которых нет в файле: {len(orphan_names)}: {shown}. "
+                f"Полный список - в логе. Если это полная выгрузка вуза, повторите импорт с галочкой "
+                f"«Также архивировать студентов из групп, отсутствующих в файле».",
+                messages.WARNING,
+            )
+        if archived_orphans:
+            self.message_user(
+                request,
+                f"Переведено в архив студентов из групп, которых нет в файле: {archived_orphans}.",
+                messages.WARNING,
+            )
+        if archive_orphans and not archive_absent:
+            self.message_user(
+                request,
+                "Галочка «Также архивировать студентов из групп, отсутствующих в файле» работает только "
+                "вместе с «Архивировать студентов, отсутствующих в файле» (полная выгрузка) - она не применялась.",
                 messages.WARNING,
             )
         # НЕ ЗАДЕЙСТВОВАНО: CSV с паролями новых студентов
