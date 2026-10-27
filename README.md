@@ -33,9 +33,7 @@
 
 ## Требования
 
-- Python 3.12+
-- Node.js 25+
-- Docker Engine 29.1+
+- Docker Engine 29.1+ (Python 3.12 и Node.js 24 LTS приходят в образах, на хосте не нужны)
 
 ## Поставляемый архив
 
@@ -97,6 +95,42 @@ archive/
    docker compose exec -u app backend python manage.py createsuperuser
    ```
    
+## Разработка (dev-среда)
+
+Dev-стек описан в `project-dev-compose.yml`: исходники смонтированы в контейнеры, бэкенд работает
+на сервере Django с автоперезагрузкой, фронт - на `next dev` с горячей перезагрузкой. Короткие
+команды - `scripts/dev.sh` (Git Bash, Linux) и `scripts/dev.ps1` (PowerShell), команды одинаковые:
+
+```bash
+scripts/dev.sh up                 # собрать и поднять (и после смены зависимостей/Dockerfile)
+scripts/dev.sh test               # тесты бэкенда; можно метку: test students.tests_period
+scripts/dev.sh front typecheck    # pnpm во фронте: typecheck, lint, ...
+scripts/dev.sh api                # обновить контракт API (schema.yml, lib/api-types.ts) и проверить
+scripts/dev.sh db-restore         # пересоздать dev-базу из DEV_DB_DUMP
+scripts/dev.sh                    # список всех команд
+```
+
+Если PowerShell не даёт запустить скрипт: `powershell -ExecutionPolicy Bypass -File scripts\dev.ps1 up`.
+
+Переменные только для dev - в `.env` с префиксом `DEV_` (прод-compose их не читает):
+
+- `DEV_DB_DUMP` - дамп dev-базы: путь внутри `SHARED_HOST_DIR`, `dumps/<файл>` или `backups/db/<файл>`,
+  `.sql` или `.sql.gz` (ежедневный бэкап подходит как есть). Загружается при первом старте пустого
+  тома postgres. Сменить дамп у работающей базы: поменять `DEV_DB_DUMP` и выполнить
+  `scripts/dev.sh db-restore` - команда **удаляет текущую dev-базу**, загружает дамп, очищает Redis
+  (сессии и кэш старой базы) и поднимает backend, который применяет миграции. Файлы достижений в
+  SeaweedFS при этом не меняются: для них - `restore_storage` (раздел ниже).
+- `DEV_USE_GUNICORN` - `false` (по умолчанию): сервер Django с автоперезагрузкой; `true` - gunicorn, как в проде.
+- `DEV_NEXT_BUNDLER` - `webpack` (по умолчанию) видит правки на Windows-хосте; `turbopack` быстрее,
+  но подхватывает правки только там, где до контейнера доходят события файлов (Linux, WSL).
+
+Заметки:
+- celery правки кода сам не видит - `scripts/dev.sh restart celery`;
+- после смены фронтовых зависимостей пересоздать том `node_modules`:
+  `docker compose -f project-dev-compose.yml up -d --build --renew-anon-volumes frontend`;
+- dev-nginx отдаёт CSP с `'unsafe-eval'` (`app/nginx/security-headers.dev.conf`) - без него webpack-dev
+  не работает; прод-образ этого исключения не содержит.
+
 ## Резервное копирование и восстановление
 
 Бэкапы снимает сервис `celery` (worker + встроенный beat) внутри стека - того же образа, что
