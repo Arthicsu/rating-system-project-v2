@@ -9,6 +9,7 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -16,6 +17,7 @@ from rest_framework.test import APITestCase
 from students.models import (
     AchievementType, Category, DocType, Document, DocumentStatus, ScoringRule, Student,
 )
+from university_structure.models import AcademicYear
 
 User = get_user_model()
 
@@ -37,6 +39,8 @@ PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 class IdempotencyTests(APITestCase):
     def setUp(self):
         cache.clear()
+        # Заявка без даты достижения относится к сегодняшнему дню - нужен семестр на сегодня.
+        AcademicYear.objects.create(start_date=timezone.localdate(), is_current=True)
         DocumentStatus.objects.create(code="pending", label="На рассмотрении")
         self.category = Category.objects.create(code="academic", label="Учебная")
         self.sub_type = AchievementType.objects.create(category=self.category, code="olympiad", label="Олимпиада")

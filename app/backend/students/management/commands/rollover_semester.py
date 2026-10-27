@@ -46,5 +46,5 @@ class Command(BaseCommand):
         result = rollover_semester(to_semester=target)
         self.stdout.write(self.style.SUCCESS(
             f"Готово. Архивирован: {result['archived']}; активирован: {result['activated']}; "
-            f"сброшено студентов: {result['students_reset']}; строк истории: {result['snapshots']}."
+            f"пересчитано студентов: {result['students_reset']}."
         ))

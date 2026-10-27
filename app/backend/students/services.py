@@ -2,13 +2,14 @@
 Сервисный слой учёта баллов в разрезе семестра.
 
 Единственный источник изменения баллов: заявка (Document) начисляет/списывает баллы в
-строку SemesterScore своего семестра. Если это текущий семестр — синхронно обновляется
-денормализованный кэш на Student (по нему строится «живой» рейтинг и индекс -total_score).
+строку SemesterScore своего семестра. Если семестр из текущего учебного года — синхронно
+обновляется денормализованный кэш на Student (по нему строится «живой» рейтинг и индекс
+-total_score).
 
-Инвариант: живые поля баллов на Student == SemesterScore(текущий семестр) (или 0). Он
-поддерживается при начислении/списании и пересобирается при ЛЮБОЙ смене текущего семестра —
-через сигнал на AcademicYear (см. students/signals.py), который зовёт
-rebuild_current_semester_cache().
+Инвариант: живые поля баллов на Student == сумма SemesterScore по семестрам текущего
+учебного года (или 0). Он поддерживается при начислении/списании и пересобирается при ЛЮБОЙ
+смене текущего семестра — через сигнал на AcademicYear (см. students/signals.py), который
+зовёт rebuild_current_semester_cache().
 """
 import logging
 import threading
@@ -18,6 +19,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
@@ -60,8 +62,8 @@ def apply_score_delta(student, semester, category_code, delta):
     """
     Изменить баллы студента за указанный семестр на delta (может быть отрицательным).
 
-    Обновляет строку SemesterScore(student, semester); если semester — текущий, синхронно
-    правит и кэш на Student. Значения не опускаются ниже нуля. Вызывать внутри транзакции.
+    Обновляет строку SemesterScore(student, semester); если семестр из текущего учебного года,
+    синхронно правит и кэш на Student. Значения не опускаются ниже нуля. Вызывать внутри транзакции.
     """
     field = _score_field(category_code)
 
@@ -72,8 +74,12 @@ def apply_score_delta(student, semester, category_code, delta):
     ss.save(update_fields=[field])
 
     current = AcademicYear.get_current()
-    if current is not None and semester.pk == current.pk and hasattr(student, field):
-        setattr(student, field, max(0, getattr(student, field) + delta))
+    if current is not None and semester.year_start == current.year_start and hasattr(student, field):
+        # Сумма строк года, а не += delta: обрезка до нуля в строке и в сумме разошлась бы.
+        total = SemesterScore.objects.filter(
+            student=student, semester__year_start=current.year_start,
+        ).aggregate(total=Sum(field))['total'] or 0
+        setattr(student, field, total)
         student.save(update_fields=[field])
 
     # Баллы изменились — страницы рейтинга (cache_page) устарели. Сброс после
@@ -104,21 +110,39 @@ def debit_document(doc):
     apply_score_delta(student, semester, doc.category.code, -doc.score)
 
 
+def semester_for_achievement_date(day):
+    """
+    Семестр заявки по дате достижения (AcademicYear.semester_for_date). Дата в будущем и дата,
+    для которой в портфолио нет семестра, - ошибка 400: спорные случаи разбирает сотрудник.
+    """
+    if day > timezone.localdate():
+        raise ValidationError({'date_received': "Дата получения не может быть в будущем."})
+    semester = AcademicYear.semester_for_date(day)
+    if semester is None:
+        raise ValidationError({'date_received': (
+            f"Для даты {day:%d.%m.%Y} в портфолио нет учебного семестра. Проверьте дату получения; "
+            f"если она верна, обратитесь на кафедру."
+        )})
+    return semester
+
+
 def create_achievement(*, user, files, **validated):
     """
     Создать заявку (Document) с файлами.
 
-    Балл считается по ScoringRule в Document.save(); заявка привязывается
-    к текущему семестру и уходит на рассмотрение (статус 'pending').
+    Балл считается по ScoringRule в Document.save(); заявка привязывается к семестру по дате
+    достижения (без даты - сегодняшней) и уходит на рассмотрение (статус 'pending').
     Вызывается из AchievementUploadSerializer.create().
     """
+    validated.setdefault('date_received', timezone.localdate())
+    semester = semester_for_achievement_date(validated['date_received'])
     status_obj = DocumentStatus.objects.get(code='pending')
 
     with transaction.atomic():
         document = Document.objects.create(
             user=user,
             status=status_obj,
-            semester=AcademicYear.get_current(),
+            semester=semester,
             **validated,
         )
 
@@ -164,8 +188,8 @@ def update_achievement(document, validated_data, files=None, remove_file_ids=())
     """
     Частичное обновление заявки студентом.
 
-    Отклонённая заявка после правок возвращается на повторное рассмотрение.
-    remove_file_ids — удалить эти файлы заявки, files — добавить к оставшимся (порядок
+    Отклонённая заявка после правок возвращается на повторное рассмотрение, смена даты
+    достижения переносит заявку в семестр новой даты. remove_file_ids — удалить эти файлы заявки, files — добавить к оставшимся (порядок
     заново 0..n-1); из хранилища удалённые стираются только после коммита транзакции.
     Проверки состава файлов — в AchievementUpdateSerializer.validate().
     """
@@ -179,6 +203,8 @@ def update_achievement(document, validated_data, files=None, remove_file_ids=())
         document.verified_by_id = locked.verified_by_id
         document.rejection_reason = locked.rejection_reason
         check_file_limits(document, remove_file_ids, files or [])
+        if 'date_received' in validated_data:
+            document.semester = semester_for_achievement_date(validated_data['date_received'])
 
         for attr, value in validated_data.items():
             setattr(document, attr, value)
@@ -382,12 +408,13 @@ def review_document(*, document, reviewer, action, reasons=()):
 @transaction.atomic
 def rebuild_current_semester_cache():
     """
-    Пересобрать живой кэш баллов всех студентов из SemesterScore ТЕКУЩЕГО семестра.
+    Пересобрать живой кэш баллов всех студентов из SemesterScore ТЕКУЩЕГО учебного года.
 
-    Для каждого студента живые поля становятся равны его строке SemesterScore текущего
-    семестра, либо 0 — если строки нет / нет текущего семестра. Так «переключение» текущего
-    семестра (любым способом: rollover, ручное изменение is_current в админке) не даёт баллам
-    наслаиваться, а возврат на прошлый семестр восстанавливает его значения.
+    Для каждого студента живые поля становятся равны сумме его строк SemesterScore за семестры
+    текущего учебного года, либо 0 — если строк нет / нет текущего семестра. Переключение
+    осень → весна внутри года баллы не меняет; переход на другой год (любым способом: переход в
+    админке, ручное изменение is_current) не даёт баллам наслаиваться, а возврат на прошлый год
+    восстанавливает его значения.
 
     Возвращает число обновлённых записей Student.
     """
@@ -397,16 +424,18 @@ def rebuild_current_semester_cache():
         return Student.objects.update(**zeros)
 
     rows = list(
-        SemesterScore.objects.filter(semester=current).values('student_id', *CATEGORY_SCORE_FIELDS)
+        SemesterScore.objects.filter(semester__year_start=current.year_start)
+        .order_by().values('student_id')
+        .annotate(**{f'year_{f}': Sum(f) for f in CATEGORY_SCORE_FIELDS})
     )
     row_ids = [r['student_id'] for r in rows]
 
-    # Студентам без строки за текущий семестр — нули.
+    # Студентам без строк за текущий год — нули.
     updated = Student.objects.exclude(id__in=row_ids).update(**zeros)
-    # Студентам со строкой — значения строки.
+    # Студентам со строками — суммы за год.
     for r in rows:
         updated += Student.objects.filter(id=r['student_id']).update(
-            **{f: r[f] for f in CATEGORY_SCORE_FIELDS}
+            **{f: r[f'year_{f}'] for f in CATEGORY_SCORE_FIELDS}
         )
     return updated
 
@@ -414,40 +443,19 @@ def rebuild_current_semester_cache():
 @transaction.atomic
 def rollover_semester(to_semester=None):
     """
-    Завершить текущий семестр и активировать следующий.
+    Сделать текущим другой семестр: `to_semester` или ближайший следующий по start_date.
 
-    1. (страховка) синхронизировать строки SemesterScore текущего семестра с живыми полями
-       студентов, у которых есть баллы;
-    2. снять is_current с текущего семестра и поставить на `to_semester` (или на ближайший по
-       start_date, если не задан);
-    3. пересобрать живой кэш из SemesterScore нового текущего семестра (для нового семестра — нули).
-
-    Переключения is_current делаются с подавлением автосинхронизации, а кэш пересобирается один
-    раз в конце. Возвращает словарь со статистикой.
+    Снимает is_current с текущего, ставит на новый и один раз в конце пересобирает живой кэш:
+    внутри учебного года баллы сохраняются, при смене года живой рейтинг начинается с нуля.
+    История (строки SemesterScore) не меняется - её пишут только начисление и списание заявок;
+    кэш - сумма строк года, поэтому копировать его обратно в строку семестра нельзя.
+    Переключения is_current делаются с подавлением автосинхронизации. Возвращает статистику.
     """
     current = AcademicYear.get_current()
-    result = {'archived': None, 'activated': None, 'students_reset': 0, 'snapshots': 0}
+    result = {'archived': None, 'activated': None, 'students_reset': 0}
 
     with suspend_cache_sync():
         if current is not None:
-            # Страховка от рассинхрона: строки текущего семестра должны совпадать с кэшем Student.
-            # Архивных студентов НЕ исключаем намеренно: если студента заархивировали в середине
-            # семестра (отчислен/окончил), его заработанные баллы всё равно фиксируются в истории
-            # этого семестра. Живой кэш затем пересобирается для всех (архивные и так скрыты из рейтинга).
-            snapshots = 0
-            for student in Student.objects.filter(total_score__gt=0).iterator():
-                SemesterScore.objects.update_or_create(
-                    student=student, semester=current,
-                    defaults={
-                        'academic_score': student.academic_score,
-                        'research_score': student.research_score,
-                        'sport_score': student.sport_score,
-                        'social_score': student.social_score,
-                        'cultural_score': student.cultural_score,
-                    },
-                )
-                snapshots += 1
-            result['snapshots'] = snapshots
             result['archived'] = current.label
 
             current.is_current = False

@@ -324,6 +324,6 @@ class AcademicYearAdmin(admin.ModelAdmin):
         self.message_user(
             request,
             f"Ролловер выполнен: архивирован «{result['archived']}», активирован «{result['activated']}», "
-            f"сброшено студентов: {result['students_reset']}, строк истории: {result['snapshots']}.",
+            f"пересчитано студентов: {result['students_reset']}.",
             level=messages.SUCCESS,
         )

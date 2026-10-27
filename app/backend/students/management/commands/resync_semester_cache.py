@@ -13,7 +13,7 @@ from university_structure.models import AcademicYear
 
 
 class Command(BaseCommand):
-    help = "Пересобирает живой кэш баллов Student из SemesterScore текущего семестра."
+    help = "Пересобирает живой кэш баллов Student из SemesterScore текущего учебного года."
 
     def handle(self, *args, **options):
         current = AcademicYear.get_current()
