@@ -33,7 +33,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Учебные периоды для селектора семестра (кэш 2 часа). */
+        /**
+         * @description Семестры для селектора «Период». Без кэша: строк по две на учебный год, а после перехода
+         *     на новый год список нужен сразу, а cache_page разрешил бы и браузеру держать его 2 часа.
+         */
         get: operations["v1_academic_years_list"];
         put?: never;
         post?: never;
