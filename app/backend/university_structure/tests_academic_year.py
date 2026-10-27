@@ -69,6 +69,18 @@ class AcademicYearTests(TestCase):
 
         self.assertEqual(AcademicYear.semester_for_date(date(2026, 9, 15)), spring)
 
+    def test_semester_for_date_ignores_next_year_before_transition(self):
+        # Семестры следующего года завели вручную заранее: до перехода продолжается старый год.
+        make_semester(2025, "autumn")
+        spring = make_semester(2025, "spring", current=True)
+        next_autumn = make_semester(2026, "autumn")
+
+        self.assertEqual(AcademicYear.semester_for_date(date(2026, 9, 15)), spring)
+
+        AcademicYear.objects.filter(pk=spring.pk).update(is_current=False)
+        AcademicYear.objects.filter(pk=next_autumn.pk).update(is_current=True)
+        self.assertEqual(AcademicYear.semester_for_date(date(2026, 9, 15)), next_autumn)
+
     def test_semester_for_date_none_outside(self):
         make_semester(2025, "autumn", current=True)
         make_semester(2025, "spring")

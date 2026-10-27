@@ -159,16 +159,16 @@ class AcademicYear(models.Model):
     @classmethod
     def semester_for_date(cls, day):
         """
-        Семестр, к которому относится дата достижения: заведённый семестр любого года, в чьи
-        даты она попадает. Дата позже конца текущего учебного года - его последний семестр:
-        до перехода на новый год продолжается старый. Иначе None.
+        Семестр, к которому относится дата достижения: заведённый семестр, в чьи даты она
+        попадает. До перехода на новый год продолжается старый: семестры следующих лет (даже
+        заведённые заранее) не учитываются, а дата позже конца текущего учебного года относится
+        к его последнему семестру. Иначе None.
         """
-        found = cls.objects.filter(start_date__lte=day, end_date__gte=day).first()
-        if found is not None:
-            return found
         current = cls.get_current()
-        if current is None:
-            return None
+        semesters = cls.objects.all() if current is None else cls.objects.filter(year_start__lte=current.year_start)
+        found = semesters.filter(start_date__lte=day, end_date__gte=day).first()
+        if found is not None or current is None:
+            return found
         last = cls.year_semesters(current.year_start).last()
         return last if day > last.end_date else None
 
