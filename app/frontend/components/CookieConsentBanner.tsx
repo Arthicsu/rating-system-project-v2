@@ -1,5 +1,8 @@
 'use client';
+import Link from 'next/link';
 import { useState, useSyncExternalStore } from 'react';
+
+import { POLICY_DOCUMENTS } from '@/components/DocumentPage';
 
 const COOKIE_NAME = 'users_cookie_accepted';
 const emptySubscribe = () => () => {};
@@ -9,7 +12,6 @@ function hasConsent() {
 }
 
 export default function CookieConsentBanner() {
-  const [showDetails, setShowDetails] = useState(false);
   const [accepted, setAccepted] = useState(false);
   // Рендерим только на клиенте, чтобы избежать несовпадения гидрации.
   const mounted = useSyncExternalStore(
@@ -31,35 +33,21 @@ export default function CookieConsentBanner() {
     <div className="fixed right-4 bottom-20 left-4 z-30 flex flex-row items-center justify-between gap-6 m-2.5 p-5 px-6 rounded-lg bg-[#2b2b2b] text-white shadow-[0_8px_32px_rgba(0,0,0,0.24)] sm:bottom-4 max-md:flex-col max-md:items-stretch max-md:gap-4">
       <div className="flex-1 m-0 text-[13px] leading-relaxed text-white">
         <p className="m-0">
-          Нажимая кнопку «Принять», Вы подтверждаете то, что Вы проинформированы об{' '}
-          <button
-            type="button"
-            onClick={() => setShowDetails((prev) => !prev)}
-            className="underline cursor-pointer hover:opacity-80"
-          >
-            использовании cookies
-          </button>{' '}
-          на нашем сайте.
+          Для работы сайта мы используем файлы cookie и обрабатываем персональные данные. Продолжая
+          пользоваться сайтом, вы подтверждаете и принимаете:
         </p>
-
-        <div
-          className="grid transition-[grid-template-rows] duration-300 ease-in-out"
-          style={{ gridTemplateRows: showDetails ? '1fr' : '0fr' }}
-        >
-          <div className="overflow-hidden">
-            <hr className="my-2.5 border-0 border-t border-dashed border-white/35" />
-            <p className="m-0 mb-2">
-              Для того, чтобы мы могли качественно предоставить Вам услуги, мы используем
-              cookies, которые сохраняются на Вашем компьютере (сведения о местоположении;
-              ip-адрес; тип, язык, версия ОС и браузера; тип устройства и разрешение его
-              экрана; источник, откуда пришел на сайт пользователь; какие страницы открывает
-              и на какие кнопки нажимает пользователь).
-            </p>
-            <p className="m-0 mt-2">
-              Отключить cookies Вы можете в настройках своего браузера.
-            </p>
-          </div>
-        </div>
+        <ul className="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:gap-x-4">
+          {POLICY_DOCUMENTS.map((doc) => (
+            <li key={doc.href}>
+              <Link
+                href={doc.href}
+                className="inline-flex min-h-8 items-center underline underline-offset-2 hover:opacity-80 sm:min-h-0"
+              >
+                {doc.title}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="flex-shrink-0 m-0 max-md:flex max-md:justify-center">
