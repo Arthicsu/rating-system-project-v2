@@ -3,6 +3,7 @@
 выпустившаяся группа). По умолчанию - только отчёт, со второй галочкой - архив.
 """
 from django.contrib.admin.sites import AdminSite
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group as AuthGroup
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.test import RequestFactory, TestCase, override_settings
@@ -24,15 +25,19 @@ class ImportOrphansTests(TestCase):
         self.orphan = make_student("o@uni.ru", group=self.missing)
         self.no_group = make_student("n@uni.ru")
 
-    def _import(self, **flags):
+    def _row(self, user, group_code, status="1"):
+        return {
+            "Код": f"EXT-{user.username}", "Статус": status, "Код_Группы": group_code,
+            "Фамилия": "П", "Имя": "П", "Отчество": "П", "E_Mail": user.email,
+        }
+
+    def _import(self, extra_rows=(), **flags):
         request = RequestFactory().post("/", {k: "on" for k, on in flags.items() if on})
         request.session = {}
         request._messages = FallbackStorage(request)
-        row = {
-            "Код": f"EXT-{self.present.username}", "Статус": "1", "Код_Группы": self.in_file.external_id,
-            "Фамилия": "П", "Имя": "П", "Отчество": "П", "E_Mail": self.present.email,
-        }
-        self.admin.process_import(request, [row])
+        # Пропущенные строки дают страницу итогов импорта - ей нужен пользователь админки.
+        request.user = get_user_model().objects.create_superuser("oi-admin", password=None)
+        self.admin.process_import(request, [self._row(self.present, self.in_file.external_id), *extra_rows])
         return [str(m) for m in request._messages]
 
     def _archived(self, user):
@@ -56,6 +61,18 @@ class ImportOrphansTests(TestCase):
         self.assertFalse(self.orphan.is_active)
         self.assertFalse(self._archived(self.present))
         self.assertFalse(self._archived(self.no_group))
+
+    def test_student_listed_in_file_is_never_an_orphan(self):
+        # Строка студента пропущена (его новой группы ещё нет в БД, неизвестный статус), но сам
+        # студент в выгрузке есть: его прежняя группа не в файле, а он - не «сирота».
+        unknown_status = make_student("u@uni.ru", group=self.missing)
+        rows = [self._row(self.orphan, "G-NOT-SYNCED"), self._row(unknown_status, self.missing.external_id, status="9")]
+
+        notes = self._import(rows, archive_absent=True, archive_orphan_groups=True)
+
+        self.assertFalse(self._archived(self.orphan))
+        self.assertFalse(self._archived(unknown_status))
+        self.assertFalse(any("групп, которых нет в файле" in n for n in notes), notes)
 
     def test_second_flag_requires_full_import_flag(self):
         notes = self._import(archive_orphan_groups=True)

@@ -341,7 +341,8 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
             # выгрузка (например, один факультет) не заархивировала всех остальных.
             archived_absent = 0
             # «Сироты» - активные студенты групп, которых в полной выгрузке нет совсем
-            # (например, выпустилась). Архивируются только по второй галочке.
+            # (например, выпустилась). Архивируются только по второй галочке. Студент, чья строка
+            # в файле есть, но пропущена (новой группы ещё нет в БД, неизвестный статус), - не сирота.
             archived_orphans = 0
             orphan_names = []
             if archive_absent and seen_group_ids:
@@ -349,7 +350,10 @@ class StudentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                     Student.objects.filter(group_id__in=seen_group_ids).exclude(external_id__in=seen_external_ids),
                     status='6', when=now,
                 )
-                orphans = Student.objects.active().filter(group__isnull=False).exclude(group_id__in=seen_group_ids)
+                orphans = (
+                    Student.objects.active().filter(group__isnull=False)
+                    .exclude(group_id__in=seen_group_ids).exclude(external_id__in=seen_external_ids)
+                )
                 if archive_orphans:
                     archived_orphans = archive_students(orphans, status='6', when=now)
                 else:
