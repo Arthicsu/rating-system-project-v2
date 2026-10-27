@@ -73,8 +73,9 @@ class GroupViewSet(mixins.ListModelMixin, GenericViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Group.objects.none()
 
-        # Подзапрос вместо join таблицы студентов — без дублей строк.
-        has_students_subquery = Student.objects.filter(group=OuterRef('pk'))
+        # Подзапрос вместо join таблицы студентов — без дублей строк. Только активные:
+        # группа, где остались архивные (выпуск, отчисление), в кабинете не нужна.
+        has_students_subquery = Student.objects.active().filter(group=OuterRef('pk'))
 
         queryset = Group.objects.select_related('specialty__faculty').annotate(
             has_students=Exists(has_students_subquery)

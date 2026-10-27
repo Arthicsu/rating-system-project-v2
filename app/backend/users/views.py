@@ -15,6 +15,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 from django.contrib.auth import authenticate, get_user_model, login, logout, update_session_auth_hash
+from django.db.models import Exists, OuterRef
 from django.http import HttpResponse, StreamingHttpResponse
 from django.utils.decorators import method_decorator
 from django.utils.http import content_disposition_header
@@ -53,7 +54,7 @@ from core.preview import (
 from core.serializers import ErrorDetailSerializer, MessageSerializer
 from core.throttling import LoginIpRateThrottle, LoginRateThrottle
 
-from students.models import Category, DocumentFile
+from students.models import Category, DocumentFile, Student
 from students.serializers import (
     CategorySerializer,
     SemesterStudentListSerializer,
@@ -264,7 +265,6 @@ class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
 
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
-            from students.models import Student
             return Student.objects.none()
         return querysets.rating_queryset(self.request)
 
@@ -291,7 +291,9 @@ class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
     def filters(self, request):
         faculties = Faculty.objects.values('id', 'short_name', 'name')
         courses = Group.objects.values_list('course', flat=True).distinct().order_by('course')
-        groups = Group.objects.filter(students__isnull=False).select_related('specialty__faculty').distinct()
+        groups = Group.objects.filter(
+            Exists(Student.objects.active().filter(group=OuterRef('pk')))
+        ).select_related('specialty__faculty')
 
         serializer = RatingFiltersResponseSerializer({
             'faculties': faculties,
