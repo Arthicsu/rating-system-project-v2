@@ -514,12 +514,20 @@ def _transition_block_reason(current, today):
 
 
 def transition_preview(today=None):
-    """Сводка для страницы подтверждения перехода на следующий учебный год; ничего не меняет."""
+    """
+    Сводка для страницы подтверждения перехода на следующий учебный год; ничего не меняет.
+    early_end - плановый конец последнего семестра, если он ещё не наступил: переход раньше
+    закончит год досрочно и обнулит живой рейтинг посреди семестра.
+    """
+    today = today or timezone.localdate()
     current = AcademicYear.get_current()
-    block_reason = _transition_block_reason(current, today or timezone.localdate())
+    block_reason = _transition_block_reason(current, today)
     if current is None:
         return {'block_reason': block_reason}
+    last = AcademicYear.year_semesters(current.year_start).last()
     return {
+        'last_label': last.label,
+        'early_end': last.end_date if today <= last.end_date else None,
         'from_label': _year_label(current.year_start),
         'to_label': _year_label(current.year_start + 1),
         'students_with_scores': Student.objects.active().filter(total_score__gt=0).count(),

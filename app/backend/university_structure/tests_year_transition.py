@@ -101,6 +101,18 @@ class YearTransitionTests(TestCase):
         self.assertEqual(AcademicYear.get_current(), self.autumn)
         self.assertEqual(AcademicYear.objects.count(), 2)
 
+    def test_confirm_page_warns_before_planned_year_end(self):
+        # Кнопка видна всегда: случайный переход посреди весны обнулил бы живой рейтинг года.
+        AcademicYear.objects.filter(pk=self.spring.pk).update(end_date=self.today + timedelta(days=30))
+
+        page = self.client.get(reverse(URL)).content.decode()
+
+        self.assertIn("ещё не закончился", page)
+        self.assertIn((self.today + timedelta(days=30)).strftime("%d.%m.%Y"), page)
+
+    def test_no_warning_after_planned_year_end(self):
+        self.assertNotIn("ещё не закончился", self.client.get(reverse(URL)).content.decode())
+
     def test_banner_when_year_ended(self):
         page = self.client.get(reverse("admin:index")).content.decode()
 
