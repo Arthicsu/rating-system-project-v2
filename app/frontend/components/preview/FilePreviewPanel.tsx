@@ -60,7 +60,7 @@ export default function FilePreviewPanel({ fileId, fileName, isOpen, onDownload 
         <button
           type="button"
           onClick={onDownload}
-          className="cursor-pointer rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700"
+          className="cursor-pointer rounded-lg bg-sky-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-800"
         >
           Скачать файл
         </button>

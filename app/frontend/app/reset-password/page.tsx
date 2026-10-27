@@ -113,7 +113,7 @@ function ResetPasswordForm() {
                   autoComplete="email"
                   inputMode="email"
                   placeholder="Введите E-mail"
-                  className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#0069a8] focus:ring-1 focus:ring-[#0069a8]"
+                  className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
                   {...register('email')}
                 />
               </div>
@@ -149,14 +149,14 @@ function ResetPasswordForm() {
             Если у Вас возникли технические сложности, свяжитесь с нами по email:{' '}
             <Link
               href="mailto:oi@bgitu.ru"
-              className="font-semibold text-[#0050CF] underline underline-offset-2 hover:text-[#002D6E]"
+              className="font-semibold text-sky-700 underline underline-offset-2 hover:text-sky-900"
             >
               oi@bgitu.ru
             </Link>
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-4 rounded-2xl bg-white/80 px-4 py-4 shadow-sm">
-            <p className="text-xs content-center font-medium text-[#0050CF] md:text-sm md:text-right md:self-stretch">
+            <p className="text-xs content-center font-medium text-sky-700 md:text-sm md:text-right md:self-stretch">
               BRYANSK STATE <br />
               TECHNOLOGICAL UNIVERSITY <br />
               OF ENGINEERING
@@ -168,7 +168,7 @@ function ResetPasswordForm() {
               height={64}
               className="h-16 w-auto object-contain md:h-20"
             />
-            <p className="text-xs content-center font-medium text-[#0050CF] md:text-sm md:text-left md:self-stretch">
+            <p className="text-xs content-center font-medium text-sky-700 md:text-sm md:text-left md:self-stretch">
               БРЯНСКИЙ ГОСУДАРСТВЕННЫЙ <br />
               ИНЖЕНЕРНО-ТЕХНОЛОГИЧЕСКИЙ <br />
               УНИВЕРСИТЕТ

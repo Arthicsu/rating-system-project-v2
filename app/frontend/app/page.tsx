@@ -51,7 +51,7 @@ export default function Main() {
           {/* <p className="text-xs text-[#333] md:text-base sm:text-sm">
             email:{' '}
             <Link
-              className="text-[#0050CF] underline underline-offset-2 hover:text-[#002D6E]"
+              className="text-sky-700 underline underline-offset-2 hover:text-sky-900"
               href="mailto:oi@bgitu.ru"
             >
               oi@bgitu.ru

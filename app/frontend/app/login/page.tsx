@@ -94,7 +94,7 @@ export default function LoginPage() {
                 autoComplete="username"
                 autoCapitalize="none"
                 spellCheck={false}
-                className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[#0069a8] focus:ring-1 focus:ring-[#0069a8]"
+                className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
                 {...register('username')}
               />
             </div>
@@ -107,7 +107,7 @@ export default function LoginPage() {
                 id="password"
                 required
                 autoComplete="current-password"
-                className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 pr-10 text-sm text-slate-900 outline-none focus:border-[#0069a8] focus:ring-1 focus:ring-[#0069a8]"
+                className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 pr-10 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
                 {...register('password')}
               />
             </div>
@@ -128,7 +128,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-5 space-y-2 text-center text-sm">
-            {/* <Link className="text-[#0069a8] hover:text-sky-900 underline underline-offset-2" href="/register">
+            {/* <Link className="text-sky-700 hover:text-sky-900 underline underline-offset-2" href="/register">
               Зарегистрироваться
             </Link> */}
             {/* <span className="h-5 w-px bg-slate-300" /> */}

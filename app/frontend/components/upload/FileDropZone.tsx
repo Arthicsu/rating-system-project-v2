@@ -210,7 +210,7 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
         </div>
         
         <p className="text-xs font-medium text-slate-700">
-          Перетащите файлы сюда или <span className="text-sky-700 group-hover:text-sky-600 font-semibold">выберите на компьютере</span>
+          Перетащите файлы сюда или <span className="text-sky-700 group-hover:text-sky-900 font-semibold">выберите на компьютере</span>
         </p>
         <p className="mt-1 text-xs text-sky-700 max-w-xs">
           До {MAX_FILES}-х файлов по очереди или вместе. Общий размер до {MAX_TOTAL_SIZE_MB} МБ.

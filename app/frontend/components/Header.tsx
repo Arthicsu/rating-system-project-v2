@@ -127,7 +127,7 @@ export default function Header() {
                   </Link>
                   <button
                     onClick={logoutUser}
-                    className="cursor-pointer inline-flex items-center whitespace-nowrap border-0 bg-transparent px-1 text-xs text-sky-600 hover:text-sky-700 sm:text-sm"
+                    className="cursor-pointer inline-flex items-center whitespace-nowrap border-0 bg-transparent px-1 text-xs text-sky-700 hover:text-sky-900 sm:text-sm"
                   >
                     Выйти
                   </button>

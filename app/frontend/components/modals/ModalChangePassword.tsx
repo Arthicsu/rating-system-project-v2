@@ -32,7 +32,7 @@ const SERVER_FIELDS: Record<string, FieldName> = {
 };
 
 const INPUT_CLASS =
-  'h-11 w-full rounded-md border border-slate-300 bg-white px-3 pr-11 text-sm text-slate-900 outline-none focus:border-[#0069a8] focus:ring-1 focus:ring-[#0069a8] aria-[invalid=true]:border-rose-400';
+  'h-11 w-full rounded-md border border-slate-300 bg-white px-3 pr-11 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 aria-[invalid=true]:border-rose-400';
 
 /**
  * Смена пароля студентом: текущий, новый и повтор. Остальные сессии студента

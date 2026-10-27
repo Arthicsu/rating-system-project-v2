@@ -74,7 +74,7 @@ export default function ModalPreview({ isOpen, doc, onClose }: ModalPreviewProps
                   title={file.original_file_name || `Файл ${index + 1}`}
                   className={`cursor-pointer max-w-40 min-w-0 shrink-0 overflow-hidden rounded-lg px-3 py-1.5 text-xs font-medium transition sm:max-w-60 ${
                     index === selectedFileIndex
-                      ? 'bg-sky-600 text-white'
+                      ? 'bg-sky-700 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >

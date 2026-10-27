@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Фирменный синий - цвет логотипа БГИТУ, основной цвет интерфейса (sky-700).
+   600/800/900 (ховеры, фокус) - светлота шкалы Tailwind в тоне логотипа. */
+@theme {
+  --color-sky-600: #2182d4;
+  --color-sky-700: #1968ab;
+  --color-sky-800: #1d588d;
+  --color-sky-900: #1c4973;
+}
+
 input[type=password]::-ms-reveal,
 input[type=password]::-ms-clear {
     display: none;

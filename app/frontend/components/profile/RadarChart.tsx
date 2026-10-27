@@ -21,10 +21,10 @@ export default function RadarChart({ labels, data }: RadarChartProps) {
       {
         label: 'Баллы',
         data,
-        backgroundColor: 'rgba(0, 80, 207, 0.35)',
-        borderColor: '#0069a8',
+        backgroundColor: 'rgba(25, 104, 171, 0.35)',
+        borderColor: '#1968ab',
         borderWidth: 2,
-        pointBackgroundColor: '#0069a8',
+        pointBackgroundColor: '#1968ab',
       },
     ],
   };
