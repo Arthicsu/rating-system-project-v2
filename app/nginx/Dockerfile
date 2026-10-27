@@ -1,4 +1,4 @@
-FROM nginx:1.27-alpine
+FROM nginx:1.30.6-alpine
 LABEL authors="Arthicsu"
 
 RUN rm /etc/nginx/conf.d/default.conf
