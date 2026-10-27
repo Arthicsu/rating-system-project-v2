@@ -6,7 +6,7 @@ import type { FilePreviewKind } from '@/hooks/useFilePreview';
 
 // Воркер pdf.js отдаётся статикой из public/ — работает одинаково и в webpack-dev,
 // и в turbopack-build (Turbopack не резолвит bare-спецификатор в new URL()).
-// ВАЖНО: public/pdf.worker.min.mjs скопирован из pdfjs-dist (сейчас 5.4.296).
+// ВАЖНО: public/pdf.worker.min.mjs скопирован из pdfjs-dist (сейчас 6.3.289, react-pdf 11).
 // При обновлении react-pdf/pdfjs пересоздать файл:
 //   cp node_modules/.pnpm/pdfjs-dist@<ver>/node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs
 // Если версия воркера разойдётся с pdf.js — сработает мягкий фолбэк на <iframe>.
@@ -122,6 +122,8 @@ export default function FileViewer({ previewUrl, previewKind, fileName, onDownlo
         {usePdfRenderer && (
           <Document
             file={fileSource}
+            // react-pdf 11 по умолчанию отдаёт загрузку и ошибки в Suspense/Error Boundary - нужны свои loading/error и фолбэк на iframe.
+            suspense={false}
             onLoadSuccess={({ numPages: n }) => setNumPages(n)}
             onLoadError={() => setPdfFailed(true)}
             loading={

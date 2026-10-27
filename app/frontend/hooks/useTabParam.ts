@@ -20,7 +20,7 @@ export function useTabParam(validTabs: readonly string[], defaultTab: string, ba
   useEffect(() => {
     const tab = new URLSearchParams(window.location.search).get('tab');
     if (tab && validTabs.includes(tab)) {
-      // Синхронизация состояния с ?tab= после гидрации.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- синхронизация с ?tab= после гидрации (см. выше)
       setActiveTab(tab);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- только на маунте

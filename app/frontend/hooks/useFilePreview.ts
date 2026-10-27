@@ -28,6 +28,7 @@ export function useFilePreview(fileId: number | null, enabled: boolean) {
 
     if (!enabled || fileId === null) {
       revokeCurrentUrl();
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- сброс превью при закрытии (внешний флаг enabled/fileId)
       setPreviewUrl(null);
       setError(null);
       setLoading(false);

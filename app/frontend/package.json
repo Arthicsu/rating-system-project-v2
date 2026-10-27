@@ -2,7 +2,7 @@
   "name": "frontend",
   "version": "1.2.0b",
   "private": true,
-  "packageManager": "pnpm@10.34.4",
+  "packageManager": "pnpm@10.34.9",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,30 +13,30 @@
     "check:api-sync": "openapi-typescript ./schema.yml -o ./lib/api-types.check.tmp && node -e \"const fs=require('fs');const n=s=>s.replace(/\\r\\n/g,'\\n');const a=n(fs.readFileSync('lib/api-types.ts','utf8'));const b=n(fs.readFileSync('lib/api-types.check.tmp','utf8'));fs.unlinkSync('lib/api-types.check.tmp');if(a!==b){console.error('lib/api-types.ts устарел: запустите pnpm generate:api');process.exit(1)}\""
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.101.2",
-    "axios": "^1.13.5",
-    "boneyard-js": "^1.7.6",
-    "chart.js": "^4.5.1",
-    "next": "16.1.6",
+    "@tanstack/react-query": "^5.105.0",
+    "axios": "^1.21.0",
+    "boneyard-js": "^1.10.0",
+    "chart.js": "^4.6.1",
+    "next": "16.4.3",
     "next-themes": "^0.4.6",
-    "react": "19.2.3",
+    "react": "19.3.1",
     "react-chartjs-2": "^5.3.1",
-    "react-dom": "19.2.3",
-    "react-hook-form": "^7.81.0",
-    "react-hot-toast": "^2.6.0",
-    "react-pdf": "^10.4.1",
-    "zod": "^4.4.3",
-    "@hookform/resolvers": "^5.4.0"
+    "react-dom": "19.3.1",
+    "react-hook-form": "^7.91.0",
+    "react-hot-toast": "^2.6.1",
+    "react-pdf": "^11.0.0",
+    "zod": "^4.6.7",
+    "@hookform/resolvers": "^6.0.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "16.4.3",
     "openapi-typescript": "^7.13.0",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3"
   }
 }
