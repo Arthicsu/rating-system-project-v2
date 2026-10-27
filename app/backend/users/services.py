@@ -6,6 +6,7 @@ from django.core.cache import cache
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Count
 from django.utils.html import escape
 
 from core.admin_password_generator import generate_password
@@ -228,3 +229,29 @@ def get_pending_docs_count(user) -> int:
         status__code=doc_status,
         **({'semester__year_start': current.year_start} if current else {}),
     ).count()
+
+
+def get_past_pending(user) -> list[dict]:
+    """
+    Заявки прошлых учебных лет, которые ждут решения кафедры, по годам (новые сверху) - в
+    области видимости сотрудника кафедры. Руководство по новым заявкам не решает, ему и
+    не-сотрудникам - пустой список.
+    """
+    if not hasattr(user, 'staff_profile') or user.is_leadership:
+        return []
+    current = AcademicYear.get_current()
+    if current is None:
+        return []
+    rows = (
+        Document.objects.filter(
+            user__student_profile__in=allowed_students(user),
+            status__code='pending',
+            semester__year_start__lt=current.year_start,
+        )
+        .values('semester__year_start').annotate(count=Count('id')).order_by('-semester__year_start')
+    )
+    return [
+        {'year_start': y, 'label': f"{y}-{y + 1} уч. год", 'count': row['count']}
+        for row in rows
+        for y in (row['semester__year_start'],)
+    ]

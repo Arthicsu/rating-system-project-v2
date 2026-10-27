@@ -160,8 +160,16 @@ class ChangePasswordSerializer(serializers.Serializer):
         return attrs
 
 
+class PastPendingSerializer(serializers.Serializer):
+    year_start = serializers.IntegerField(read_only=True)
+    label = serializers.CharField(read_only=True)
+    count = serializers.IntegerField(read_only=True)
+
+
 class PendingCountSerializer(serializers.Serializer):
     pending_docs_count = serializers.IntegerField(read_only=True)
+    # Нерассмотренные заявки прошлых учебных лет (только у кафедры) - заметка в кабинете.
+    past_pending = PastPendingSerializer(many=True, read_only=True)
 
 
 class NotificationSettingsSerializer(serializers.ModelSerializer):

@@ -73,7 +73,7 @@ from .serializers import (
     StudentRegistrationSerializer,
     UserResponseSerializer,
 )
-from .services import get_pending_docs_count, request_password, resolve_login_username
+from .services import get_past_pending, get_pending_docs_count, request_password, resolve_login_username
 from .signals import _client_ip
 from .tasks import send_password_changed_email
 
@@ -463,6 +463,11 @@ class NotificationViewSet(viewsets.ViewSet):
     @extend_schema(responses={200: PendingCountSerializer})
     @action(detail=False, methods=['get'], url_path='pending-count')
     def pending_count(self, request):
-        """Число заявок, ожидающих действия текущего сотрудника (0 для не-сотрудников)."""
-        count = get_pending_docs_count(request.user)
-        return Response(PendingCountSerializer({'pending_docs_count': count}).data)
+        """
+        Число заявок, ожидающих действия текущего сотрудника (0 для не-сотрудников), и
+        нерассмотренные заявки прошлых учебных лет по годам.
+        """
+        return Response(PendingCountSerializer({
+            'pending_docs_count': get_pending_docs_count(request.user),
+            'past_pending': get_past_pending(request.user),
+        }).data)

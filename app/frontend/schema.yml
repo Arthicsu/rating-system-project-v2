@@ -796,7 +796,9 @@ paths:
   /api/v1/notifications/pending-count/:
     get:
       operationId: v1_notifications_pending_count_retrieve
-      description: Число заявок, ожидающих действия текущего сотрудника (0 для не-сотрудников).
+      description: |-
+        Число заявок, ожидающих действия текущего сотрудника (0 для не-сотрудников), и
+        нерассмотренные заявки прошлых учебных лет по годам.
       tags:
       - notifications
       security:
@@ -1745,6 +1747,22 @@ components:
           type: integer
           example: 2
           description: Номер отданной страницы
+    PastPending:
+      type: object
+      properties:
+        year_start:
+          type: integer
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+        count:
+          type: integer
+          readOnly: true
+      required:
+      - count
+      - label
+      - year_start
     PatchedAchievementUpdate:
       type: object
       description: |-
@@ -1798,7 +1816,13 @@ components:
         pending_docs_count:
           type: integer
           readOnly: true
+        past_pending:
+          type: array
+          items:
+            $ref: '#/components/schemas/PastPending'
+          readOnly: true
       required:
+      - past_pending
       - pending_docs_count
     PendingDocument:
       type: object

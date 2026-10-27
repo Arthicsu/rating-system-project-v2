@@ -11,6 +11,7 @@ import ErrorState from '@/components/ErrorState';
 import MobileFilterToggle from '@/components/MobileFilterToggle';
 
 import FilterPanel from './_components/FilterPanel';
+import PastPendingNotice from './_components/PastPendingNotice';
 import TabsNav from './_components/TabsNav';
 import StudentsTab from './_components/StudentsTab';
 import PendingRequestsTab from './_components/PendingRequestsTab';
@@ -22,7 +23,7 @@ import ModalReject from './_components/ModalReject';
 import { useRedirectIfLoggedOut } from '@/hooks/useRedirectIfLoggedOut';
 import { useStaffFilters } from '@/hooks/useStaffFilters';
 import { apiErrorMessage, isAuthError } from '@/lib/apiError';
-import { useCategories, useDashboard, useRating } from '@/hooks/queries';
+import { useCategories, useDashboard, usePendingCount, useRating } from '@/hooks/queries';
 import { useReviewActions } from '@/hooks/useReviewActions';
 
 import type {
@@ -264,6 +265,8 @@ function StaffDashboard() {
   const studentsLoading = studentsQuery.isPending || studentsQuery.isPlaceholderData;
 
   const { openModal, canApprove, actionsFor, modalApproveProps, modalRejectProps } = useReviewActions();
+  // Тот же запрос, что у счётчика в шапке (общий ключ): заявки прошлых лет для заметки.
+  const pendingCountQuery = usePendingCount(true);
 
   const pendingParams = useMemo<DashboardStatsParams>(
     () => ({
@@ -396,6 +399,14 @@ function StaffDashboard() {
           />
 
           <FilterPanel filters={filters} isRectorate={isRectorate} mobileFiltersOpen={mobileFiltersOpen} />
+
+          <PastPendingNotice
+            items={(pendingCountQuery.data?.past_pending ?? []).filter((item) => period !== `year:${item.year_start}`)}
+            onPick={(yearStart) => {
+              filters.changePeriod(`year:${yearStart}`);
+              setActiveTab('pending-requests');
+            }}
+          />
 
           <TabsNav tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 

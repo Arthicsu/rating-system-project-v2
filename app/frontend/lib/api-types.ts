@@ -376,7 +376,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Число заявок, ожидающих действия текущего сотрудника (0 для не-сотрудников). */
+        /**
+         * @description Число заявок, ожидающих действия текущего сотрудника (0 для не-сотрудников), и
+         *     нерассмотренные заявки прошлых учебных лет по годам.
+         */
         get: operations["v1_notifications_pending_count_retrieve"];
         put?: never;
         post?: never;
@@ -877,6 +880,11 @@ export interface components {
              */
             page: number;
         };
+        PastPending: {
+            readonly year_start: number;
+            readonly label: string;
+            readonly count: number;
+        };
         /**
          * @description Частичное редактирование достижения студентом (PATCH).
          *
@@ -907,6 +915,7 @@ export interface components {
         };
         PendingCount: {
             readonly pending_docs_count: number;
+            readonly past_pending: components["schemas"]["PastPending"][];
         };
         PendingDocument: {
             readonly id: number;

@@ -41,6 +41,7 @@ export type RatingFiltersResponseDto = ApiSchema<'RatingFiltersResponse'>;
 export type StaffProfileResponseDto = ApiSchema<'StaffProfileResponse'>;
 export type ReviewDocumentRequestDto = ApiSchema<'ReviewDocumentRequest'>;
 export type PendingCountDto = ApiSchema<'PendingCount'>;
+export type PastPendingDto = ApiSchema<'PastPending'>;
 export type MessageDto = ApiSchema<'Message'>;
 export type ChangePasswordDto = ApiSchema<'ChangePassword'>;
 export type NotificationSettingsDto = ApiSchema<'NotificationSettings'>;

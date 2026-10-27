@@ -47,7 +47,7 @@ export default function Header() {
             label: isLeadership ? 'На контроле' : 'Заявки',
             icon: 'fa-solid fa-inbox',
             isActive: (p, tab) => p.startsWith('/staff-profile') && tab === 'pending-requests',
-            badge: pendingCount ?? 0,
+            badge: pendingCount?.pending_docs_count ?? 0,
             badgeTone: isLeadership ? 'neutral' : 'alert',
           },
         ]
