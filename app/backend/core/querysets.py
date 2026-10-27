@@ -25,11 +25,13 @@ class Period(NamedTuple):
     """
     Выбранный период. semester_ids - его семестры (None - без ограничения: в базе нет ни
     одного семестра); is_live - баллы из живого кэша Student (текущий учебный год целиком),
-    иначе - суммы SemesterScore по semester_ids; label - подпись для Excel.
+    иначе - суммы SemesterScore по semester_ids; label - подпись для Excel; year_start -
+    учебный год, если выбран год целиком (None для одного семестра).
     """
     semester_ids: list | None
     is_live: bool
     label: str
+    year_start: int | None = None
 
 
 def _year_label(year_start):
@@ -66,7 +68,22 @@ def get_requested_period(request):
         year_start = current.year_start
     ids = list(AcademicYear.year_semesters(year_start).values_list('pk', flat=True))
     is_live = current is not None and current.year_start == year_start
-    return Period(ids, is_live, _year_label(year_start))
+    return Period(ids, is_live, _year_label(year_start), year_start)
+
+
+def semester_breakdown(students, year_start):
+    """
+    Баллы студентов по семестрам учебного года для листа Excel «По семестрам»:
+    [(подпись семестра, {student_id: {поле: балл}})], семестры по порядку (осень, весна).
+    """
+    student_ids = list(students.values_list('pk', flat=True))
+    breakdown = []
+    for semester in AcademicYear.year_semesters(year_start):
+        rows = SemesterScore.objects.filter(semester=semester, student_id__in=student_ids).values(
+            'student_id', *CATEGORY_SCORE_FIELDS,
+        )
+        breakdown.append((semester.label, {row['student_id']: row for row in rows}))
+    return breakdown
 
 
 def requested_period_filter(request):

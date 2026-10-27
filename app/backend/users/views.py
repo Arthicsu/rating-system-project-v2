@@ -317,6 +317,10 @@ class RatingViewSet(mixins.ListModelMixin, GenericViewSet):
             queryset,
             score_prefix='' if period.is_live else 'sem_',
             semester_label=period.label,
+            # За учебный год - второй лист с разбивкой по его семестрам.
+            semester_breakdown=(
+                querysets.semester_breakdown(queryset, period.year_start) if period.year_start is not None else None
+            ),
         )
 
         filename = f"student_rating_{period.label}.xlsx" if period.label else "student_rating.xlsx"

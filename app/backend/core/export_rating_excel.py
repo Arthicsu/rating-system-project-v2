@@ -16,13 +16,24 @@ COLUMNS = [
     ('cultural_score', 'Культурно-творческая'),
     ('total_score', 'Всего'),
 ]
+# Лист «По семестрам»: студент, затем по каждому семестру года категории и итог.
+STUDENT_COLUMNS = [
+    ('full_name', 'ФИО'),
+    ('record_book', 'Зачётка'),
+    ('group__name', 'Группа'),
+    ('group__course', 'Курс'),
+    ('faculty__short_name', 'Факультет'),
+]
+CATEGORY_COLUMNS = [(field, title) for field, title in COLUMNS if field.endswith('_score') and field != 'total_score']
 
 
-def generate_rating_excel(queryset, score_prefix='', semester_label='') -> bytes:
+def generate_rating_excel(queryset, score_prefix='', semester_label='', semester_breakdown=None) -> bytes:
     """
     Excel-выгрузка рейтинга. `score_prefix='sem_'` переключает балльные колонки
-    на аннотации прошлого семестра (sem_*_score), `semester_label` добавляет
-    строку-заголовок с меткой выгруженного периода.
+    на аннотации прошлого периода (sem_*_score), `semester_label` добавляет
+    строку-заголовок с меткой выгруженного периода. `semester_breakdown` -
+    [(подпись семестра, {student_id: {поле: балл}})] для выгрузки за учебный год:
+    тогда добавляется лист «По семестрам» с теми же студентами в том же порядке.
     """
     fields = [
         f"{score_prefix}{field}" if field.endswith('_score') else field
@@ -63,5 +74,35 @@ def generate_rating_excel(queryset, score_prefix='', semester_label='') -> bytes
     for col_idx, width in enumerate(widths):
         worksheet.set_column(col_idx, col_idx, min(width + 2, 50))
 
+    if semester_breakdown:
+        _write_semester_sheet(workbook, queryset, semester_breakdown)
+
     workbook.close()
     return output.getvalue()
+
+
+def _write_semester_sheet(workbook, queryset, semester_breakdown):
+    """Лист «По семестрам»: строка 0 - подписи семестров над их колонками, строка 1 - заголовки."""
+    worksheet = workbook.add_worksheet('По семестрам')
+    student_fields = [field for field, _ in STUDENT_COLUMNS]
+    block = len(CATEGORY_COLUMNS) + 1  # категории + итог семестра
+
+    headers = [title for _, title in STUDENT_COLUMNS]
+    for index, (label, _) in enumerate(semester_breakdown):
+        first = len(STUDENT_COLUMNS) + index * block
+        worksheet.merge_range(0, first, 0, first + block - 1, label)
+        headers += [title for _, title in CATEGORY_COLUMNS] + ['Итого']
+    headers.append('Итого за год')
+    worksheet.write_row(1, 0, headers)
+
+    for row_idx, row in enumerate(queryset.values('id', *student_fields), start=2):
+        values = [row[field] if row[field] is not None else '' for field in student_fields]
+        year_total = 0
+        for _, scores in semester_breakdown:
+            points = [scores.get(row['id'], {}).get(field, 0) for field, _ in CATEGORY_COLUMNS]
+            values += points + [sum(points)]
+            year_total += sum(points)
+        worksheet.write_row(row_idx, 0, values + [year_total])
+
+    worksheet.set_column(0, 0, 35)
+    worksheet.set_column(1, len(headers) - 1, 14)
