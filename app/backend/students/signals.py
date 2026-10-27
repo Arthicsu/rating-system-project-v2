@@ -21,6 +21,8 @@ from students.services import rebuild_current_semester_cache, is_cache_sync_susp
 @receiver(post_save, sender=AcademicYear)
 @receiver(post_delete, sender=AcademicYear)
 def resync_cache_on_semester_change(sender, **kwargs):
+    # Список семестров для селектора периода кэшируется на 2 часа.
+    invalidate_view_cache('academic-years')
     if is_cache_sync_suspended():
         return
     rebuild_current_semester_cache()

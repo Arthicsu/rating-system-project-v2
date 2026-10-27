@@ -34,8 +34,8 @@ class ModerationStatsTests(APITestCase):
     def setUp(self):
         cache.clear()
         AcademicYear.objects.all().delete()
-        self.current = make_semester("2026-2027 Осенний", "2026-09-01", "2027-01-31", current=True)
-        self.past = make_semester("2025-2026 Весенний", "2026-02-01", "2026-06-30")
+        self.current = make_semester(2026, "autumn", current=True)
+        self.past = make_semester(2025, "spring")
         statuses = make_statuses()
         catalog = make_catalog()
 

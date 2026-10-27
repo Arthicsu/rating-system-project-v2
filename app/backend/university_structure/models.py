@@ -1,4 +1,7 @@
 ﻿from django.db import models
+from datetime import date
+
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.conf import settings
 
@@ -111,20 +114,85 @@ class RejectionReason(models.Model):
 
 class AcademicYear(models.Model):
     """
-    Учебный период = семестр. Одна строка соответствует одному семестру
-    (например «2025-2026 Осенний», «2025-2026 Весенний»). Флаг is_current
-    помечает активный семестр, к которому привязываются новые заявки и в котором
-    начисляются баллы. Одновременно текущим может быть только один период.
+    Учебный период = семестр: пара (учебный год, осень/весна), например
+    «2025-2026 уч. год — осень». Подпись собирается при сохранении, даты по умолчанию
+    берутся из settings.SEMESTER_TEMPLATE. Флаг is_current помечает текущий учебный год
+    (его живой рейтинг); одновременно текущим может быть только один период.
     """
-    label = models.CharField("Название периода", max_length=100)
-    start_date = models.DateField("Дата начала")
-    end_date = models.DateField("Дата окончания")
+    TERM_CHOICES = [('autumn', 'осень'), ('spring', 'весна')]
+
+    label = models.CharField("Название периода", max_length=100, editable=False)
+    year_start = models.PositiveSmallIntegerField(
+        "Учебный год (год начала)", blank=True,
+        help_text="2025 - для 2025-2026 учебного года. Пусто - по дате начала.",
+    )
+    term = models.CharField(
+        "Семестр", max_length=6, choices=TERM_CHOICES, blank=True, help_text="Пусто - по дате начала.",
+    )
+    start_date = models.DateField("Дата начала", blank=True, help_text="Пусто - по шаблону: осень с 01.09, весна с 01.02.")
+    end_date = models.DateField("Дата окончания", blank=True, help_text="Пусто - по шаблону: осень по 31.01, весна по 31.08.")
     is_current = models.BooleanField("Текущий семестр", default=False)
 
     @classmethod
     def get_current(cls):
         """Активный (текущий) семестр или None, если ни один не помечен."""
         return cls.objects.filter(is_current=True).first()
+
+    @staticmethod
+    def infer_year_term(start_date):
+        """Учебный год и семестр по дате начала: с августа - осень этого года, иначе весна прошлого."""
+        return (start_date.year, 'autumn') if start_date.month >= 8 else (start_date.year - 1, 'spring')
+
+    @classmethod
+    def template_dates(cls, year_start, term):
+        """Даты семестра по шаблону; конец раньше начала по календарю - значит, в следующем году."""
+        (start_month, start_day), (end_month, end_day) = settings.SEMESTER_TEMPLATE[term]
+        start_year = year_start if term == 'autumn' else year_start + 1
+        end_year = start_year + 1 if (end_month, end_day) < (start_month, start_day) else start_year
+        return date(start_year, start_month, start_day), date(end_year, end_month, end_day)
+
+    @classmethod
+    def year_semesters(cls, year_start):
+        """Семестры учебного года по порядку: осень, весна."""
+        return cls.objects.filter(year_start=year_start).order_by('start_date')
+
+    @classmethod
+    def semester_for_date(cls, day):
+        """
+        Семестр, к которому относится дата достижения: заведённый семестр любого года, в чьи
+        даты она попадает. Дата позже конца текущего учебного года - его последний семестр:
+        до перехода на новый год продолжается старый. Иначе None.
+        """
+        found = cls.objects.filter(start_date__lte=day, end_date__gte=day).first()
+        if found is not None:
+            return found
+        current = cls.get_current()
+        if current is None:
+            return None
+        last = cls.year_semesters(current.year_start).last()
+        return last if day > last.end_date else None
+
+    def _fill_from_template(self):
+        """Учебный год и семестр - из даты начала, если не заданы; пустые даты - по шаблону."""
+        start_field, end_field = self._meta.get_field('start_date'), self._meta.get_field('end_date')
+        self.start_date = start_field.to_python(self.start_date)
+        self.end_date = end_field.to_python(self.end_date)
+        if self.year_start is None or not self.term:
+            if self.start_date is None:
+                raise ValidationError("Укажите учебный год и семестр или дату начала.")
+            self.year_start, self.term = self.infer_year_term(self.start_date)
+        template_start, template_end = self.template_dates(self.year_start, self.term)
+        self.start_date = self.start_date or template_start
+        self.end_date = self.end_date or template_end
+        self.label = f"{self.year_start}-{self.year_start + 1} уч. год — {self.get_term_display()}"
+
+    def clean(self):
+        # До проверки уникальности (год, семестр): иначе выведенный из даты дубль упал бы в save().
+        self._fill_from_template()
+
+    def save(self, *args, **kwargs):
+        self._fill_from_template()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.label
@@ -139,6 +207,7 @@ class AcademicYear(models.Model):
                 condition=Q(is_current=True),
                 name='only_one_current_period',
             ),
+            models.UniqueConstraint(fields=['year_start', 'term'], name='uniq_academic_year_term'),
         ]
         indexes = [
             models.Index(fields=['start_date', 'end_date']),

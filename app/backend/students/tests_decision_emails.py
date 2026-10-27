@@ -42,7 +42,7 @@ class DecisionEmailTests(APITestCase):
     def setUp(self):
         cache.clear()
         AcademicYear.objects.all().delete()
-        self.semester = make_semester("2026-2027 Осенний", "2026-09-01", "2027-01-31", current=True)
+        self.semester = make_semester(2026, "autumn", current=True)
         self.statuses = make_statuses()
         self.catalog = make_catalog()
         dept = make_department("ИТ")

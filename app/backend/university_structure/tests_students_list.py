@@ -41,11 +41,11 @@ class FilteredStudentsSemesterTests(APITestCase):
 
         today = date.today()
         self.current = AcademicYear.objects.create(
-            label="2025-2026 Весенний", start_date=today,
+            year_start=2025, term="spring", start_date=today,
             end_date=today + timedelta(days=120), is_current=True,
         )
         self.past = AcademicYear.objects.create(
-            label="2025-2026 Осенний", start_date=today - timedelta(days=200),
+            year_start=2025, term="autumn", start_date=today - timedelta(days=200),
             end_date=today - timedelta(days=1), is_current=False,
         )
 

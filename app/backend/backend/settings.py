@@ -319,6 +319,9 @@ CELERY_TASK_TIME_LIMIT = 60 * 30
 
 BACKUPS_DIR = os.getenv('BACKUPS_DIR', str(SHARED_DIR / 'backups'))
 BACKUP_KEEP = int(os.getenv('BACKUP_KEEP', 3))
+# Даты семестров по умолчанию: (месяц, день) начала и конца. Конец осени - в следующем году.
+SEMESTER_TEMPLATE = {'autumn': ((9, 1), (1, 31)), 'spring': ((2, 1), (8, 31))}
+
 # Через сколько дней после архивации студента его файлы можно удалить кнопкой в админке.
 ARCHIVED_FILES_RETENTION_DAYS = int(os.getenv('ARCHIVED_FILES_RETENTION_DAYS', 365))
 

@@ -162,6 +162,6 @@ def make_doc(user, catalog, status, *, semester=None, achievement="Док", **ex
     )
 
 
-def make_semester(label, start, end, current=False):
-    """Учебный период (семестр). Сигнатура расширится в задаче про учебный год."""
-    return AcademicYear.objects.create(label=label, start_date=start, end_date=end, is_current=current)
+def make_semester(year_start, term, current=False, **dates):
+    """Семестр учебного года (term: 'autumn' / 'spring'); start_date/end_date - по шаблону, если не заданы."""
+    return AcademicYear.objects.create(year_start=year_start, term=term, is_current=current, **dates)

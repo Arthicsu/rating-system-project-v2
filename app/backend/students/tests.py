@@ -109,7 +109,7 @@ class AchievementDetailTests(APITestCase):
     """Карточка заявки (GET /achievements/<id>/) для страниц «Подробнее»."""
 
     def test_detail_exposes_semester_label(self):
-        semester = make_semester("2026-2027 Осенний", "2026-09-01", "2027-01-31", current=True)
+        semester = make_semester(2026, "autumn", current=True)
         student = make_student("detail@uni.ru")
         doc = make_doc(student, make_catalog(), make_statuses()["pending"], semester=semester)
         self.client.force_authenticate(student)
@@ -117,7 +117,7 @@ class AchievementDetailTests(APITestCase):
         resp = self.client.get(reverse("api:achievements-detail", args=[doc.pk]))
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
-        self.assertEqual(resp.data["semester_label"], "2026-2027 Осенний")
+        self.assertEqual(resp.data["semester_label"], "2026-2027 уч. год — осень")
 
     def test_detail_without_semester_has_null_label(self):
         student = make_student("legacy@uni.ru")
