@@ -21,6 +21,11 @@ from .models import Faculty, Department, Group, Staff, Specialty, RejectionReaso
 logger = logging.getLogger(__name__)
 
 
+def _is_deleted(row):
+    """«Удалена» в выгрузке ОИ: 1 или «Да» (в шаблоне колонка Да/Нет, в примере - 0/1)."""
+    return str(row.get('Удалена', '')).strip().upper() in ('1', 'ДА')
+
+
 @admin.register(Staff)
 class StaffAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
     list_display = ('email', 'get_roles', 'department', 'faculty')
@@ -201,11 +206,7 @@ class DepartmentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 if not ext_id:
                     messages.warning(request, "Пропущена строка: нет поля 'Код'.")
                     continue
-                def clean_val(key):
-                    val = str(row.get(key, '')).strip()
-                    return 0 if val.upper() == 'NULL' else val
-                status = clean_val('Удалена')
-                if status == 1:
+                if _is_deleted(row):
                     continue
                 fac_code = row.get('Код_Факультета')
                 faculty = Faculty.objects.filter(external_id=fac_code).first()
@@ -220,7 +221,7 @@ class DepartmentAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                         'faculty': faculty,
                         'phone': row.get('Телефон', '-'),
                         'head_name': row.get('ЗавКафедрой', '-'),
-                        'status': status
+                        'status': 0
                     }
                 )
                 imported += 1
@@ -267,19 +268,14 @@ class GroupAdmin(admin.ModelAdmin, CsvImport, EosSyncActionsMixin):
                 if not ext_id:
                     messages.warning(request, "Пропущена строка: нет поля 'Код'.")
                     continue
+                if _is_deleted(row):
+                    continue
 
                 spec_code = row.get('Код_специальности')
                 specialty = Specialty.objects.filter(external_id=spec_code).first()
                 
                 if not specialty:
                     messages.warning(request, f"Пропущена группа {ext_id}: специальность '{spec_code}' не найдена.")
-                    continue
-
-                def clean_val(key):
-                    val = str(row.get(key, '')).strip()
-                    return 0 if val.upper() == 'NULL' else val
-                status = clean_val('Удалена')
-                if status == 1:
                     continue
 
                 academic_year = row.get('Учебныйгод', '-')
