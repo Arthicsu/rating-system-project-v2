@@ -125,7 +125,7 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
       <div className="mb-5 flex items-start justify-between gap-4 sm:items-stretch sm:gap-6">
         <div className="min-w-0 flex-1">
           <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl md:text-3xl">
-            Загрузка достижения для ПГАС
+            Загрузка достижения для именной стипендии
           </h2>
           <p className="mt-2 text-sm text-slate-500">
             Опишите достижение: укажите параметры достижения и прикрепите
@@ -186,7 +186,7 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
               </button>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* <div className="flex items-center gap-3 sm:gap-4">
             <div className="flex-1">
               <p className="text-sm text-slate-600">
                 Актуальную разбалловку Вы можете узнать, перейдя по ссылке
@@ -213,7 +213,7 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
                 />
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
       </Skeleton>
