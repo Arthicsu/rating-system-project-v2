@@ -29,6 +29,7 @@ export default function CookieConsentBanner() {
 
   // z-30: над шапкой и нижней навигацией (z-20), но под модалками (z-40/z-50) -
   // иначе на телефоне баннер закрывал кнопки модалок до нажатия «Принять».
+  // Баннер тёмный в обеих темах, поэтому цвета заданы явно, а не классами палитры.
   return (
     <div className="fixed right-4 bottom-20 left-4 z-30 flex flex-row items-center justify-between gap-6 m-2.5 p-5 px-6 rounded-lg bg-[#2b2b2b] text-white shadow-[0_8px_32px_rgba(0,0,0,0.24)] sm:bottom-4 max-md:flex-col max-md:items-stretch max-md:gap-4">
       <div className="flex-1 m-0 text-[13px] leading-relaxed text-white">
@@ -54,7 +55,7 @@ export default function CookieConsentBanner() {
         <button
           type="button"
           onClick={accept}
-          className="m-0 py-2.5 px-8 border-0 rounded-md bg-white text-sky-900 text-sm font-medium leading-tight whitespace-nowrap cursor-pointer transition-colors duration-200 ease-in-out hover:bg-[#f0f0f0]"
+          className="m-0 py-2.5 px-8 border-0 rounded-md bg-[#fff] text-[#1c4973] text-sm font-medium leading-tight whitespace-nowrap cursor-pointer transition-colors duration-200 ease-in-out hover:bg-[#f0f0f0]"
         >
           Принять
         </button>

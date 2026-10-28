@@ -198,7 +198,7 @@ export default function RegisterPage() {
               alt="Логотип"
               width={80}
               height={64}
-              className="h-16 w-auto object-contain md:h-20"
+              className="h-16 w-auto object-contain md:h-20 dark:invert dark:hue-rotate-180"
             />
             <p className="text-xs text-center font-medium text-sky-700 md:text-sm md:text-left">
               БРЯНСКИЙ ГОСУДАРСТВЕННЫЙ <br />

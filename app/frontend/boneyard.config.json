@@ -2,5 +2,6 @@
   "out": "./bones",
   "wait": 2000,
   "color": "#e5e5e5",
+  "darkColor": "#2a3343",
   "animate": "shimmer"
 }

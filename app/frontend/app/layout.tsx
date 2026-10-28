@@ -20,7 +20,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Providers>
             <AuthProvider>
               <Header />
-              <Toaster />
+              {/* --surface задана только в тёмной теме; в светлой уведомление белое. */}
+              <Toaster
+                toastOptions={{
+                  style: {
+                    background: 'var(--surface, #fff)',
+                    color: 'var(--color-slate-900)',
+                    border: '1px solid var(--color-slate-200)',
+                  },
+                }}
+              />
               {children}
             </AuthProvider>
           </Providers>

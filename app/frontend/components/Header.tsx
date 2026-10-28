@@ -72,7 +72,7 @@ export default function Header() {
                   width={40}
                   height={40}
                   priority
-                  className="h-10 w-auto sm:h-12 object-contain"
+                  className="h-10 w-auto sm:h-12 object-contain dark:invert dark:hue-rotate-180"
                 />
               </Link>
 
@@ -102,7 +102,7 @@ export default function Header() {
                   className="flex items-center"
                   aria-label="IT-портал БГИТУ"
                 >
-                  <Image src="/media/logo_IT.png" alt="IT" width={32} height={32} className="h-7 w-7 object-contain sm:h-8 sm:w-8" />
+                  <Image src="/media/logo_IT.png" alt="IT" width={32} height={32} className="h-7 w-7 object-contain sm:h-8 sm:w-8 dark:invert dark:hue-rotate-180" />
                 </a>
               </div>
 

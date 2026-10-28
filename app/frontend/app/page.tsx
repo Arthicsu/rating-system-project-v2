@@ -33,7 +33,7 @@ export default function Main() {
               alt="БГИТУ"
               width={80}
               height={80}
-              className="h-20 w-auto object-contain md:h-24"
+              className="h-20 w-auto object-contain md:h-24 dark:invert dark:hue-rotate-180"
             />
             <p className="text-xs font-semibold text-sky-700 md:text-base sm:text-sm">
               БРЯНСКИЙ ГОСУДАРСТВЕННЫЙ <br />

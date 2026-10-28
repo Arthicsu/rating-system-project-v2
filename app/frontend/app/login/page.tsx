@@ -174,7 +174,7 @@ export default function LoginPage() {
               alt="Логотип БГИТУ"
               width={80}
               height={64}
-              className="h-16 w-auto object-contain md:h-20"
+              className="h-16 w-auto object-contain md:h-20 dark:invert dark:hue-rotate-180"
             />
             <p className="text-xs content-center font-medium text-sky-700 md:text-sm md:text-left md:self-stretch">
               БРЯНСКИЙ ГОСУДАРСТВЕННЫЙ <br />

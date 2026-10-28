@@ -11,7 +11,7 @@ import _achievement_item from './achievement-item.bones.json'
 import _student_profile from './student-profile.bones.json'
 import _upload_form_fields from './upload-form-fields.bones.json'
 
-configureBoneyard({"color":"#e5e5e5","animate":"shimmer"})
+configureBoneyard({"color":"#e5e5e5","darkColor":"#2a3343","animate":"shimmer"})
 
 registerBones({
   "achievement-item": _achievement_item,
