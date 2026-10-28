@@ -23,6 +23,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.cache import cache
 from django.core.files.base import ContentFile
+from django.core.files.storage import InMemoryStorage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
@@ -637,6 +638,27 @@ class DocumentPreviewTests(UsersAPITestCase):
             resp.status_code,
             (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
         )
+
+    def test_file_missing_in_storage_is_404(self):
+        # Строка файла есть, а объекта в хранилище нет: база восстановлена без файлов.
+        df = DocumentFile.objects.create(document=self.doc, original_file_name="gone.pdf", file="RB-1/gone.pdf")
+        self.client.force_authenticate(self.user)
+
+        for name in (PREVIEW_URL_NAME, "api:document-files-download"):
+            with self.subTest(endpoint=name):
+                resp = self.client.get(reverse(name, args=[df.public_id]))
+
+                self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+                self.assertIn("detail", resp.json())
+
+    def test_storage_failure_is_503(self):
+        df = self._make_file("report.pdf", b"%PDF-1.4 fake", "application/pdf")
+        self.client.force_authenticate(self.user)
+
+        with patch.object(InMemoryStorage, "size", side_effect=ConnectionError("storage down")):
+            resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.public_id]))
+
+        self.assertEqual(resp.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 @override_settings(**TEST_SETTINGS)

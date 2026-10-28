@@ -25,6 +25,7 @@ from django.views.decorators.vary import vary_on_headers
 from rest_framework import mixins, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -378,9 +379,20 @@ class DocumentFileViewSet(GenericViewSet):
         return []
 
     def _get_accessible_file(self):
-        """DocumentFile по public_id с проверкой прав (403) и размера (400 FileTooLarge)."""
+        """
+        DocumentFile по public_id с проверкой прав (403) и размера (400 FileTooLarge). Строка без
+        объекта в хранилище (база восстановлена без файлов) - 404, сбой хранилища - 503.
+        """
         file_obj = self.get_object()
-        if file_obj.file.size > self.max_file_size:
+        try:
+            size = file_obj.file.size
+        except FileNotFoundError:
+            logger.warning("Файл id=%s есть в базе, но не в хранилище", file_obj.pk)
+            raise NotFound("Файл не найден в хранилище.")
+        except Exception:
+            logger.exception("Ошибка хранилища при проверке размера файла")
+            raise StorageUnavailable()
+        if size > self.max_file_size:
             raise FileTooLarge()
         return file_obj
 
