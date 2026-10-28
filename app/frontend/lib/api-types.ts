@@ -970,7 +970,6 @@ export interface components {
             date_received?: string;
             /** Format: date-time */
             readonly uploaded_at: string;
-            readonly user_id: number;
             /** Format: uuid */
             readonly student_id: string;
             readonly student_name: string;
@@ -1057,7 +1056,6 @@ export interface components {
         StudentProfile: {
             /** Format: uuid */
             readonly id: string;
-            readonly user_id: number | null;
             /**
              * ФИО
              * @description Полное ФИО студента
@@ -1107,7 +1105,6 @@ export interface components {
         StudentRating: {
             /** Format: uuid */
             readonly id: string;
-            readonly user_id: number | null;
             /**
              * ФИО
              * @description Полное ФИО студента

@@ -5,7 +5,6 @@
  */
 export default interface Student {
   id: string;
-  user_id: number | null;
   full_name: string;
   short_name: string;
   record_book?: string | null;

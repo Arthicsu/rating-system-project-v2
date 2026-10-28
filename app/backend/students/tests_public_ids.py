@@ -1,7 +1,7 @@
 """
 Заявка, профиль студента и файл заявки открываются по UUID, а не по номеру из базы: по номерам
 нельзя перебрать чужие заявки и профили и понять, сколько их и в каком порядке подавались.
-Номера этих записей не уходят наружу ни в адресах, ни в ответах API.
+Номера этих записей и номера учёток не уходят наружу ни в адресах, ни в ответах API.
 """
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -87,6 +87,19 @@ class PublicIdTests(APITestCase):
         self.assertEqual([s["id"] for s in requests["top5"]], [student_id])
         self.assertEqual([s["id"] for s in students["results"]], [student_id])
         self.assertEqual([s["id"] for s in rating["results"]], [student_id])
+
+    def test_responses_have_no_user_numbers(self):
+        self.client.force_authenticate(self.staff)
+
+        payloads = {
+            "requests": self.client.get(reverse("api:achievements-list")).json()["results"][0],
+            "request": self.client.get(f"/api/v1/achievements/{self.doc.public_id}/").json(),
+            "students": self.client.get(reverse("api:students-list")).json()["results"][0],
+            "student": self.client.get(f"/api/v1/students/{self.student.public_id}/").json(),
+            "rating": self.client.get(reverse("api:rating-list")).json()["results"][0],
+        }
+
+        self.assertEqual([name for name, payload in payloads.items() if "user_id" in payload], [])
 
     def test_own_profile_lists_requests_and_files_by_uuid(self):
         self.client.force_authenticate(self.user)

@@ -160,7 +160,7 @@ class RatingRowMixin(serializers.Serializer):
     short_name = serializers.SerializerMethodField()
 
     BASE_FIELDS = [
-        'id', 'user_id',
+        'id',
         'full_name', 'short_name',
         'group', 'group_id',
         'course',
@@ -212,7 +212,6 @@ class SemesterRatingSerializer(serializers.ModelSerializer):
     StudentRatingSerializer, чтобы фронтенд обрабатывал текущий и исторический рейтинг одинаково.
     """
     id = serializers.UUIDField(source='student.public_id', read_only=True)
-    user_id = serializers.IntegerField(source='student.user_id', read_only=True)
     full_name = serializers.CharField(source='student.full_name', read_only=True)
     short_name = serializers.SerializerMethodField()
     group_id = serializers.IntegerField(source='student.group.id', read_only=True, default=0)
@@ -224,7 +223,7 @@ class SemesterRatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = SemesterScore
         fields = [
-            'id', 'user_id',
+            'id',
             'full_name', 'short_name',
             'group', 'group_id',
             'course',
@@ -339,7 +338,6 @@ class DocumentSerializer(serializers.ModelSerializer):
         read_only_fields = ['files_purged_at']
 
 class PendingDocumentSerializer(DocumentSerializer):
-    user_id = serializers.IntegerField(source='user.id', read_only=True)
     student_id = serializers.UUIDField(source='user.student_profile.public_id', read_only=True)
     student_name = serializers.CharField(source='user.student_profile.full_name', read_only=True)
     course = serializers.IntegerField(source='user.student_profile.group.course', read_only=True)
@@ -354,7 +352,7 @@ class PendingDocumentSerializer(DocumentSerializer):
     )
 
     class Meta(DocumentSerializer.Meta):
-        fields = DocumentSerializer.Meta.fields + ['user_id', 'student_id', 'student_name', 'group', 'group_id', 'course', 'faculty', 'record_book', 'returned_by']
+        fields = DocumentSerializer.Meta.fields + ['student_id', 'student_name', 'group', 'group_id', 'course', 'faculty', 'record_book', 'returned_by']
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source='public_id', read_only=True)
@@ -371,7 +369,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = [
-            'id', 'user_id',
+            'id',
             'full_name', 'short_name',
             'email', 'record_book',
             'group', 'group_id', 'course', 'faculty',
