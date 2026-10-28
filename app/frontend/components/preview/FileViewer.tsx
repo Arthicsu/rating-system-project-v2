@@ -159,7 +159,7 @@ export default function FileViewer({ previewUrl, previewKind, fileName, onDownlo
           <iframe
             src={previewUrl}
             title={fileName}
-            className="h-full w-full max-w-4xl rounded-lg border-0 bg-white shadow-md"
+            className="h-full w-full max-w-4xl rounded-lg border-0 bg-[#fff] shadow-md"
             style={{ minHeight: 600 }}
           />
         )}
@@ -171,7 +171,7 @@ export default function FileViewer({ previewUrl, previewKind, fileName, onDownlo
             <img
               src={previewUrl}
               alt={fileName}
-              className="max-h-full max-w-full rounded-md bg-white object-contain shadow-sm transition-transform duration-150"
+              className="max-h-full max-w-full rounded-md bg-[#fff] object-contain shadow-sm transition-transform duration-150"
               style={{ transform: `rotate(${rotation}deg) scale(${scale})` }}
             />
           </div>

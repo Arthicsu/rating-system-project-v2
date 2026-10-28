@@ -163,7 +163,7 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          <div className="mt-4 flex items-center justify-center gap-4 rounded-2xl bg-white/80 px-4 py-4 shadow-sm">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-4 rounded-2xl bg-white/80 px-4 py-4 shadow-sm">
             <p className="text-xs content-center font-medium text-sky-700 md:text-sm md:text-right md:self-stretch">
               BRYANSK STATE <br />
               TECHNOLOGICAL UNIVERSITY <br />

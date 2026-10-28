@@ -112,7 +112,7 @@ export default function StatisticsTab({
             </h3>
             <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
               <table className="min-w-full text-left text-sm text-sky-700">
-                <thead className="bg-sky-700 text-xs font-semibold uppercase tracking-wide text-slate-100">
+                <thead className="bg-sky-700 text-xs font-semibold uppercase tracking-wide text-white">
                   <tr>
                     <th className="px-4 py-2.5">Место</th>
                     <th className="px-4 py-2.5">ФИО</th>

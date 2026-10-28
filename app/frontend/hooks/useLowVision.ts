@@ -54,11 +54,9 @@ function getSnapshot() {
 }
 
 function subscribe(onChange: () => void) {
-  // Настройки, изменённые в другой вкладке, применяются и здесь.
+  // Изменения из другой вкладки к странице применяет встроенный скрипт (lib/lowVision.ts); здесь - панель.
   const onStorage = (event: StorageEvent) => {
-    if (event.key !== LOW_VISION_KEY) return;
-    restoreLowVision(LOW_VISION_KEY, LOW_VISION);
-    onChange();
+    if (event.key === LOW_VISION_KEY) onChange();
   };
   listeners.add(onChange);
   window.addEventListener('storage', onStorage);

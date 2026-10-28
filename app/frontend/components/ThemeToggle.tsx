@@ -21,15 +21,17 @@ export default function ThemeToggle() {
   const mounted = useSyncExternalStore(noSubscribe, () => true, () => false);
 
   return (
-    <fieldset className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
+    <fieldset className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 max-sm:low-vision:grid-cols-1">
       <legend className="sr-only">Тема оформления</legend>
       {OPTIONS.map((option) => {
         const checked = mounted && theme === option.value;
         return (
           <label
             key={option.value}
-            className={`flex min-h-11 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-center text-xs font-medium transition-colors has-focus-visible:ring-2 has-focus-visible:ring-sky-500 sm:flex-row sm:gap-2 sm:text-sm ${
-              checked ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            className={`flex min-h-11 min-w-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-center text-xs wrap-break-word transition-colors has-focus-visible:ring-2 has-focus-visible:ring-sky-500 sm:flex-row sm:gap-2 sm:text-sm ${
+              checked
+                ? 'border-sky-700 bg-white font-semibold text-sky-700 shadow-sm'
+                : 'border-transparent font-medium text-slate-600 hover:text-slate-900'
             }`}
           >
             <input

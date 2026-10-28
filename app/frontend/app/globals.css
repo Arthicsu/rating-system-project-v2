@@ -126,8 +126,10 @@ html[data-lv-size] {
   --text-5xl: calc(3rem * var(--lv-scale));
 }
 
+/* Длинное слово («Восстановление») крупным шрифтом шире телефона - переносится, а не раздвигает страницу. */
 html[data-lv-size] body {
   font-size: calc(1rem * var(--lv-scale));
+  overflow-wrap: anywhere;
 }
 
 /* Интервалы перекрывают классы tracking-/leading- у всех элементов, кроме иконок (<i>). */
@@ -152,7 +154,7 @@ html[data-lv-scheme] body *:not(img, svg, canvas, video, [data-lv-keep], [data-l
 }
 
 html[data-lv-scheme] body,
-html[data-lv-scheme] body :is([class*='bg-'], [style*='background']):not([data-lv-keep], [data-lv-keep] *) {
+html[data-lv-scheme] body :is([class*='bg-'], [style*='background']):not(img, iframe, canvas, video, [data-lv-keep], [data-lv-keep] *) {
   background-color: var(--lv-bg) !important;
   color: var(--lv-fg) !important;
 }
@@ -185,8 +187,10 @@ html[data-lv-scheme] [role='switch'][aria-checked='true'] > span:last-child {
   background-color: var(--lv-bg) !important;
 }
 
+/* Логотипы и сканы - на белой подложке: чёрные буквы логотипа IT иначе пропадают на тёмных схемах. */
 html[data-lv-scheme] img {
   filter: none !important;
+  background-color: #fff;
 }
 
 html[data-lv-scheme] ::placeholder {
@@ -197,6 +201,33 @@ html[data-lv-scheme] ::placeholder {
 html[data-lv-scheme] :focus-visible {
   outline: 3px solid var(--lv-fg) !important;
   outline-offset: 2px;
+}
+
+/* Радиокнопки вариантов скрыты (sr-only) - фокус показывает их подпись. */
+html[data-lv-scheme] label:has(> input:focus-visible) {
+  outline: 3px solid var(--lv-fg) !important;
+  outline-offset: 2px;
+}
+
+html[data-lv-scheme] .app-select option:is(:hover, :focus-visible) {
+  background: var(--lv-fg) !important;
+  color: var(--lv-bg) !important;
+}
+
+html[data-lv-scheme] .app-select option::checkmark {
+  color: inherit !important;
+}
+
+/* Шапка при крупном шрифте не закреплена (Header.tsx) - отступ страниц под закреплённую шапку не нужен. */
+html[data-lv-size] body :is(main, section).min-h-screen {
+  padding-top: 1.5rem;
+}
+
+/* Кольцо фокуса с отступом (ring-offset) в тёмной теме - без белого ободка. */
+@layer base {
+  .dark * {
+    --tw-ring-offset-color: var(--surface);
+  }
 }
 
 input[type=password]::-ms-reveal,
@@ -250,7 +281,7 @@ input[type=password]::-ms-clear {
       padding: 0.5rem 0.75rem;
       border-radius: 0.5rem;
       color: var(--color-slate-900);
-      font-size: 0.875rem;
+      font-size: var(--text-sm);
       cursor: pointer;
     }
 

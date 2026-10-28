@@ -12,13 +12,20 @@ interface RadarChartProps {
 }
 
 // Тема и оформление меняют атрибуты <html>; после смены диаграмма перечитывает цвета палитры.
+// В снимке только то, что влияет на цвета и шрифт: модальные окна тоже пишут в style <html>.
 const subscribeToRoot = (onChange: () => void) => {
   const observer = new MutationObserver(onChange);
   observer.observe(document.documentElement, { attributes: true });
   return () => observer.disconnect();
 };
-const rootAttributes = () =>
-  Array.from(document.documentElement.attributes, (attr) => `${attr.name}=${attr.value}`).join(' ');
+const rootLook = () => {
+  const root = document.documentElement;
+  return [
+    root.className,
+    root.style.getPropertyValue('--lv-fg'),
+    root.style.getPropertyValue('--lv-scale'),
+  ].join('|');
+};
 
 // Уже 640px полные названия не помещаются по ширине - короткие, как в таблице по семестрам.
 const NARROW = '(max-width: 639px)';
@@ -44,7 +51,7 @@ const splitLabel = (label: string) => {
  * через next/dynamic (ssr: false) — chart.js не попадает в общий бандл.
  */
 export default function RadarChart({ labels, data }: RadarChartProps) {
-  useSyncExternalStore(subscribeToRoot, rootAttributes, () => '');
+  useSyncExternalStore(subscribeToRoot, rootLook, () => '');
   const narrow = useSyncExternalStore(subscribeToNarrow, () => window.matchMedia(NARROW).matches, () => false);
   const css = getComputedStyle(document.documentElement);
   const color = (name: string) => css.getPropertyValue(name).trim();

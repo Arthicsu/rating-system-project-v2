@@ -98,4 +98,12 @@ export function restoreLowVision(key: string, table: typeof LOW_VISION) {
   }
 }
 
-export const LOW_VISION_SCRIPT = `(${restoreLowVision.toString()})(${JSON.stringify(LOW_VISION_KEY)}, ${JSON.stringify(LOW_VISION)})`;
+// Применяет сохранённое при загрузке и при изменении в другой вкладке. JSON с экранированным «<» -
+// строка не может закрыть тег <script>.
+const scriptJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
+export const LOW_VISION_SCRIPT = `(function (apply, key, table) {
+  apply(key, table);
+  window.addEventListener('storage', function (event) {
+    if (event.key === key) apply(key, table);
+  });
+})(${restoreLowVision.toString()}, ${scriptJson(LOW_VISION_KEY)}, ${scriptJson(LOW_VISION)})`;

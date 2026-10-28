@@ -24,11 +24,12 @@ const SCHEMES: { value: LowVisionScheme; label: string }[] = [
   { value: 'brown', label: 'Зелёный на коричневом' },
 ];
 
+// aria-disabled вместо disabled: на крайнем шаге кнопка остаётся в фокусе, клавиатура его не теряет.
 const STEP_BUTTON =
-  'cursor-pointer inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-40';
+  'cursor-pointer inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 aria-disabled:cursor-not-allowed aria-disabled:opacity-40';
 
 const OPTION =
-  'flex min-h-11 cursor-pointer items-center justify-center rounded-lg border px-3 py-1.5 text-center text-sm transition-colors has-focus-visible:ring-2 has-focus-visible:ring-sky-500 has-checked:border-sky-700 has-checked:bg-sky-50 has-checked:font-semibold has-checked:text-sky-800 border-slate-200 text-slate-700 hover:bg-slate-50';
+  'flex min-h-11 min-w-0 cursor-pointer items-center justify-center rounded-lg border px-3 py-1.5 text-center text-sm wrap-break-word transition-colors has-focus-visible:ring-2 has-focus-visible:ring-sky-500 has-checked:border-sky-700 has-checked:bg-sky-50 has-checked:font-semibold has-checked:text-sky-800 border-slate-200 text-slate-700 hover:bg-slate-50';
 
 interface StepperProps {
   id: string;
@@ -46,23 +47,24 @@ function Stepper({ id, label, value, index, count, onChange }: StepperProps) {
       <p id={id} className="text-sm text-slate-700">
         {label}
       </p>
-      <div role="group" aria-labelledby={id} className="flex items-center gap-2">
+      {/* Значение не рвётся посреди слова: на узком экране с крупным шрифтом переносится кнопка «+». */}
+      <div role="group" aria-labelledby={id} className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={() => onChange(index - 1)}
-          disabled={index <= 0}
+          onClick={() => index > 0 && onChange(index - 1)}
+          aria-disabled={index <= 0}
           aria-label={`${label}: меньше`}
           className={STEP_BUTTON}
         >
           <i className="fa-solid fa-minus" aria-hidden="true" />
         </button>
-        <output aria-live="polite" className="min-w-28 text-center text-sm font-semibold text-slate-900">
+        <output aria-live="polite" className="min-w-28 shrink-0 whitespace-nowrap text-center text-sm font-semibold text-slate-900">
           {value}
         </output>
         <button
           type="button"
-          onClick={() => onChange(index + 1)}
-          disabled={index >= count - 1}
+          onClick={() => index < count - 1 && onChange(index + 1)}
+          aria-disabled={index >= count - 1}
           aria-label={`${label}: больше`}
           className={STEP_BUTTON}
         >
@@ -147,7 +149,7 @@ export default function LowVisionSettings() {
 
           <fieldset className="space-y-2">
             <legend className="text-sm text-slate-700">Цвета</legend>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 max-sm:low-vision:grid-cols-1">
               {SCHEMES.map((scheme) => {
                 const colors = LOW_VISION.schemes[scheme.value];
                 return (

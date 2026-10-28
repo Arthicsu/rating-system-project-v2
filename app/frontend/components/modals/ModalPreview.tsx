@@ -71,6 +71,7 @@ export default function ModalPreview({ isOpen, doc, onClose }: ModalPreviewProps
                   key={file.id}
                   type="button"
                   onClick={() => handleSelectFile(index)}
+                  aria-pressed={index === selectedFileIndex}
                   title={file.original_file_name || `Файл ${index + 1}`}
                   className={`cursor-pointer max-w-40 min-w-0 shrink-0 overflow-hidden rounded-lg px-3 py-1.5 text-xs font-medium transition sm:max-w-60 ${
                     index === selectedFileIndex
