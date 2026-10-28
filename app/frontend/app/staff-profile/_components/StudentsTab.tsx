@@ -134,14 +134,14 @@ export default function StudentsTab({
                     students.map((student, idx) => (
                       <tr
                         key={student.id}
-                        className="border-b border-[#f0f0f0] last:border-b-0 hover:bg-slate-50"
+                        className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50"
                       >
                         <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center align-middle">
                           <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-[11px] md:text-sm font-bold text-white">
                             {(currentPage - 1) * pageSize + idx + 1}
                           </div>
                         </td>
-                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-[#333] overflow-hidden">
+                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-slate-700 overflow-hidden">
                           <span className="inline md:hidden block truncate">
                             {student.short_name}
                           </span>
@@ -167,7 +167,7 @@ export default function StudentsTab({
                         <td className="p-1 sm:p-2 md:px-4 md:py-3 text-right text-xs md:text-sm">
                           <Link
                             href={`/profile/${student.id}`}
-                            className="font-medium text-gray-700 underline-offset-2 hover:text-sky-900 hover:underline"
+                            className="font-medium text-slate-700 underline-offset-2 hover:text-sky-900 hover:underline"
                           >
                             Профиль
                           </Link>
@@ -179,7 +179,7 @@ export default function StudentsTab({
                   // строк-заглушек. При пагинации и поиске строки уже есть,
                   // и работает затемнение tbody выше.
                   Array.from({ length: pageSize }).map((_, i) => (
-                    <tr key={`sk-${i}`} className="border-b border-[#f0f0f0] last:border-b-0">
+                    <tr key={`sk-${i}`} className="border-b border-slate-100 last:border-b-0">
                       <td colSpan={isRectorate ? 8 : 7} className="p-2 md:px-4 md:py-3">
                         <div className="h-5 w-full animate-pulse rounded bg-slate-100" />
                       </td>

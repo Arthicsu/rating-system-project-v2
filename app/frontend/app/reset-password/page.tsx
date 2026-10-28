@@ -77,10 +77,10 @@ function ResetPasswordForm() {
   };
 
   return (
-    <section className="min-h-screen bg-slate-100 px-4 pt-35 pb-10">
+    <section className="min-h-screen bg-slate-100 dark:bg-slate-50 px-4 pt-35 pb-10">
       <div className="mx-auto flex max-w-275 flex-col gap-8">
         <div className="mx-auto w-full max-w-md rounded-2xl bg-white px-6 py-8 shadow-md md:px-10">
-          <h1 className="mb-6 text-2xl font-semibold text-black text-center sm:text-3xl">
+          <h1 className="mb-6 text-2xl font-semibold text-slate-900 text-center sm:text-3xl">
             {copy.title}
           </h1>
 
@@ -145,7 +145,7 @@ function ResetPasswordForm() {
         </div>
 
         <div className="flex w-full flex-col items-center justify-between gap-4 text-center">
-          <p className="text-sm text-black md:text-base">
+          <p className="text-sm text-slate-900 md:text-base">
             Если у Вас возникли технические сложности, свяжитесь с нами по email:{' '}
             <Link
               href="mailto:oi@bgitu.ru"

@@ -23,7 +23,7 @@ export default function Main() {
       <div className="mx-auto flex max-w-300 flex-col gap-6 rounded-2xl bg-white/90 p-6 shadow-sm items-center lg:flex-row md:gap-8 md:px-10 md:py-8">
         {/* Левая колонка с описанием */}
         <div className="flex-1 space-y-4">
-          <p className="text-xl bold font-semibold text-black sm:text-2xl md:text-3xl">
+          <p className="text-xl bold font-semibold text-slate-900 sm:text-2xl md:text-3xl">
             Авторизация пользователя
           </p>
 
@@ -43,12 +43,12 @@ export default function Main() {
             </p>
           </div>
 
-          <p className="text-xs text-[#333] md:text-base sm:text-sm">
+          <p className="text-xs text-slate-700 md:text-base sm:text-sm">
             «Портфолио БГИТУ» - система для автоматизации учёта достижений студентов. <br />
             Данный сайт представляет собой Web-расширение информационной системы БГИТУ, <br />
             созданное для студентов и сотрудников университета.
           </p>
-          {/* <p className="text-xs text-[#333] md:text-base sm:text-sm">
+          {/* <p className="text-xs text-slate-700 md:text-base sm:text-sm">
             email:{' '}
             <Link
               className="text-sky-700 underline underline-offset-2 hover:text-sky-900"
@@ -60,7 +60,7 @@ export default function Main() {
         </div>
 
         {/* Правая колонка с действиями */}
-        <div className="flex w-full max-w-xs flex-col items-stretch justify-center gap-3 rounded-2xl bg-[#F5F7FB] px-5 py-6 shadow-sm md:max-w-sm">
+        <div className="flex w-full max-w-xs flex-col items-stretch justify-center gap-3 rounded-2xl bg-slate-50 px-5 py-6 shadow-sm md:max-w-sm">
 
           <button className="cursor-pointer w-full rounded-md bg-sky-700 text-sm font-semibold text-white transition hover:bg-sky-900">
             <Link href="/login" className="block w-full text-center px-4 py-3">

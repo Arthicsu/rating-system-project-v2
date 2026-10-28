@@ -11,21 +11,22 @@ import { Toaster } from 'react-hot-toast';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru">
-    {/* <ThemeProvider attribute="class" defaultTheme="system" enableSystem> */}
+    // next-themes ставит класс темы на <html> до гидрации - отсюда расхождение с серверной разметкой.
+    <html lang="ru" suppressHydrationWarning>
       <head>
       </head>
-      <body className="bg-slate-100 pb-16 sm:pb-0 pr-(--scrollbar-gap)">
-        <Providers>
-          <AuthProvider>
-            <Header />
-            <Toaster />
-            {children}
-          </AuthProvider>
-        </Providers>
-        <CookieConsentBanner />
+      <body className="bg-slate-100 dark:bg-slate-50 pb-16 sm:pb-0 pr-(--scrollbar-gap)">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <Providers>
+            <AuthProvider>
+              <Header />
+              <Toaster />
+              {children}
+            </AuthProvider>
+          </Providers>
+          <CookieConsentBanner />
+        </ThemeProvider>
       </body>
-    {/* </ThemeProvider> */}
     </html>
   );
 }

@@ -9,6 +9,100 @@
   --color-sky-900: #1c4973;
 }
 
+/* Тёмная тема - класс .dark на <html> (next-themes). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Палитра для тёмного фона: серые - от тёмной страницы до светлого текста, акценты - светлые
+   тона для текста и тёмные - для подложек. Компоненты пишутся одними классами для обеих тем. */
+.dark {
+  color-scheme: dark;
+  --surface: oklch(21.5% 0.028 262);
+
+  --color-slate-50: oklch(17% 0.025 262);
+  --color-slate-100: oklch(27% 0.03 262);
+  --color-slate-200: oklch(32% 0.032 262);
+  --color-slate-300: oklch(40% 0.035 262);
+  --color-slate-400: oklch(60% 0.03 262);
+  --color-slate-500: oklch(73% 0.028 262);
+  --color-slate-600: oklch(79% 0.024 262);
+  --color-slate-700: oklch(85% 0.02 262);
+  --color-slate-800: oklch(91% 0.014 262);
+  --color-slate-900: oklch(96% 0.008 262);
+
+  --color-sky-50: oklch(25% 0.05 249.5);
+  --color-sky-100: oklch(29% 0.06 249.5);
+  --color-sky-200: oklch(36% 0.07 249.5);
+  --color-sky-300: oklch(45% 0.09 249.5);
+  --color-sky-400: oklch(56% 0.11 249.5);
+  --color-sky-500: oklch(66% 0.13 249.5);
+  --color-sky-600: oklch(71% 0.12 249.5);
+  --color-sky-700: oklch(77% 0.1 249.5);
+  --color-sky-800: oklch(84% 0.075 249.5);
+  --color-sky-900: oklch(90% 0.05 249.5);
+
+  --color-rose-50: oklch(25% 0.05 16);
+  --color-rose-100: oklch(29% 0.065 16);
+  --color-rose-200: oklch(36% 0.08 16);
+  --color-rose-300: oklch(45% 0.11 16);
+  --color-rose-400: oklch(60% 0.15 16);
+  --color-rose-500: oklch(68% 0.16 16);
+  --color-rose-600: oklch(75% 0.13 16);
+  --color-rose-700: oklch(81% 0.1 16);
+  --color-rose-900: oklch(91% 0.045 16);
+
+  --color-emerald-50: oklch(25% 0.045 163);
+  --color-emerald-100: oklch(29% 0.055 163);
+  --color-emerald-300: oklch(45% 0.085 163);
+  --color-emerald-500: oklch(68% 0.13 163);
+  --color-emerald-600: oklch(75% 0.13 163);
+  --color-emerald-700: oklch(81% 0.115 163);
+  --color-emerald-800: oklch(87% 0.085 163);
+
+  --color-amber-50: oklch(26% 0.045 75);
+  --color-amber-100: oklch(30% 0.055 75);
+  --color-amber-200: oklch(37% 0.07 75);
+  --color-amber-400: oklch(66% 0.13 75);
+  --color-amber-500: oklch(74% 0.14 75);
+  --color-amber-700: oklch(84% 0.115 80);
+  --color-amber-800: oklch(89% 0.09 85);
+  --color-amber-900: oklch(93% 0.06 85);
+}
+
+/* Белые подложки (карточки, шапка, поля) - тёмная поверхность; белый текст остаётся белым.
+   Переопределяется переменная на самом элементе, поэтому hover:/dark: классы работают как обычно. */
+.dark :is(.bg-white, .bg-white\/80, .bg-white\/90) {
+  --color-white: var(--surface);
+}
+
+.dark .text-white {
+  --color-white: #fff;
+}
+
+/* Сплошные фоны кнопок и меток под белым текстом - те же цвета, что в светлой теме. */
+.dark :is(.bg-sky-700, .hover\:bg-sky-800, .hover\:bg-sky-900) {
+  --color-sky-700: #1968ab;
+  --color-sky-800: #1d588d;
+  --color-sky-900: #1c4973;
+}
+
+.dark :is(.bg-emerald-600, .bg-emerald-700, .hover\:bg-emerald-700, .hover\:bg-emerald-800) {
+  --color-emerald-600: oklch(59.6% 0.145 163.225);
+  --color-emerald-700: oklch(50.8% 0.118 165.612);
+  --color-emerald-800: oklch(43.2% 0.095 166.913);
+}
+
+.dark :is(.bg-rose-500, .bg-rose-600, .hover\:bg-rose-700) {
+  --color-rose-500: oklch(64.5% 0.246 16.439);
+  --color-rose-600: oklch(58.6% 0.253 17.585);
+  --color-rose-700: oklch(51.4% 0.222 16.935);
+}
+
+.dark :is(.bg-amber-500, .bg-amber-700, .hover\:bg-amber-800) {
+  --color-amber-500: oklch(76.9% 0.188 70.08);
+  --color-amber-700: oklch(55.5% 0.163 48.998);
+  --color-amber-800: oklch(47.3% 0.137 46.201);
+}
+
 input[type=password]::-ms-reveal,
 input[type=password]::-ms-clear {
     display: none;
@@ -52,7 +146,7 @@ input[type=password]::-ms-clear {
       padding: 4px;
       border: 1px solid var(--color-slate-200);
       border-radius: 0.75rem;
-      background: #fff;
+      background: var(--color-white);
       box-shadow: 0 12px 32px rgb(15 23 42 / 0.16);
     }
 

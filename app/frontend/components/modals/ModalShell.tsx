@@ -126,7 +126,7 @@ export default function ModalShell({
     <div
       id={id}
       className={`fixed inset-0 flex transition-all duration-200 ${overlayClassName} ${
-        visible ? 'bg-slate-900/60' : 'bg-slate-900/0 pointer-events-none'
+        visible ? 'bg-slate-950/60' : 'bg-slate-950/0 pointer-events-none'
       }`}
       onMouseDown={(e) => { pressedOnBackdropRef.current = e.target === e.currentTarget; }}
       onClick={closeOnBackdrop ? (e) => { if (pressedOnBackdropRef.current && e.target === e.currentTarget) handleClose(); } : undefined}

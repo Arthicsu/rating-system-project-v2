@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import type { AxiosError } from 'axios';
 
 import ModalChangePassword from '@/components/modals/ModalChangePassword';
+import ThemeToggle from '@/components/ThemeToggle';
 import { useMySession } from '@/context/AuthContext';
 import { useRedirectIfLoggedOut } from '@/hooks/useRedirectIfLoggedOut';
 import { apiErrorMessage, isAuthError } from '@/lib/apiError';
@@ -12,7 +13,7 @@ import { authApi } from '@/lib/apiRequests';
 
 const SECTION = 'rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5';
 
-/** Настройки вошедшего пользователя. Студент меняет здесь пароль и письма; сотрудник пароль не меняет. */
+/** Настройки вошедшего пользователя. Студент меняет здесь пароль и письма; сотрудник пароль не меняет; тема - у всех. */
 export default function SettingsPage() {
   const { user, setUser } = useMySession();
   const [changingPassword, setChangingPassword] = useState(false);
@@ -108,6 +109,21 @@ export default function SettingsPage() {
             </div>
           </section>
         )}
+
+        <section aria-labelledby="settings-appearance" className={SECTION}>
+          <h2 id="settings-appearance" className="text-base font-semibold text-slate-900">
+            Оформление
+          </h2>
+          <div className="mt-3 space-y-3">
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium text-slate-800">Тема</p>
+              <p className="text-sm text-slate-500">
+                «Как в системе» следует настройке устройства. Выбор запоминается в этом браузере.
+              </p>
+            </div>
+            <ThemeToggle />
+          </div>
+        </section>
       </div>
 
       {isStudent && <ModalChangePassword isOpen={changingPassword} onClose={() => setChangingPassword(false)} />}

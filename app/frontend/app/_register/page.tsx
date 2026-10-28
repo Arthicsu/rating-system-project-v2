@@ -57,7 +57,7 @@ export default function RegisterPage() {
   const inputClasses = "h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700";
 
   return (
-    <section className="min-h-screen bg-slate-100 px-4 pt-35 pb-10">
+    <section className="min-h-screen bg-slate-100 dark:bg-slate-50 px-4 pt-35 pb-10">
       <div className="mx-auto flex max-w-[1100px] flex-col gap-8">
         <div className="mx-auto w-full max-w-xl rounded-2xl bg-white px-6 py-8 shadow-md md:px-10">
           <h1 className="mb-6 text-2xl font-semibold text-slate-900 sm:text-3xl">
