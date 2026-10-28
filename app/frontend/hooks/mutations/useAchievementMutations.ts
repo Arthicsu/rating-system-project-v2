@@ -39,7 +39,7 @@ export function useUploadAchievement() {
 export function useUpdateAchievement() {
   const invalidate = useInvalidateAchievements();
   return useMutation({
-    mutationFn: ({ id, formData }: { id: number; formData: FormData }) =>
+    mutationFn: ({ id, formData }: { id: string; formData: FormData }) =>
       studentApi.updateAchievement(id, formData).then((r) => r.data),
     onSuccess: invalidate,
   });
@@ -48,7 +48,7 @@ export function useUpdateAchievement() {
 export function useDeleteAchievement() {
   const invalidate = useInvalidateAchievements();
   return useMutation({
-    mutationFn: (id: number) => studentApi.deleteAchievement(id).then((r) => r.data),
+    mutationFn: (id: string) => studentApi.deleteAchievement(id).then((r) => r.data),
     onSuccess: invalidate,
   });
 }

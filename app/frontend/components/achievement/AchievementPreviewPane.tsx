@@ -8,7 +8,7 @@ interface AchievementPreviewPaneProps {
   selectedIndex: number;
   onSelect: (index: number) => void;
   onFullscreen: () => void;
-  onDownload: (fileId: number, fileName: string) => void;
+  onDownload: (fileId: string, fileName: string) => void;
 }
 
 /** Предпросмотр файлов заявки: вкладки файлов, панель просмотра и кнопка «На весь экран». */

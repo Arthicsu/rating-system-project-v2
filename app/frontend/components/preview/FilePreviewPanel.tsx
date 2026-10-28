@@ -15,7 +15,7 @@ const FileViewer = dynamic(() => import('@/components/preview/FileViewer'), {
 });
 
 interface FilePreviewPanelProps {
-  fileId: number;
+  fileId: string;
   fileName: string;
   /** Загружать превью только когда панель реально видна (модалка открыта/страница смонтирована). */
   isOpen: boolean;

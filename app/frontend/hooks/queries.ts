@@ -177,7 +177,7 @@ export function useReviewDocument() {
   };
 
   return useMutation({
-    mutationFn: ({ documentId, data, idempotencyKey }: { documentId: number; data: ReviewDocumentRequestDto; idempotencyKey: string }) =>
+    mutationFn: ({ documentId, data, idempotencyKey }: { documentId: string; data: ReviewDocumentRequestDto; idempotencyKey: string }) =>
       universityApi.reviewDocument(documentId, data, idempotencyKey).then((r) => r.data),
     onSuccess: invalidate,
     onError: (error) => {

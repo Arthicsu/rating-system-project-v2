@@ -69,7 +69,7 @@ function StaffRequest({ id }: { id: string }) {
     }
   }
 
-  const download = (fileId: number, name: string) => downloadFile(fileId, name);
+  const download = (fileId: string, name: string) => downloadFile(fileId, name);
 
   return (
     <>

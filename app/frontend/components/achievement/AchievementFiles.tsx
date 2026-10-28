@@ -5,7 +5,7 @@ interface AchievementFilesProps {
   files: DocumentFileDto[];
   /** Когда файлы удалены по сроку хранения после архивации студента. */
   purgedAt?: string | null;
-  onDownload: (fileId: number, fileName: string) => void;
+  onDownload: (fileId: string, fileName: string) => void;
 }
 
 /** Список прикреплённых файлов со скачиванием. */

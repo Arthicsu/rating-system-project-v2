@@ -9,7 +9,7 @@ import FilePreviewPanel from '@/components/preview/FilePreviewPanel';
 export default function ModalPreview({ isOpen, doc, onClose }: ModalPreviewProps) {
   const { downloadFile } = useDownloadFile();
   const [selectedFileIndex, setSelectedFileIndex] = useState(0);
-  const [seededDocId, setSeededDocId] = useState<number | null>(null);
+  const [seededDocId, setSeededDocId] = useState<string | null>(null);
 
   // Сброс выбранной вкладки при открытии новой заявки — правкой состояния при
   // смене пропа (без setState в эффекте). seededDocId обнуляется после закрытия,
@@ -20,7 +20,7 @@ export default function ModalPreview({ isOpen, doc, onClose }: ModalPreviewProps
   }
 
   const handleDownload = useCallback(
-    (fileId: number, fileName: string) => {
+    (fileId: string, fileName: string) => {
       void downloadFile(fileId, fileName);
     },
     [downloadFile],

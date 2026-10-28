@@ -67,7 +67,7 @@ export type Profile = StudentProfileDto & {
 
 /** Строка top5 дашборда (контракт StudentSimple). */
 export interface StudentSimple {
-  id: number;
+  id: string;
   full_name: string;
   total_score: number;
 }

@@ -14,7 +14,7 @@ export function saveBlob(data: BlobPart, fileName: string) {
 }
 
 export function useDownloadFile() {
-  const downloadFile = async (fileId: number, fileName: string) => {
+  const downloadFile = async (fileId: string, fileName: string) => {
     try {
       const response = await studentApi.downloadDocument(fileId);
       saveBlob(response.data, fileName);

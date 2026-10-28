@@ -55,7 +55,7 @@ export default function ModalEditAchievement({ isOpen, doc, onClose }: ModalEdit
   const { data: config } = useAchievementConfig();
   // Карточка заявки: размеры файлов (их отдаёт только она) и коды для селектов.
   const { data: detail, isFetching, isError } = useAchievement(doc ? String(doc.id) : '', isOpen);
-  const [seededDocId, setSeededDocId] = useState<number | null>(null);
+  const [seededDocId, setSeededDocId] = useState<string | null>(null);
   // Второй клик/Enter в том же кадре, до того как isPending успел стать true.
   const inFlightRef = useRef(false);
 
@@ -92,7 +92,7 @@ export default function ModalEditAchievement({ isOpen, doc, onClose }: ModalEdit
       shouldValidate: true,
     });
 
-  const toggleRemove = (id: number) => {
+  const toggleRemove = (id: string) => {
     const next = removeIds.includes(id) ? removeIds.filter((x) => x !== id) : [...removeIds, id];
     setValue('removeFileIds', next);
     setValue('keptFileCount', files.length - next.length);
@@ -101,7 +101,7 @@ export default function ModalEditAchievement({ isOpen, doc, onClose }: ModalEdit
   };
 
   // «Заменить» = отметить файл к удалению и сразу открыть выбор нового.
-  const replace = (id: number) => {
+  const replace = (id: string) => {
     if (!removeIds.includes(id)) toggleRemove(id);
     document.getElementById(FILE_INPUT_ID)?.click();
   };

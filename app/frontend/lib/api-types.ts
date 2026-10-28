@@ -86,7 +86,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/achievements/{id}/": {
+    "/api/v1/achievements/{public_id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -138,7 +138,7 @@ export interface paths {
         patch: operations["v1_achievements_partial_update"];
         trace?: never;
     };
-    "/api/v1/achievements/{id}/review/": {
+    "/api/v1/achievements/{public_id}/review/": {
         parameters: {
             query?: never;
             header?: never;
@@ -312,7 +312,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/document-files/{id}/download/": {
+    "/api/v1/document-files/{public_id}/download/": {
         parameters: {
             query?: never;
             header?: never;
@@ -332,7 +332,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/document-files/{id}/preview/": {
+    "/api/v1/document-files/{public_id}/preview/": {
         parameters: {
             query?: never;
             header?: never;
@@ -529,7 +529,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/students/{id}/": {
+    "/api/v1/students/{public_id}/": {
         parameters: {
             query?: never;
             header?: never;
@@ -692,7 +692,8 @@ export interface components {
             label: string;
         };
         Document: {
-            readonly id: number;
+            /** Format: uuid */
+            readonly id: string;
             /** Категория */
             category: number;
             readonly category_display: string;
@@ -739,7 +740,8 @@ export interface components {
             readonly uploaded_at: string;
         };
         DocumentFile: {
-            readonly id: number;
+            /** Format: uuid */
+            readonly id: string;
             /** Оригинальное имя файла */
             original_file_name?: string;
             /**
@@ -752,8 +754,8 @@ export interface components {
              * @description Для сортировки файлов
              */
             order?: number;
-            /** Документ */
-            document: number;
+            /** Format: uuid */
+            readonly document: string;
             readonly size: number | null;
         };
         /** @description Единый формат ошибки API: {"detail": "..."}. */
@@ -915,14 +917,15 @@ export interface components {
             doc_type?: string;
             files?: string[];
             /** @description id файлов этой заявки, которые удалить (multipart: ключ на каждый id) */
-            remove_file_ids?: number[];
+            remove_file_ids?: string[];
         };
         PendingCount: {
             readonly pending_docs_count: number;
             readonly past_pending: components["schemas"]["PastPending"][];
         };
         PendingDocument: {
-            readonly id: number;
+            /** Format: uuid */
+            readonly id: string;
             /** Категория */
             category: number;
             readonly category_display: string;
@@ -968,7 +971,8 @@ export interface components {
             /** Format: date-time */
             readonly uploaded_at: string;
             readonly user_id: number;
-            readonly student_id: number;
+            /** Format: uuid */
+            readonly student_id: string;
             readonly student_name: string;
             /** @default Без группы */
             readonly group: string;
@@ -1051,7 +1055,8 @@ export interface components {
             type: string;
         };
         StudentProfile: {
-            readonly id: number;
+            /** Format: uuid */
+            readonly id: string;
             readonly user_id: number | null;
             /**
              * ФИО
@@ -1100,7 +1105,8 @@ export interface components {
          *     (по ней работает поиск и колонка в таблице кабинета).
          */
         StudentRating: {
-            readonly id: number;
+            /** Format: uuid */
+            readonly id: string;
             readonly user_id: number | null;
             /**
              * ФИО
@@ -1304,7 +1310,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                public_id: string;
             };
             cookie?: never;
         };
@@ -1325,7 +1331,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                public_id: string;
             };
             cookie?: never;
         };
@@ -1353,7 +1359,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                public_id: string;
             };
             cookie?: never;
         };
@@ -1391,7 +1397,7 @@ export interface operations {
                 "Idempotency-Key"?: string;
             };
             path: {
-                id: string;
+                public_id: string;
             };
             cookie?: never;
         };
@@ -1633,7 +1639,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                public_id: string;
             };
             cookie?: never;
         };
@@ -1670,7 +1676,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                public_id: string;
             };
             cookie?: never;
         };
@@ -1910,7 +1916,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                public_id: string;
             };
             cookie?: never;
         };

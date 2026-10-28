@@ -316,7 +316,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorDetail'
           description: ''
-  /api/v1/achievements/{id}/:
+  /api/v1/achievements/{public_id}/:
     get:
       operationId: v1_achievements_retrieve
       description: |-
@@ -332,10 +332,10 @@ paths:
         - config — конфигурация формы загрузки (кэш 1 час).
       parameters:
       - in: path
-        name: id
+        name: public_id
         schema:
           type: string
-          pattern: ^\d+$
+          pattern: ^[0-9a-f-]{36}$
         required: true
       tags:
       - achievements
@@ -363,10 +363,10 @@ paths:
         - config — конфигурация формы загрузки (кэш 1 час).
       parameters:
       - in: path
-        name: id
+        name: public_id
         schema:
           type: string
-          pattern: ^\d+$
+          pattern: ^[0-9a-f-]{36}$
         required: true
       tags:
       - achievements
@@ -411,10 +411,10 @@ paths:
         - config — конфигурация формы загрузки (кэш 1 час).
       parameters:
       - in: path
-        name: id
+        name: public_id
         schema:
           type: string
-          pattern: ^\d+$
+          pattern: ^[0-9a-f-]{36}$
         required: true
       tags:
       - achievements
@@ -429,7 +429,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorDetail'
           description: ''
-  /api/v1/achievements/{id}/review/:
+  /api/v1/achievements/{public_id}/review/:
     post:
       operationId: v1_achievements_review_create
       description: |-
@@ -452,10 +452,10 @@ paths:
         description: 'UUID попытки отправки: повтор с тем же ключом получает 409 вместо
           дубля.'
       - in: path
-        name: id
+        name: public_id
         schema:
           type: string
-          pattern: ^\d+$
+          pattern: ^[0-9a-f-]{36}$
         required: true
       tags:
       - achievements
@@ -689,7 +689,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Category'
           description: ''
-  /api/v1/document-files/{id}/download/:
+  /api/v1/document-files/{public_id}/download/:
     get:
       operationId: v1_document_files_download_retrieve
       description: 'Потоковое проксирование файла из хранилища (Content-Disposition:
@@ -697,10 +697,10 @@ paths:
       summary: Скачать файл документа
       parameters:
       - in: path
-        name: id
+        name: public_id
         schema:
           type: string
-          pattern: ^\d+$
+          pattern: ^[0-9a-f-]{36}$
         required: true
       tags:
       - document-files
@@ -726,7 +726,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorDetail'
           description: ''
-  /api/v1/document-files/{id}/preview/:
+  /api/v1/document-files/{public_id}/preview/:
     get:
       operationId: v1_document_files_preview_retrieve
       description: Отдаёт файл inline; .doc/.docx конвертируются в PDF (Gotenberg)
@@ -734,10 +734,10 @@ paths:
       summary: Предпросмотр файла документа (офисные форматы — в PDF)
       parameters:
       - in: path
-        name: id
+        name: public_id
         schema:
           type: string
-          pattern: ^\d+$
+          pattern: ^[0-9a-f-]{36}$
         required: true
       tags:
       - document-files
@@ -1069,7 +1069,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedStudentProfileList'
           description: ''
-  /api/v1/students/{id}/:
+  /api/v1/students/{public_id}/:
     get:
       operationId: v1_students_retrieve
       description: |-
@@ -1081,10 +1081,10 @@ paths:
         - me — собственный профиль студента.
       parameters:
       - in: path
-        name: id
+        name: public_id
         schema:
           type: string
-          pattern: ^\d+$
+          pattern: ^[0-9a-f-]{36}$
         required: true
       tags:
       - students
@@ -1355,7 +1355,8 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         category:
           type: integer
@@ -1477,7 +1478,8 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         original_file_name:
           type: string
@@ -1495,8 +1497,9 @@ components:
           title: Порядок
           description: Для сортировки файлов
         document:
-          type: integer
-          title: Документ
+          type: string
+          format: uuid
+          readOnly: true
         size:
           type: integer
           nullable: true
@@ -1809,7 +1812,8 @@ components:
         remove_file_ids:
           type: array
           items:
-            type: integer
+            type: string
+            format: uuid
           writeOnly: true
           description: 'id файлов этой заявки, которые удалить (multipart: ключ на
             каждый id)'
@@ -1831,7 +1835,8 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         category:
           type: integer
@@ -1931,7 +1936,8 @@ components:
           type: integer
           readOnly: true
         student_id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         student_name:
           type: string
@@ -2160,7 +2166,8 @@ components:
       type: object
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         user_id:
           type: integer
@@ -2277,7 +2284,8 @@ components:
         (по ней работает поиск и колонка в таблице кабинета).
       properties:
         id:
-          type: integer
+          type: string
+          format: uuid
           readOnly: true
         user_id:
           type: integer

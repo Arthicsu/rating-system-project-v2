@@ -70,17 +70,17 @@ export const studentApi = {
       timeout: 120000,
     }),
 
-  updateAchievement: (id: number, formData: FormData) =>
+  updateAchievement: (id: string, formData: FormData) =>
     api.patch(`/api/v1/achievements/${id}/`, formData, {headers: { 'Content-Type': 'multipart/form-data' },}),
 
-  deleteAchievement: (id: number) => api.delete(`/api/v1/achievements/${id}/`),
+  deleteAchievement: (id: string) => api.delete(`/api/v1/achievements/${id}/`),
 
-  downloadDocument: (fileId: number) => api.get(`/api/v1/document-files/${fileId}/download/`, {
+  downloadDocument: (fileId: string) => api.get(`/api/v1/document-files/${fileId}/download/`, {
     responseType: 'blob',
     skipGlobalErrorHandling: true,
   }),
 
-  previewDocument: (fileId: number) => api.get(`/api/v1/document-files/${fileId}/preview/`, {
+  previewDocument: (fileId: string) => api.get(`/api/v1/document-files/${fileId}/preview/`, {
     responseType: 'blob',
     skipGlobalErrorHandling: true,
     // Конвертация офисных форматов в PDF на сервере может занять время.
@@ -104,7 +104,7 @@ export const universityApi = {
   getFilteredDashboardStats: (params: DashboardStatsParams) =>
     api.get<DashboardStatsResponse>('/api/v1/achievements/', { params }),
 
-  reviewDocument: (documentId: number, data: ReviewDocumentRequestDto, idempotencyKey: string) =>
+  reviewDocument: (documentId: string, data: ReviewDocumentRequestDto, idempotencyKey: string) =>
     api.post<MessageDto>(`/api/v1/achievements/${documentId}/review/`, data, {
       headers: { 'Idempotency-Key': idempotencyKey },
     }),

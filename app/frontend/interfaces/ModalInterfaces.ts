@@ -39,7 +39,7 @@ export interface ModalPreviewProps {
   isOpen: boolean;
   doc: PreviewDocument | null;
   onClose: () => void;
-  onDownload: (fileId: number, fileName: string) => void;
+  onDownload: (fileId: string, fileName: string) => void;
 }
 
 export interface ModalConfirmProps {

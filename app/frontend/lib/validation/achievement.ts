@@ -102,7 +102,7 @@ export const editAchievementSchema = z
   .object({
     ...achievementFieldsShape,
     newFiles: z.array(z.instanceof(File)),
-    removeFileIds: z.array(z.number()),
+    removeFileIds: z.array(z.string()),
     keptFileCount: z.number(),
   })
   .superRefine((data, ctx) => {

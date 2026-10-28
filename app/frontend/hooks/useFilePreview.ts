@@ -12,7 +12,7 @@ export function getFilePreviewKind(fileName: string): FilePreviewKind {
   return 'unsupported';
 }
 
-export function useFilePreview(fileId: number | null, enabled: boolean) {
+export function useFilePreview(fileId: string | null, enabled: boolean) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
