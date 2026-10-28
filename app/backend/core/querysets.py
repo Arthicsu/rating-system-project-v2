@@ -346,13 +346,13 @@ def top5_students(user, request):
             .order_by('-sem_total_score', 'full_name')[:5]
         )
         return [
-            {'id': s.id, 'full_name': s.full_name, 'total_score': s.sem_total_score}
+            {'id': s.public_id, 'full_name': s.full_name, 'total_score': s.sem_total_score}
             for s in top
         ]
 
     top = students.order_by('-total_score')[:5]
     return [
-        {'id': s.id, 'full_name': s.full_name, 'total_score': s.total_score}
+        {'id': s.public_id, 'full_name': s.full_name, 'total_score': s.total_score}
         for s in top
     ]
 

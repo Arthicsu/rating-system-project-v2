@@ -59,6 +59,7 @@ class PendingPaginationTests(APITestCase):
 
         # Четыре заявки от четырёх студентов, все с ОДНИМ uploaded_at.
         self.doc_ids = []
+        self.doc_uuids = []
         for i in range(4):
             student_user = User.objects.create_user(username=f"stud{i}@uni.ru", password="pass12345")
             Student.objects.create(
@@ -73,6 +74,7 @@ class PendingPaginationTests(APITestCase):
                 achievement="Достижение",
             )
             self.doc_ids.append(doc.id)
+            self.doc_uuids.append(str(doc.public_id))
 
         # auto_now_add проставляет разные значения; выравниваем принудительно,
         # чтобы порядок держался только на доборе -id.
@@ -93,9 +95,9 @@ class PendingPaginationTests(APITestCase):
         self.assertEqual(len(page2), 2)
         # Страницы не пересекаются и вместе покрывают все заявки.
         self.assertEqual(set(page1) & set(page2), set())
-        self.assertEqual(set(page1) | set(page2), set(self.doc_ids))
+        self.assertEqual(set(page1) | set(page2), set(self.doc_uuids))
         # Порядок детерминирован: id при равном uploaded_at (очередь - сначала старые).
-        self.assertEqual(page1 + page2, sorted(self.doc_ids))
+        self.assertEqual(page1 + page2, self.doc_uuids)
 
     def test_response_has_page_number(self):
         self.client.force_authenticate(self.staff_user)
@@ -113,7 +115,7 @@ class PendingPaginationTests(APITestCase):
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         self.assertEqual(resp.data["page"], 2)
-        self.assertEqual([r["id"] for r in resp.data["results"]], sorted(self.doc_ids)[2:])
+        self.assertEqual([r["id"] for r in resp.data["results"]], self.doc_uuids[2:])
 
     def test_out_of_range_page_of_empty_list_is_first(self):
         self.client.force_authenticate(self.staff_user)
@@ -143,4 +145,4 @@ class PendingPaginationTests(APITestCase):
 
         resp = self.client.get(reverse(URL_NAME), {"page_size": 10})
 
-        self.assertEqual([r["id"] for r in resp.data["results"]], list(reversed(self.doc_ids)))
+        self.assertEqual([r["id"] for r in resp.data["results"]], list(reversed(self.doc_uuids)))

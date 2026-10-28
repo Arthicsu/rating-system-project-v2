@@ -365,7 +365,8 @@ class DocumentFileViewSet(GenericViewSet):
         'document__user__student_profile__group__specialty',
     )
     pagination_class = None
-    lookup_value_regex = r'\d+'
+    lookup_field = 'public_id'
+    lookup_value_regex = r'[0-9a-f-]{36}'
 
     # Ограничение на размер файла, отдаваемого клиенту (20 МБ).
     max_file_size = 20 * 1024 * 1024
@@ -377,7 +378,7 @@ class DocumentFileViewSet(GenericViewSet):
         return []
 
     def _get_accessible_file(self):
-        """DocumentFile по pk с проверкой прав (403) и размера (400 FileTooLarge)."""
+        """DocumentFile по public_id с проверкой прав (403) и размера (400 FileTooLarge)."""
         file_obj = self.get_object()
         if file_obj.file.size > self.max_file_size:
             raise FileTooLarge()
@@ -388,7 +389,7 @@ class DocumentFileViewSet(GenericViewSet):
         responses={200: OpenApiTypes.BINARY, 400: ErrorDetailSerializer, 503: ErrorDetailSerializer},
     )
     @action(detail=True, methods=['get'])
-    def download(self, request, pk=None):
+    def download(self, request, public_id=None):
         """Потоковое проксирование файла из хранилища (Content-Disposition: attachment)."""
         file_obj = self._get_accessible_file()
 
@@ -412,7 +413,7 @@ class DocumentFileViewSet(GenericViewSet):
         responses={200: OpenApiTypes.BINARY, 400: ErrorDetailSerializer, 503: ErrorDetailSerializer},
     )
     @action(detail=True, methods=['get'])
-    def preview(self, request, pk=None):
+    def preview(self, request, public_id=None):
         """Отдаёт файл inline; .doc/.docx конвертируются в PDF (Gotenberg) с кэшем."""
         file_obj = self._get_accessible_file()
 

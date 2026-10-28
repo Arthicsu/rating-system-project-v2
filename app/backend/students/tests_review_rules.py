@@ -88,7 +88,7 @@ class ReviewRulesTests(APITestCase):
 
     def _review(self, reviewer, doc, action, reasons=(REASON,)):
         self.client.force_authenticate(reviewer)
-        return self.client.post(reverse(REVIEW, args=[doc.pk]), {"action": action, "reasons": list(reasons)})
+        return self.client.post(reverse(REVIEW, args=[doc.public_id]), {"action": action, "reasons": list(reasons)})
 
     def test_matrix(self):
         for role, reviewer in self.reviewers.items():
@@ -169,7 +169,7 @@ class ReviewRulesTests(APITestCase):
         self.client.force_authenticate(self.reviewers["Department"])
         resp = self.client.get(reverse(LIST), {"list_type": "pending"})
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
-        return next(item for item in resp.data["results"] if item["id"] == doc.pk)
+        return next(item for item in resp.data["results"] if item["id"] == str(doc.public_id))
 
     def test_returned_by_mark_in_department_list(self):
         for role, start in (("Dean", "approved"), ("Rectorate", "rejected")):
@@ -187,7 +187,7 @@ class ReviewRulesTests(APITestCase):
                 doc = self._doc("approved")
                 self._review(self.reviewers[role], doc, "reject")
                 self.client.force_authenticate(self.student)
-                self.client.patch(reverse("api:achievements-detail", args=[doc.pk]), {"achievement": "исправлено"})
+                self.client.patch(reverse("api:achievements-detail", args=[doc.public_id]), {"achievement": "исправлено"})
 
                 item = self._pending_item(doc)
 
@@ -222,7 +222,7 @@ class ReviewRulesTests(APITestCase):
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         resp = self.client.get(reverse(LIST), {"list_type": "pending"})
-        self.assertEqual({item["id"] for item in resp.data["results"]}, {approved.pk})
+        self.assertEqual({item["id"] for item in resp.data["results"]}, {str(approved.public_id)})
 
     def test_rectorate_mark_wins_over_dean(self):
         both = make_staff("dean-rector", "Dean", faculty=self.dept.faculty)

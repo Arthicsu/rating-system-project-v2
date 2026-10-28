@@ -36,6 +36,8 @@ class Student(models.Model):
     }
 
     external_id = models.CharField("Код студента", max_length=50, unique=True, null=True, blank=True, help_text="Код студента из БД вуза")
+    # В адресах и API вместо pk: по номерам нельзя перебрать чужие профили.
+    public_id = models.UUIDField("Публичный ID", default=uuid.uuid4, unique=True, editable=False)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         null=True, blank=True,
         related_name='student_profile')
@@ -277,6 +279,8 @@ class Document(models.Model):
     ссылку на файл и проходит процесс модерации (на рассмотрении, подтверждён, отклонён).   
     """
 
+    # В адресах, API и письмах вместо pk: по номерам нельзя перебрать чужие заявки.
+    public_id = models.UUIDField("Публичный ID", default=uuid.uuid4, unique=True, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='documents', verbose_name="Пользователь")
     date_received = models.DateField("Дата получения", default=timezone.now)
     verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_documents', verbose_name='Кем проверено')
@@ -372,6 +376,8 @@ class DocumentFile(models.Model):
     Модель для хранения файлов, прикреплённых к документу достижения.
     Один документ может иметь несколько файлов.
     """
+    # В адресах скачивания и предпросмотра вместо pk.
+    public_id = models.UUIDField("Публичный ID", default=uuid.uuid4, unique=True, editable=False)
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='files', verbose_name="Документ")
     original_file_name = models.CharField("Оригинальное имя файла", max_length=255, default='NO_FILENAME')
     file = models.FileField("Файл", upload_to=achievement_directory_path)

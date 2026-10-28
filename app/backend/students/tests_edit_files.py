@@ -49,19 +49,19 @@ class EditFilesTests(APITestCase):
         return file
 
     def _patch(self, doc=None, **data):
-        return self.client.patch(reverse(DETAIL, args=[(doc or self.doc).pk]), data, format="multipart")
+        return self.client.patch(reverse(DETAIL, args=[(doc or self.doc).public_id]), data, format="multipart")
 
     def _names(self):
         return list(self.doc.files.order_by("order").values_list("original_file_name", "order"))
 
     def test_remove_one_of_two_files(self):
-        resp = self._patch(remove_file_ids=[self.first.pk])
+        resp = self._patch(remove_file_ids=[self.first.public_id])
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         self.assertEqual(self._names(), [("b.png", 0)])
 
     def test_replace_file_in_one_patch(self):
-        resp = self._patch(remove_file_ids=[self.first.pk], files=[png("c.png")])
+        resp = self._patch(remove_file_ids=[self.first.public_id], files=[png("c.png")])
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         self.assertEqual(self._names(), [("b.png", 0), ("c.png", 1)])
@@ -70,14 +70,14 @@ class EditFilesTests(APITestCase):
         other = make_doc(make_student("other@uni.ru"), self.catalog, self.statuses["pending"])
         foreign = self._attach("x.png", 0, doc=other)
 
-        resp = self._patch(remove_file_ids=[foreign.pk])
+        resp = self._patch(remove_file_ids=[foreign.public_id])
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("remove_file_ids", resp.data)
         self.assertTrue(DocumentFile.objects.filter(pk=foreign.pk).exists())
 
     def test_remove_all_without_new_400(self):
-        resp = self._patch(remove_file_ids=[self.first.pk, self.second.pk])
+        resp = self._patch(remove_file_ids=[self.first.public_id, self.second.public_id])
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(self.doc.files.count(), 2)
@@ -101,7 +101,7 @@ class EditFilesTests(APITestCase):
         storage = self.first.file.storage
 
         with self.captureOnCommitCallbacks(execute=False) as callbacks:
-            resp = self._patch(remove_file_ids=[self.first.pk])
+            resp = self._patch(remove_file_ids=[self.first.public_id])
             self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
             self.assertTrue(storage.exists(name))
 
@@ -112,7 +112,7 @@ class EditFilesTests(APITestCase):
     def test_invalid_new_file_keeps_old_files(self):
         exe = SimpleUploadedFile("virus.exe", b"MZ" + b"\x00" * 32, content_type="application/octet-stream")
 
-        resp = self._patch(remove_file_ids=[self.first.pk], files=[exe])
+        resp = self._patch(remove_file_ids=[self.first.public_id], files=[exe])
 
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(self.doc.files.count(), 2)
@@ -122,13 +122,13 @@ class EditFilesTests(APITestCase):
         approved = make_doc(self.student, self.catalog, self.statuses["approved"])
         file = self._attach("z.png", 0, doc=approved)
 
-        resp = self._patch(doc=approved, remove_file_ids=[file.pk], files=[png()])
+        resp = self._patch(doc=approved, remove_file_ids=[file.public_id], files=[png()])
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
         self.assertTrue(DocumentFile.objects.filter(pk=file.pk).exists())
 
     def test_detail_exposes_file_size(self):
-        resp = self.client.get(reverse(DETAIL, args=[self.doc.pk]))
+        resp = self.client.get(reverse(DETAIL, args=[self.doc.public_id]))
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         self.assertEqual([f["size"] for f in resp.data["files"]], [len(PNG), len(PNG)])
@@ -152,18 +152,18 @@ class EditFilesTests(APITestCase):
         self.assertEqual(self.doc.files.count(), 3)
 
     def test_parallel_removals_cannot_leave_zero_files(self):
-        update_achievement(self.doc, {}, remove_file_ids=[self.first.pk])
+        update_achievement(self.doc, {}, remove_file_ids=[self.first.public_id])
 
         with self.assertRaises(ValidationError):
-            update_achievement(self.doc, {}, remove_file_ids=[self.second.pk])
+            update_achievement(self.doc, {}, remove_file_ids=[self.second.public_id])
 
         self.assertEqual(self.doc.files.count(), 1)
 
     def test_already_removed_id_is_rejected(self):
-        update_achievement(self.doc, {}, remove_file_ids=[self.first.pk], files=[png("c.png")])
+        update_achievement(self.doc, {}, remove_file_ids=[self.first.public_id], files=[png("c.png")])
 
         with self.assertRaises(ValidationError):
-            update_achievement(self.doc, {}, remove_file_ids=[self.first.pk])
+            update_achievement(self.doc, {}, remove_file_ids=[self.first.public_id])
 
     def test_storage_failure_does_not_count_as_zero(self):
         # Сбой хранилища (таймаут S3) не должен считаться «0 байт» и пропускать лимит.

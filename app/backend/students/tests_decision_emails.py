@@ -61,7 +61,7 @@ class DecisionEmailTests(APITestCase):
     def _review(self, reviewer, doc, action):
         self.client.force_authenticate(reviewer)
         with self.captureOnCommitCallbacks(execute=True):
-            resp = self.client.post(reverse(REVIEW, args=[doc.pk]), {"action": action, "reasons": [REASON]})
+            resp = self.client.post(reverse(REVIEW, args=[doc.public_id]), {"action": action, "reasons": [REASON]})
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         return resp
 
@@ -76,7 +76,7 @@ class DecisionEmailTests(APITestCase):
         self.assertEqual(message.subject, "Портфолио БГИТУ: решение по заявке")
         self.assertIn(TITLE, message.body)
         self.assertIn("одобрена", message.body)
-        self.assertIn(f"{SITE}/achievement/{doc.pk}", message.body)
+        self.assertIn(f"{SITE}/achievement/{doc.public_id}", message.body)
         self.assertIn(f"{SITE}/settings", message.body)
         self.assertNotIn(REASON, message.body)
         self.assertTrue(message.alternatives, "нужна HTML-версия письма")
@@ -163,7 +163,7 @@ class DecisionEmailTests(APITestCase):
         self.client.force_authenticate(self.department)
 
         with self.captureOnCommitCallbacks(execute=False) as callbacks:
-            self.client.post(reverse(REVIEW, args=[doc.pk]), {"action": "approve"})
+            self.client.post(reverse(REVIEW, args=[doc.public_id]), {"action": "approve"})
             queued.assert_not_called()
 
         for callback in callbacks:

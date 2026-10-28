@@ -43,21 +43,21 @@ class ReviewAccessTests(APITestCase):
     def test_student_cannot_review_own_doc(self):
         self.client.force_authenticate(self.student)
 
-        resp = self.client.post(reverse(REVIEW, args=[self.pending.pk]), {"action": "approve"})
+        resp = self.client.post(reverse(REVIEW, args=[self.pending.public_id]), {"action": "approve"})
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_foreign_department_cannot_review(self):
         self.client.force_authenticate(self.foreign)
 
-        resp = self.client.post(reverse(REVIEW, args=[self.pending.pk]), {"action": "approve"})
+        resp = self.client.post(reverse(REVIEW, args=[self.pending.public_id]), {"action": "approve"})
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_foreign_department_cannot_retrieve(self):
         self.client.force_authenticate(self.foreign)
 
-        resp = self.client.get(reverse(DETAIL, args=[self.pending.pk]))
+        resp = self.client.get(reverse(DETAIL, args=[self.pending.public_id]))
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -66,7 +66,7 @@ class ReviewAccessTests(APITestCase):
         review_document(document=self.approved, reviewer=self.dean, action="return", reasons=["Проверьте уровень"])
         self.client.force_authenticate(self.staff)
 
-        resp = self.client.get(reverse(DETAIL, args=[self.approved.pk]))
+        resp = self.client.get(reverse(DETAIL, args=[self.approved.public_id]))
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         self.assertEqual(resp.data["returned_by"], "Dean")

@@ -66,6 +66,8 @@ FILE_TEST_SETTINGS = {
 }
 
 DEFAULT_PASSWORD = "StrongPass123"
+# Адреса заявок, файлов и профилей студентов принимают только UUID.
+MISSING_ID = "00000000-0000-0000-0000-000000000000"
 
 
 class UsersAPITestCase(APITestCase):
@@ -299,12 +301,12 @@ class ApiAuthProtectionTests(UsersAPITestCase):
         ("api:categories-list", []),
         ("api:students-list", []),
         ("api:students-me", []),
-        ("api:students-detail", [1]),
+        ("api:students-detail", [MISSING_ID]),
         ("api:achievements-list", []),
-        ("api:achievements-detail", [1]),
+        ("api:achievements-detail", [MISSING_ID]),
         ("api:achievements-config", []),
-        ("api:document-files-download", [1]),
-        ("api:document-files-preview", [1]),
+        ("api:document-files-download", [MISSING_ID]),
+        ("api:document-files-preview", [MISSING_ID]),
         ("api:staff-me", []),
         ("api:groups-list", []),
         ("api:rejection-reasons-list", []),
@@ -314,7 +316,7 @@ class ApiAuthProtectionTests(UsersAPITestCase):
 
     PROTECTED_POST = [
         ("api:achievements-list", []),
-        ("api:achievements-review", [1]),
+        ("api:achievements-review", [MISSING_ID]),
         ("api:auth-logout", []),
     ]
 
@@ -340,7 +342,7 @@ class ApiAuthProtectionTests(UsersAPITestCase):
 
         for method in ("patch", "delete"):
             with self.subTest(endpoint="api:achievements-detail", method=method):
-                resp = getattr(self.client, method)(reverse("api:achievements-detail", args=[1]))
+                resp = getattr(self.client, method)(reverse("api:achievements-detail", args=[MISSING_ID]))
                 self.assertIn(
                     resp.status_code,
                     (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
@@ -400,7 +402,7 @@ class StaffEndpointsForbiddenForStudentTests(UsersAPITestCase):
     def test_review_forbidden_for_student(self):
         self.client.force_authenticate(self.student_user)
         resp = self.client.post(
-            reverse("api:achievements-review", args=[1]), {"action": "approve"}
+            reverse("api:achievements-review", args=[MISSING_ID]), {"action": "approve"}
         )
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -445,7 +447,7 @@ class StaffEndpointsRoleProtectionTests(UsersAPITestCase):
     def test_review_rejects_student(self):
         self.client.force_authenticate(self.student_user)
         resp = self.client.post(
-            reverse("api:achievements-review", args=[1]), {"action": "approve"}
+            reverse("api:achievements-review", args=[MISSING_ID]), {"action": "approve"}
         )
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -555,7 +557,7 @@ class DocumentPreviewTests(UsersAPITestCase):
         df = self._make_file("report.pdf", b"%PDF-1.4 fake", "application/pdf")
         self.client.force_authenticate(self.user)
 
-        resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.id]))
+        resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.public_id]))
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp["Content-Type"], "application/pdf")
@@ -572,7 +574,7 @@ class DocumentPreviewTests(UsersAPITestCase):
         self.client.force_authenticate(self.user)
 
         with patch("users.views.render_office_pdf", return_value=ContentFile(b"%PDF converted")) as mock_convert:
-            resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.id]))
+            resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.public_id]))
 
         mock_convert.assert_called_once()
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
@@ -602,7 +604,7 @@ class DocumentPreviewTests(UsersAPITestCase):
         df = self._make_file("report.pdf", b"%PDF-1.4 fake", "application/pdf")
         self.client.force_authenticate(other)
 
-        resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.id]))
+        resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.public_id]))
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
         # Единый формат ошибок API: {"detail": "..."}
@@ -620,7 +622,7 @@ class DocumentPreviewTests(UsersAPITestCase):
         self.client.force_authenticate(self.user)
 
         with patch("users.views.render_office_pdf", side_effect=PreviewBusyError):
-            resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.id]))
+            resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.public_id]))
 
         self.assertEqual(resp.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
         self.assertEqual(resp["Retry-After"], "5")
@@ -629,7 +631,7 @@ class DocumentPreviewTests(UsersAPITestCase):
     def test_preview_requires_auth(self):
         df = self._make_file("report.pdf", b"%PDF-1.4 fake", "application/pdf")
 
-        resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.id]))
+        resp = self.client.get(reverse(PREVIEW_URL_NAME, args=[df.public_id]))
 
         self.assertIn(
             resp.status_code,

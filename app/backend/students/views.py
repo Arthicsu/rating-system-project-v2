@@ -83,7 +83,8 @@ class AchievementViewSet(mixins.CreateModelMixin,
         'user__student_profile__record_book',
         'achievement',
     ]
-    lookup_value_regex = r'\d+'
+    lookup_field = 'public_id'
+    lookup_value_regex = r'[0-9a-f-]{36}'
 
     def get_permissions(self):
         if self.action == 'review':
@@ -216,7 +217,7 @@ class AchievementViewSet(mixins.CreateModelMixin,
     )
     @action(detail=True, methods=['post'])
     @idempotent
-    def review(self, request, pk=None):
+    def review(self, request, public_id=None):
         document = self.get_object()  # scope проверяет CanReviewDocument.has_object_permission
 
         serializer = self.get_serializer(data=request.data)
@@ -288,7 +289,8 @@ class StudentViewSet(mixins.ListModelMixin,
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = StudentFilterSet
     search_fields = ['full_name', 'record_book']
-    lookup_value_regex = r'\d+'
+    lookup_field = 'public_id'
+    lookup_value_regex = r'[0-9a-f-]{36}'
 
     def get_permissions(self):
         if self.action == 'list':

@@ -144,7 +144,7 @@ class SemesterScoringTests(APITestCase):
 
         resp = self.client.get(reverse("api:rating-list"))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        me = next(r for r in resp.data["results"] if r["id"] == self.student.id)
+        me = next(r for r in resp.data["results"] if r["id"] == str(self.student.public_id))
         self.assertEqual(me["total_score"], 10)
 
     def test_rating_api_past_semester_returns_history(self):
@@ -156,12 +156,12 @@ class SemesterScoringTests(APITestCase):
         # Прошлый семестр: баллы из истории SemesterScore, а не из живого кэша.
         resp = self.client.get(reverse("api:rating-list"), {"semester": self.fall.id})
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        me = next(r for r in resp.data["results"] if r["id"] == self.student.id)
+        me = next(r for r in resp.data["results"] if r["id"] == str(self.student.public_id))
         self.assertEqual(me["total_score"], 10)
 
         # Без параметра — текущий учебный год, баллов в нём ещё нет.
         resp = self.client.get(reverse("api:rating-list"))
-        me = next(r for r in resp.data["results"] if r["id"] == self.student.id)
+        me = next(r for r in resp.data["results"] if r["id"] == str(self.student.public_id))
         self.assertEqual(me["total_score"], 0)
 
     def test_rating_api_direction_asc(self):

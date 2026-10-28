@@ -75,14 +75,14 @@ class FilteredStudentsSemesterTests(APITestCase):
 
     def test_current_year_shows_live_scores_for_all(self):
         totals = self._totals({"year_start": self.current.year_start})
-        self.assertEqual(totals.get(self.a.id), 15)
-        self.assertEqual(totals.get(self.b.id), 3)
-        self.assertEqual(totals.get(self.c.id), 14)
+        self.assertEqual(totals.get(str(self.a.public_id)), 15)
+        self.assertEqual(totals.get(str(self.b.public_id)), 3)
+        self.assertEqual(totals.get(str(self.c.public_id)), 14)
 
     def test_past_semester_shows_all_students_zero_for_missing(self):
         totals = self._totals({"academic_year": self.past.id})
         # Все три студента присутствуют; у C нет истории → 0.
-        self.assertEqual(set(totals.keys()), {self.a.id, self.b.id, self.c.id})
-        self.assertEqual(totals[self.a.id], 4)
-        self.assertEqual(totals[self.b.id], 1)
-        self.assertEqual(totals[self.c.id], 0)
+        self.assertEqual(set(totals.keys()), {str(self.a.public_id), str(self.b.public_id), str(self.c.public_id)})
+        self.assertEqual(totals[str(self.a.public_id)], 4)
+        self.assertEqual(totals[str(self.b.public_id)], 1)
+        self.assertEqual(totals[str(self.c.public_id)], 0)

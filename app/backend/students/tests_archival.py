@@ -173,6 +173,6 @@ class ArchivedExcludedFromRosterAPITests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         results = resp.data["results"] if isinstance(resp.data, dict) and "results" in resp.data else resp.data
         ids = {r["id"] for r in results}
-        self.assertIn(self.active1.id, ids)
-        self.assertIn(self.active2.id, ids)
-        self.assertNotIn(self.archived.id, ids)
+        self.assertIn(str(self.active1.public_id), ids)
+        self.assertIn(str(self.active2.public_id), ids)
+        self.assertNotIn(str(self.archived.public_id), ids)

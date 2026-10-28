@@ -58,7 +58,7 @@ class RequestStateTests(APITestCase):
         self.client.force_authenticate(self.student)
 
         resp = self.client.patch(
-            reverse("api:achievements-detail", args=[self.rejected.pk]), {"achievement": "исправлено"}
+            reverse("api:achievements-detail", args=[self.rejected.public_id]), {"achievement": "исправлено"}
         )
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
@@ -74,25 +74,25 @@ class RequestStateTests(APITestCase):
         self.assertFalse(self.returned.rejection_reason)
 
     def test_state_new(self):
-        self.assertEqual(self._ids(list_type="pending", state="new"), {self.new.pk, self.new_null.pk})
+        self.assertEqual(self._ids(list_type="pending", state="new"), {str(self.new.public_id), str(self.new_null.public_id)})
 
     def test_state_returned(self):
-        self.assertEqual(self._ids(list_type="pending", state="returned"), {self.returned.pk})
+        self.assertEqual(self._ids(list_type="pending", state="returned"), {str(self.returned.public_id)})
 
     def test_state_approved(self):
-        self.assertEqual(self._ids(list_type="reviewed", state="approved"), {self.approved.pk})
+        self.assertEqual(self._ids(list_type="reviewed", state="approved"), {str(self.approved.public_id)})
 
     def test_state_rejected(self):
-        self.assertEqual(self._ids(list_type="reviewed", state="rejected"), {self.rejected.pk})
+        self.assertEqual(self._ids(list_type="reviewed", state="rejected"), {str(self.rejected.public_id)})
 
     def test_no_state_lists_everything(self):
         self.assertEqual(
-            self._ids(list_type="pending"), {self.new.pk, self.new_null.pk, self.returned.pk}
+            self._ids(list_type="pending"), {str(self.new.public_id), str(self.new_null.public_id), str(self.returned.public_id)}
         )
 
     def _review(self, reviewer, doc, **body):
         self.client.force_authenticate(reviewer)
-        return self.client.post(reverse("api:achievements-review", args=[doc.pk]), body)
+        return self.client.post(reverse("api:achievements-review", args=[doc.public_id]), body)
 
     def test_reject_without_reason_400(self):
         # Без причины отклонённая (или возвращённая руководством) заявка выглядела бы новой,
@@ -109,10 +109,10 @@ class RequestStateTests(APITestCase):
     def test_department_reject_then_resubmit_is_returned(self):
         self._review(self.staff, self.new, action="reject", reasons=["Нет подписи"])
         self.client.force_authenticate(self.student)
-        self.client.patch(reverse("api:achievements-detail", args=[self.new.pk]), {"achievement": "с подписью"})
+        self.client.patch(reverse("api:achievements-detail", args=[self.new.public_id]), {"achievement": "с подписью"})
 
-        self.assertIn(self.new.pk, self._ids(list_type="pending", state="returned"))
-        self.assertNotIn(self.new.pk, self._ids(list_type="pending", state="new"))
+        self.assertIn(str(self.new.public_id), self._ids(list_type="pending", state="returned"))
+        self.assertNotIn(str(self.new.public_id), self._ids(list_type="pending", state="new"))
 
     def test_dean_return_is_returned(self):
         dean = make_staff("dean-f", "Dean", faculty=self.staff.staff_profile.department.faculty)
@@ -120,7 +120,7 @@ class RequestStateTests(APITestCase):
         resp = self._review(dean, self.approved, action="return", reasons=["Не тот семестр"])
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
-        self.assertIn(self.approved.pk, self._ids(list_type="pending", state="returned"))
+        self.assertIn(str(self.approved.public_id), self._ids(list_type="pending", state="returned"))
 
     def test_state_invalid_400(self):
         self.client.force_authenticate(self.staff)

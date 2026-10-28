@@ -168,7 +168,7 @@ def check_file_limits(document, remove_file_ids, new_files):
 
     if not new_files and not remove_file_ids:
         return  # файлы не меняются: старые заявки без файлов правят текст
-    current = {f.id: f for f in document.files.all()}
+    current = {f.public_id: f for f in document.files.all()}
     remove_ids = set(remove_file_ids)
     if remove_ids - current.keys():
         raise ValidationError({"remove_file_ids": "Можно удалить только файлы этой заявки."})
@@ -219,7 +219,7 @@ def update_achievement(document, validated_data, files=None, remove_file_ids=())
 
         document.save()  # балл пересчитывается в Document.save()
 
-        removed = list(document.files.filter(id__in=remove_file_ids))
+        removed = list(document.files.filter(public_id__in=remove_file_ids))
         if removed:
             DocumentFile.objects.filter(id__in=[f.id for f in removed]).delete()
             transaction.on_commit(lambda: _delete_stored_files(removed))

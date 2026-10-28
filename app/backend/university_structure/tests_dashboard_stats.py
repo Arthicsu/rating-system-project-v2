@@ -136,10 +136,10 @@ class DashboardStatsSemesterTests(APITestCase):
     def test_top5_shape_and_semester_ordering(self):
         current_top = self._get({"year_start": self.current.year_start}).data["top5"]
         self.assertEqual([s["total_score"] for s in current_top], [15, 3])
-        self.assertEqual(current_top[0]["id"], self.student_a.id)
+        self.assertEqual(current_top[0]["id"], self.student_a.public_id)
         # Контракт StudentSimple: id, full_name, total_score.
         self.assertEqual(set(current_top[0].keys()), {"id", "full_name", "total_score"})
 
         past_top = self._get({"academic_year": self.past.id}).data["top5"]
         self.assertEqual([s["total_score"] for s in past_top], [4, 1])
-        self.assertEqual(past_top[0]["id"], self.student_a.id)
+        self.assertEqual(past_top[0]["id"], self.student_a.public_id)

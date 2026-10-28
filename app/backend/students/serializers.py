@@ -152,6 +152,7 @@ class RatingRowMixin(serializers.Serializer):
     и SemesterStudentListSerializer (аннотации sem_* выбранного семестра) —
     раньше эти наборы полей были продублированы.
     """
+    id = serializers.UUIDField(source='public_id', read_only=True)
     group_id = serializers.IntegerField(source='group.id', read_only=True)
     group = serializers.CharField(source='group.name', read_only=True, default="Без группы")
     course = serializers.IntegerField(source='group.course', read_only=True, default=0)
@@ -210,7 +211,7 @@ class SemesterRatingSerializer(serializers.ModelSerializer):
     Рейтинг за прошлый семестр: сериализует строки SemesterScore в тот же формат, что и
     StudentRatingSerializer, чтобы фронтенд обрабатывал текущий и исторический рейтинг одинаково.
     """
-    id = serializers.IntegerField(source='student.id', read_only=True)
+    id = serializers.UUIDField(source='student.public_id', read_only=True)
     user_id = serializers.IntegerField(source='student.user_id', read_only=True)
     full_name = serializers.CharField(source='student.full_name', read_only=True)
     short_name = serializers.SerializerMethodField()
@@ -260,6 +261,8 @@ class DocumentFileSerializer(serializers.ModelSerializer):
     # Размер нужен окну правки (остаток лимита) и есть только в карточке заявки: в S3 это
     # запрос на каждый файл, а списки кабинета опрашиваются каждые 15 с.
     size = serializers.SerializerMethodField()
+    id = serializers.UUIDField(source='public_id', read_only=True)
+    document = serializers.UUIDField(source='document.public_id', read_only=True)
 
     class Meta:
         model = DocumentFile
@@ -298,6 +301,7 @@ def stored_size(document_file):
         raise
 
 class DocumentSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='public_id', read_only=True)
     category_display = serializers.CharField(source='category.label', read_only=True)
     sub_type_display = serializers.CharField(source='sub_type.label', read_only=True)
     level_display = serializers.CharField(source='level.label', read_only=True, default=None)
@@ -336,7 +340,7 @@ class DocumentSerializer(serializers.ModelSerializer):
 
 class PendingDocumentSerializer(DocumentSerializer):
     user_id = serializers.IntegerField(source='user.id', read_only=True)
-    student_id = serializers.IntegerField(source='user.student_profile.id', read_only=True)
+    student_id = serializers.UUIDField(source='user.student_profile.public_id', read_only=True)
     student_name = serializers.CharField(source='user.student_profile.full_name', read_only=True)
     course = serializers.IntegerField(source='user.student_profile.group.course', read_only=True)
     faculty = serializers.CharField(source='user.student_profile.faculty.short_name', read_only=True, default="—")
@@ -353,6 +357,7 @@ class PendingDocumentSerializer(DocumentSerializer):
         fields = DocumentSerializer.Meta.fields + ['user_id', 'student_id', 'student_name', 'group', 'group_id', 'course', 'faculty', 'record_book', 'returned_by']
 
 class StudentProfileSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(source='public_id', read_only=True)
     group = serializers.CharField(source='group.name', read_only=True, default="Без группы")
     group_id = serializers.IntegerField(source='group.id', read_only=True)
     course = serializers.IntegerField(source='group.course', read_only=True)
@@ -461,7 +466,7 @@ class AchievementUpdateSerializer(serializers.Serializer):
     doc_type = serializers.SlugRelatedField(queryset=DocType.objects.all(), slug_field='code', required=False)
     files = serializers.ListField(child=serializers.FileField(), write_only=True, required=False)
     remove_file_ids = serializers.ListField(
-        child=serializers.IntegerField(), write_only=True, required=False,
+        child=serializers.UUIDField(), write_only=True, required=False,
         help_text="id файлов этой заявки, которые удалить (multipart: ключ на каждый id)",
     )
 

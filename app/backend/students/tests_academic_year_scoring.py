@@ -96,7 +96,7 @@ class AcademicYearScoringTests(APITestCase):
         doc = Document.objects.get(user=self.user)
 
         resp = self.client.patch(
-            reverse("api:achievements-detail", args=[doc.pk]), {"date_received": "2026-03-10"}, format="multipart",
+            reverse("api:achievements-detail", args=[doc.public_id]), {"date_received": "2026-03-10"}, format="multipart",
         )
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
@@ -120,7 +120,7 @@ class AcademicYearScoringTests(APITestCase):
         self._upload(date(2025, 10, 15))
         doc = Document.objects.get(user=self.user)
         resp = self.client.patch(
-            reverse("api:achievements-detail", args=[doc.pk]), {"date_received": "2019-05-01"}, format="multipart",
+            reverse("api:achievements-detail", args=[doc.public_id]), {"date_received": "2019-05-01"}, format="multipart",
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         doc.refresh_from_db()

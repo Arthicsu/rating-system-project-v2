@@ -64,7 +64,7 @@ class AchievementDeleteTests(APITestCase):
         doc = self._make_doc(self.approved)
         self.client.force_authenticate(self.user)
 
-        resp = self.client.delete(reverse(URL_NAME, args=[doc.pk]))
+        resp = self.client.delete(reverse(URL_NAME, args=[doc.public_id]))
 
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
         # Единый формат ошибок API: {"detail": "..."}
@@ -76,7 +76,7 @@ class AchievementDeleteTests(APITestCase):
         doc = self._make_doc(self.pending)
         self.client.force_authenticate(self.user)
 
-        resp = self.client.delete(reverse(URL_NAME, args=[doc.pk]))
+        resp = self.client.delete(reverse(URL_NAME, args=[doc.public_id]))
 
         self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Document.objects.filter(pk=doc.pk).exists())
@@ -87,7 +87,7 @@ class AchievementDeleteTests(APITestCase):
         doc = self._make_doc(self.pending, user=other)
         self.client.force_authenticate(self.user)
 
-        resp = self.client.delete(reverse(URL_NAME, args=[doc.pk]))
+        resp = self.client.delete(reverse(URL_NAME, args=[doc.public_id]))
 
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(Document.objects.filter(pk=doc.pk).exists())
@@ -95,7 +95,7 @@ class AchievementDeleteTests(APITestCase):
     def test_delete_requires_auth(self):
         doc = self._make_doc(self.pending)
 
-        resp = self.client.delete(reverse(URL_NAME, args=[doc.pk]))
+        resp = self.client.delete(reverse(URL_NAME, args=[doc.public_id]))
 
         self.assertIn(
             resp.status_code,
@@ -114,7 +114,7 @@ class AchievementDetailTests(APITestCase):
         doc = make_doc(student, make_catalog(), make_statuses()["pending"], semester=semester)
         self.client.force_authenticate(student)
 
-        resp = self.client.get(reverse("api:achievements-detail", args=[doc.pk]))
+        resp = self.client.get(reverse("api:achievements-detail", args=[doc.public_id]))
 
         self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
         self.assertEqual(resp.data["semester_label"], "2026-2027 уч. год — осень")
@@ -124,7 +124,7 @@ class AchievementDetailTests(APITestCase):
         doc = make_doc(student, make_catalog(), make_statuses()["pending"])
         self.client.force_authenticate(student)
 
-        resp = self.client.get(reverse("api:achievements-detail", args=[doc.pk]))
+        resp = self.client.get(reverse("api:achievements-detail", args=[doc.public_id]))
 
         self.assertIsNone(resp.data["semester_label"])
 
@@ -134,7 +134,7 @@ class AchievementDetailTests(APITestCase):
         doc = make_doc(student, make_catalog(), make_statuses()["pending"])
         self.client.force_authenticate(student)
 
-        resp = self.client.get(reverse("api:achievements-detail", args=[doc.pk]))
+        resp = self.client.get(reverse("api:achievements-detail", args=[doc.public_id]))
 
         self.assertEqual(
             {k: resp.data[k] for k in ("category_code", "sub_type_code", "level_code", "result_code", "doc_type_code")},

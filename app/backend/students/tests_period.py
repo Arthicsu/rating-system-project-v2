@@ -39,7 +39,7 @@ class PeriodTests(APITestCase):
 
     def _rating_total(self, **params):
         rows = self.client.get(reverse("api:rating-list"), params).data["results"]
-        return next(r["total_score"] for r in rows if r["id"] == self.student.id)
+        return next(r["total_score"] for r in rows if r["id"] == str(self.student.public_id))
 
     def test_default_period_is_live_current_year(self):
         self.assertEqual(self._rating_total(), 14)
@@ -49,7 +49,7 @@ class PeriodTests(APITestCase):
         self.assertEqual(self._rating_total(year_start=2024), 12)
 
         rows = self.client.get(reverse("api:students-list"), {"year_start": 2024}).data["results"]
-        self.assertEqual(next(r["total_score"] for r in rows if r["id"] == self.student.id), 12)
+        self.assertEqual(next(r["total_score"] for r in rows if r["id"] == str(self.student.public_id)), 12)
 
     def test_single_semester_of_current_year_uses_history(self):
         self.assertEqual(self._rating_total(academic_year=self.autumn.id), 10)
@@ -65,9 +65,9 @@ class PeriodTests(APITestCase):
         def ids(**params):
             return [d["id"] for d in self.client.get(url, params).data["results"]]
 
-        self.assertEqual(ids(), [new.id])
-        self.assertEqual(ids(year_start=2024), [old.id])
-        self.assertEqual(ids(academic_year=self.past_spring.id), [old.id])
+        self.assertEqual(ids(), [str(new.public_id)])
+        self.assertEqual(ids(year_start=2024), [str(old.public_id)])
+        self.assertEqual(ids(academic_year=self.past_spring.id), [str(old.public_id)])
 
     def test_stats_follow_period(self):
         stats = self.client.get(reverse("api:achievements-list"), {"year_start": 2024}).data["stats"]

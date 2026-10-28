@@ -23,6 +23,7 @@ class DocumentFileAccessSerializer(serializers.ModelSerializer):
     тела ответа — он описывает ресурс (`DocumentFile`) для схемы OpenAPI и
     `get_object()`/`get_serializer()` базовой вьюшки.
     """
+    id = serializers.UUIDField(source='public_id', read_only=True)
     size = serializers.SerializerMethodField()
 
     class Meta:

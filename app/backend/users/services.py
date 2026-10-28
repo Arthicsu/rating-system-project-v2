@@ -201,7 +201,7 @@ def send_review_decision_notice_email(email: str, user_name: str, document) -> N
     site = settings.EXTERNAL_SITE_URL.rstrip('/')
     if site:
         lines += [
-            f"Заявка: {site}/achievement/{document.pk}",
+            f"Заявка: {site}/achievement/{document.public_id}",
             "",
             f"Письма о решениях по заявкам отключаются в настройках: {site}/settings",
         ]
