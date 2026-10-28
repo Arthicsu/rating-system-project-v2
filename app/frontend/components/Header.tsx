@@ -60,9 +60,11 @@ export default function Header() {
   return (
     <>
       {/* Верхняя шапка */}
-      <header className="fixed inset-x-0 top-0 z-20 w-full bg-white pr-(--scrollbar-gap) shadow-[0px_20px_40px_-10px_rgba(34,60,80,0.15)]">
+      {/* При крупном шрифте для слабовидящих шапка не закреплена и переносится на две строки -
+          иначе пункты наезжают друг на друга и закрывают начало страницы. */}
+      <header className="fixed inset-x-0 top-0 z-20 w-full bg-white pr-(--scrollbar-gap) shadow-[0px_20px_40px_-10px_rgba(34,60,80,0.15)] low-vision:static">
         <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <div className="flex items-center justify-between gap-3 py-2 sm:py-2.5">
+          <div className="flex items-center justify-between gap-3 py-2 sm:py-2.5 low-vision:flex-wrap">
             {/* Лого + основная навигация (ПК) */}
             <div className="flex min-w-0 items-center gap-4 sm:gap-6">
               <Link href="/" className="flex shrink-0 items-center" aria-label="На главную">

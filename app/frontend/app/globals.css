@@ -7,10 +7,17 @@
   --color-sky-700: #1968ab;
   --color-sky-800: #1d588d;
   --color-sky-900: #1c4973;
+
+  /* Мелкие подписи (11px и 10px) - токенами, чтобы версия для слабовидящих увеличивала и их. */
+  --text-2xs: 0.6875rem;
+  --text-3xs: 0.625rem;
 }
 
 /* Тёмная тема - класс .dark на <html> (next-themes). */
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Увеличенный шрифт версии для слабовидящих (data-lv-size на <html>) - для правок вёрстки под крупный текст. */
+@custom-variant low-vision (&:where([data-lv-size], [data-lv-size] *));
 
 /* Палитра для тёмного фона: серые - от тёмной страницы до светлого текста, акценты - светлые
    тона для текста и тёмные - для подложек. Компоненты пишутся одними классами для обеих тем. */
@@ -101,6 +108,95 @@
   --color-amber-500: oklch(76.9% 0.188 70.08);
   --color-amber-700: oklch(55.5% 0.163 48.998);
   --color-amber-800: oklch(47.3% 0.137 46.201);
+}
+
+/* Версия для слабовидящих: атрибуты и переменные на <html> ставит lib/lowVision.ts до отрисовки и из настроек.
+   Растёт только текст (шкала --text-*), отступы остаются - вёрстка на телефоне не разъезжается. */
+html[data-lv-size] {
+  --text-3xs: calc(0.625rem * var(--lv-scale));
+  --text-2xs: calc(0.6875rem * var(--lv-scale));
+  --text-xs: calc(0.75rem * var(--lv-scale));
+  --text-sm: calc(0.875rem * var(--lv-scale));
+  --text-base: calc(1rem * var(--lv-scale));
+  --text-lg: calc(1.125rem * var(--lv-scale));
+  --text-xl: calc(1.25rem * var(--lv-scale));
+  --text-2xl: calc(1.5rem * var(--lv-scale));
+  --text-3xl: calc(1.875rem * var(--lv-scale));
+  --text-4xl: calc(2.25rem * var(--lv-scale));
+  --text-5xl: calc(3rem * var(--lv-scale));
+}
+
+html[data-lv-size] body {
+  font-size: calc(1rem * var(--lv-scale));
+}
+
+/* Интервалы перекрывают классы tracking-/leading- у всех элементов, кроме иконок (<i>). */
+html[data-lv-letter] body :not(i) {
+  letter-spacing: var(--lv-letter) !important;
+}
+
+html[data-lv-line] body :not(i) {
+  line-height: var(--lv-line) !important;
+}
+
+/* Контрастная схема: один цвет текста и фона на всём сайте, границы - цветом текста. Картинки и
+   образцы схем ([data-lv-keep]) не перекрашиваются; выбранное (вкладки, фильтры, радио) - инверсией.
+   Фон получают только элементы со своим фоном: прозрачные слои поверх страницы (контейнер
+   уведомлений) иначе закрыли бы её целиком. */
+html[data-lv-scheme] body *:not(img, svg, canvas, video, [data-lv-keep], [data-lv-keep] *) {
+  color: var(--lv-fg) !important;
+  border-color: var(--lv-fg) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  accent-color: var(--lv-fg);
+}
+
+html[data-lv-scheme] body,
+html[data-lv-scheme] body :is([class*='bg-'], [style*='background']):not([data-lv-keep], [data-lv-keep] *) {
+  background-color: var(--lv-bg) !important;
+  color: var(--lv-fg) !important;
+}
+
+html[data-lv-scheme] .app-select::picker(select) {
+  background: var(--lv-bg) !important;
+}
+
+html[data-lv-scheme] body :is(button, input, select, textarea, a[class*='bg-']) {
+  border-width: 1px !important;
+  border-style: solid !important;
+}
+
+html[data-lv-scheme] body :is([aria-current='page'], [aria-selected='true'], [aria-pressed='true'], label:has(> input:checked)):not([data-lv-keep]),
+html[data-lv-scheme] body :is([aria-current='page'], [aria-selected='true'], [aria-pressed='true'], label:has(> input:checked)) *:not(img, svg, [data-lv-keep], [data-lv-keep] *) {
+  background-color: var(--lv-fg) !important;
+  color: var(--lv-bg) !important;
+}
+
+html[data-lv-scheme] [role='switch'] > span:first-child {
+  border: 2px solid var(--lv-fg) !important;
+}
+
+html[data-lv-scheme] [role='switch'][aria-checked='true'] > span:first-child,
+html[data-lv-scheme] [role='switch'] > span:last-child {
+  background-color: var(--lv-fg) !important;
+}
+
+html[data-lv-scheme] [role='switch'][aria-checked='true'] > span:last-child {
+  background-color: var(--lv-bg) !important;
+}
+
+html[data-lv-scheme] img {
+  filter: none !important;
+}
+
+html[data-lv-scheme] ::placeholder {
+  color: var(--lv-fg) !important;
+  opacity: 0.7;
+}
+
+html[data-lv-scheme] :focus-visible {
+  outline: 3px solid var(--lv-fg) !important;
+  outline-offset: 2px;
 }
 
 input[type=password]::-ms-reveal,

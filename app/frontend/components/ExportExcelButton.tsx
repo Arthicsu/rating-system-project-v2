@@ -61,7 +61,7 @@ export default function ExportExcelButton({
       type="button"
       onClick={handleExportToExcel}
       disabled={loading}
-      className="cursor-pointer inline-flex items-center rounded-md bg-emerald-600 px-2 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 transition shadow-emerald-300 shadow-lg"
+      className="cursor-pointer inline-flex items-center rounded-md bg-emerald-600 px-2 py-1 text-3xs sm:px-3 sm:py-1.5 sm:text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 transition shadow-emerald-300 shadow-lg"
     >
       {loading ? 'Выгрузка...' : <>
         <span className="sm:hidden">Excel</span>

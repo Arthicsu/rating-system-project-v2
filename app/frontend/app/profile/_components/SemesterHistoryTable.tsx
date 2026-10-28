@@ -28,7 +28,7 @@ export default function SemesterHistoryTable({ semesterHistory }: { semesterHist
                 <td className="px-2 py-2 text-left text-slate-800">
                   {s.semester_label}
                   {s.is_current && (
-                    <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-medium text-sky-700">
+                    <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-3xs font-medium text-sky-700">
                       текущий
                     </span>
                   )}

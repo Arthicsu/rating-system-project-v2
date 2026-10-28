@@ -46,7 +46,7 @@ export default function ProfileHeaderCard({
       </div>
       <div className="mt-2 flex items-center justify-start sm:mt-0 sm:justify-end">
         <div className="rounded-2xl border items-center border-sky-100 bg-sky-50 px-4 py-3 text-center shadow-sm">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+          <div className="text-2xs font-medium uppercase tracking-wide text-slate-500">
             Общий балл
           </div>
           <div className="text-2xl font-bold text-sky-700 sm:text-3xl">

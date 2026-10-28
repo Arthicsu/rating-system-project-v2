@@ -5,6 +5,7 @@ import CookieConsentBanner from '@/components/CookieConsentBanner';
 import Header from '@/components/Header';
 import Providers from '@/app/providers';
 import { AuthProvider } from '@/context/AuthContext';
+import { LOW_VISION_SCRIPT } from '@/lib/lowVision';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'react-hot-toast';
 
@@ -14,8 +15,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // next-themes ставит класс темы на <html> до гидрации - отсюда расхождение с серверной разметкой.
     <html lang="ru" suppressHydrationWarning>
       <head>
+        {/* Версия для слабовидящих применяется до первой отрисовки, без мигания обычного вида. */}
+        <script dangerouslySetInnerHTML={{ __html: LOW_VISION_SCRIPT }} />
       </head>
-      <body className="bg-slate-100 dark:bg-slate-50 pb-16 sm:pb-0 pr-(--scrollbar-gap)">
+      {/* Нижнее меню телефона с крупным шрифтом выше - отступ под ним тоже больше. */}
+      <body className="bg-slate-100 dark:bg-slate-50 pb-16 sm:pb-0 low-vision:pb-28 sm:low-vision:pb-0 pr-(--scrollbar-gap)">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Providers>
             <AuthProvider>

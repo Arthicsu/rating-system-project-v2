@@ -51,27 +51,27 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
           <p className="text-sm font-medium text-slate-900 wrap-break-word">
             {doc?.achievement}
           </p>
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600">
+          <div className="flex flex-wrap items-center gap-1.5 text-2xs text-slate-600">
             <i className="fa-regular fa-bookmark mr-1" />
-            <span className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700">
+            <span className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-2xs font-medium text-sky-700">
               {doc?.category_display}
             </span>
-            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700">
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-2xs text-slate-700">
               {doc?.sub_type_display}
             </span>
             {doc?.level_display && (
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700">
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-2xs text-slate-700">
                 {doc?.level_display}
               </span>
             )}
             {doc?.result_display && (
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-700">
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-2xs text-slate-700">
                 {doc?.result_display}
               </span>
             )}
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-2xs text-slate-500">
             <span className="inline-flex items-center gap-1">
               <i className="fa-regular fa-calendar-check" />
               Дата получения: {receivedDateText}
@@ -85,7 +85,7 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
                 <button
                   key={file.id}
                   onClick={() => downloadFile(file.id, file.original_file_name ?? `Файл ${index + 1}`)}
-                  className="cursor-pointer inline-flex items-baseline gap-1 text-left text-[11px] font-medium text-sky-700 wrap-anywhere hover:text-sky-900"
+                  className="cursor-pointer inline-flex items-baseline gap-1 text-left text-2xs font-medium text-sky-700 wrap-anywhere hover:text-sky-900"
                 >
                   <i className="fa-solid fa-file" />
                   {file.original_file_name || `Файл ${index + 1}`}
@@ -95,7 +95,7 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
 
           <Link
             href={user?.is_employee ? `/staff-profile/requests/${doc.id}` : `/achievement/${doc.id}`}
-            className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 hover:text-sky-900"
+            className="mt-2 inline-flex items-center gap-1 text-2xs font-semibold text-sky-700 hover:text-sky-900"
           >
             Подробнее
           </Link>

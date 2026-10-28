@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import type { AxiosError } from 'axios';
 
 import ModalChangePassword from '@/components/modals/ModalChangePassword';
+import LowVisionSettings from '@/components/LowVisionSettings';
+import Switch from '@/components/Switch';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useMySession } from '@/context/AuthContext';
 import { useRedirectIfLoggedOut } from '@/hooks/useRedirectIfLoggedOut';
@@ -89,23 +91,13 @@ export default function SettingsPage() {
                   Одобрение, отклонение с причиной и возврат на повторную проверку — на вашу почту.
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={emailsOn}
-                aria-labelledby="notify-review-label"
-                aria-describedby="notify-review-hint"
-                aria-disabled={savingEmails}
-                onClick={toggleEmails}
-                className="relative inline-flex h-11 w-14 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 aria-disabled:cursor-wait aria-disabled:opacity-60"
-              >
-                <span
-                  className={`h-6 w-11 rounded-full transition-colors motion-reduce:transition-none ${emailsOn ? 'bg-sky-700' : 'bg-slate-500'}`}
-                />
-                <span
-                  className={`absolute left-2 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${emailsOn ? 'translate-x-5' : ''}`}
-                />
-              </button>
+              <Switch
+                checked={emailsOn}
+                onToggle={toggleEmails}
+                labelledBy="notify-review-label"
+                describedBy="notify-review-hint"
+                busy={savingEmails}
+              />
             </div>
           </section>
         )}
@@ -122,6 +114,9 @@ export default function SettingsPage() {
               </p>
             </div>
             <ThemeToggle />
+          </div>
+          <div className="mt-5 border-t border-slate-100 pt-4">
+            <LowVisionSettings />
           </div>
         </section>
       </div>

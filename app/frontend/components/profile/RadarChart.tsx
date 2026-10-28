@@ -48,10 +48,15 @@ export default function RadarChart({ labels, data }: RadarChartProps) {
   const narrow = useSyncExternalStore(subscribeToNarrow, () => window.matchMedia(NARROW).matches, () => false);
   const css = getComputedStyle(document.documentElement);
   const color = (name: string) => css.getPropertyValue(name).trim();
-  const brand = color('--color-sky-700');
+  // Версия для слабовидящих: контрастная схема задаёт один цвет, шрифт подписей растёт вместе с текстом.
+  const schemeColor = color('--lv-fg');
+  // Полные названия не помещаются и при крупном шрифте; сами подписи растут не больше чем в 1,5 раза.
+  const textScale = Math.min(Number(color('--lv-scale')) || 1, 1.5);
+  const short = narrow || textScale >= 1.5;
+  const brand = schemeColor || color('--color-sky-700');
 
   const chartData = {
-    labels: labels.map((label) => (narrow ? (SHORT_LABELS[label] ?? label) : splitLabel(label))),
+    labels: labels.map((label) => (short ? (SHORT_LABELS[label] ?? label) : splitLabel(label))),
     datasets: [
       {
         label: 'Баллы',
@@ -72,13 +77,13 @@ export default function RadarChart({ labels, data }: RadarChartProps) {
     maintainAspectRatio: false,
     scales: {
       r: {
-        angleLines: { display: true, color: color('--color-slate-300') },
-        grid: { color: color('--color-slate-200') },
+        angleLines: { display: true, color: schemeColor || color('--color-slate-300') },
+        grid: { color: schemeColor || color('--color-slate-200') },
         suggestedMin: 0,
         suggestedMax: 15,
         pointLabels: {
-          color: color('--color-slate-600'),
-          font: { size: narrow ? 11 : 13, weight: 'bold' as const },
+          color: schemeColor || color('--color-slate-600'),
+          font: { size: Math.round((short ? 11 : 13) * textScale), weight: 'bold' as const },
         },
         ticks: {
           display: false,

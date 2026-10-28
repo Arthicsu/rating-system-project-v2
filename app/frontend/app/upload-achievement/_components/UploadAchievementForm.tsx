@@ -133,7 +133,7 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2 sm:px-5 sm:min-w-24">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+          <p className="text-2xs font-medium uppercase tracking-wide text-slate-500">
             Баллы
           </p>
           <p className="text-2xl sm:text-3xl font-bold text-emerald-600 leading-tight">

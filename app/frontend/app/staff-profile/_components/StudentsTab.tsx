@@ -90,26 +90,26 @@ export default function StudentsTab({
               <table className="min-w-full border-collapse text-xs sm:text-sm" style={{ tableLayout: 'fixed' }}>
                 <thead>
                   <tr className="bg-sky-700 text-white">
-                    <th className="w-10 sm:w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
+                    <th className="w-10 sm:w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-2xs sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
                     </th>
-                    <th className="w-[28%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                    <th className="w-[28%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
                       ФИО студента
                     </th>
-                    <th className="w-[18%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                    <th className="w-[18%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
                       Зачетная книжка
                     </th>
                     {isRectorate && (
-                      <th className="w-[12%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                      <th className="w-[12%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
                         Факультет
                       </th>
                     )}
-                    <th className="w-16 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                    <th className="w-16 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
                       Курс
                     </th>
-                    <th className="w-[14%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                    <th className="w-[14%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
                       Группа
                     </th>
-                    <th className="w-24 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-[11px] sm:text-xs md:text-sm lg:text-base font-normal">
+                    <th className="w-24 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
                       {/* Клик по заголовку переключает направление сортировки по баллам. */}
                       <button
                         type="button"
@@ -119,12 +119,12 @@ export default function StudentsTab({
                       >
                         Баллы
                         <i
-                          className={`fa-solid ${direction === 'asc' ? 'fa-arrow-up-short-wide' : 'fa-arrow-down-wide-short'} text-[10px] sm:text-xs`}
+                          className={`fa-solid ${direction === 'asc' ? 'fa-arrow-up-short-wide' : 'fa-arrow-down-wide-short'} text-3xs sm:text-xs`}
                           aria-hidden="true"
                         />
                       </button>
                     </th>
-                    <th className="w-20 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-right text-[11px] sm:text-xs md:text-sm lg:text-base font-normal rounded-r-lg">
+                    <th className="w-20 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-right text-2xs sm:text-xs md:text-sm lg:text-base font-normal rounded-r-lg">
                       Действия
                     </th>
                   </tr>
@@ -137,7 +137,7 @@ export default function StudentsTab({
                         className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50"
                       >
                         <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center align-middle">
-                          <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-[11px] md:text-sm font-bold text-white">
+                          <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-2xs md:text-sm font-bold text-white">
                             {(currentPage - 1) * pageSize + idx + 1}
                           </div>
                         </td>

@@ -36,7 +36,7 @@ export default function SearchInput({ onSearch, placeholder = 'Поиск...', d
 
   return (
     <div className="relative flex items-center flex-1 min-w-0">
-      <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 text-[11px] text-slate-400" />
+      <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 text-2xs text-slate-400" />
       <input
         ref={inputRef}
         type="text"
