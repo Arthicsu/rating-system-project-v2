@@ -130,6 +130,15 @@ class PasswordTasksTests(TestCase):
         user.refresh_from_db()
         self.assertTrue(user.check_password(new_password))
 
+    def test_dev_redirect_gets_password_email(self):
+        user = make_student("stud@uni.ru", password=None)
+
+        with self.settings(DEBUG=True, DEV_EMAIL_REDIRECT="dev-inbox@example.test"):
+            send_recovery_password_email(user.pk)
+
+        self.assertEqual([m.to for m in mail.outbox], [["dev-inbox@example.test"]])
+        self.assertIn("Логин: stud@uni.ru", mail.outbox[0].body)
+
     def test_task_refuses_non_student(self):
         staff = make_staff("kaf-x", "Department", department=make_department("К1"))
         staff.email = "kaf@uni.ru"

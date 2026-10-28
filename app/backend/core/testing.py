@@ -35,7 +35,8 @@ class EagerCeleryTestRunner(DiscoverRunner):
         celery_app.conf.task_always_eager = True
 
 # locmem-кэш (он же бэкенд сессий) + быстрый хешер: тесты не зависят от живого Redis
-# и не тратят по полсекунды на PBKDF2 при каждом create_user.
+# и не тратят по полсекунды на PBKDF2 при каждом create_user. Перенаправление писем
+# из .env dev-стенда в тестах выключено.
 TEST_SETTINGS = {
     "CACHES": {
         "default": {
@@ -44,6 +45,7 @@ TEST_SETTINGS = {
         }
     },
     "PASSWORD_HASHERS": ["django.contrib.auth.hashers.MD5PasswordHasher"],
+    "DEV_EMAIL_REDIRECT": "",
 }
 
 # То же + файлы в памяти вместо SeaweedFS.

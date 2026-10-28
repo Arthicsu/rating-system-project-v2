@@ -35,6 +35,7 @@ NOTIFICATIONS = "api:auth-notifications"
 SITE = "https://portfolio.example"
 TITLE = "Диплом олимпиады по физике"
 REASON = "Нет подписи"
+DEV_INBOX = "dev-inbox@example.test"
 
 
 @override_settings(**TEST_SETTINGS, EXTERNAL_SITE_URL=SITE)
@@ -180,6 +181,26 @@ class DecisionEmailTests(APITestCase):
             send_review_decision_email(test_doc.pk, "approved")
 
         self.assertEqual([m.to for m in mail.outbox], [["test_student@bgitu.test"]])
+
+    def test_dev_redirect_gets_every_decision(self):
+        # С DEV_EMAIL_REDIRECT письма dev-стенда уходят в один ящик, студентам - никогда.
+        real = self._doc("approved")
+        tester = make_student("test_student@bgitu.test", group=self.group)
+        test_doc = self._doc("approved", user=tester)
+
+        with self.settings(DEBUG=True, DEV_EMAIL_REDIRECT=DEV_INBOX):
+            send_review_decision_email(real.pk, "approved")
+            send_review_decision_email(test_doc.pk, "approved")
+
+        self.assertEqual([m.to for m in mail.outbox], [[DEV_INBOX], [DEV_INBOX]])
+
+    def test_redirect_ignored_without_debug(self):
+        doc = self._doc("approved")
+
+        with self.settings(DEBUG=False, DEV_EMAIL_REDIRECT=DEV_INBOX):
+            send_review_decision_email(doc.pk, "approved")
+
+        self.assertEqual([m.to for m in mail.outbox], [["stud@uni.ru"]])
 
 
 @override_settings(**TEST_SETTINGS)

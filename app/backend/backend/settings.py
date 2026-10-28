@@ -379,6 +379,8 @@ EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'           
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')    # Пароль приложения
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)         # Стандартный адрес отправителя
+# Только при DEBUG: все письма уходят на этот адрес вместо адресатов (dev-база - копия реальных студентов).
+DEV_EMAIL_REDIRECT = os.getenv('DEV_EMAIL_REDIRECT', '').strip()
 
 
 # Предпросмотр документов (конвертация офисных файлов в PDF)

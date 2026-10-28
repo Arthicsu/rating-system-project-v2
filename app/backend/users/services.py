@@ -143,6 +143,8 @@ def _greeting(user_name: str) -> str:
 
 def _send_email(email: str, subject: str, text: str) -> None:
     """Письмо plain text + простая HTML-версия того же текста."""
+    if settings.DEBUG and settings.DEV_EMAIL_REDIRECT:
+        email = settings.DEV_EMAIL_REDIRECT
     html = "<br>".join(escape(line) for line in text.splitlines())
     message = EmailMultiAlternatives(subject, text, settings.DEFAULT_FROM_EMAIL, [email])
     message.attach_alternative(f'<p style="font-family:sans-serif">{html}</p>', "text/html")

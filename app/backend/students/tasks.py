@@ -65,8 +65,9 @@ def send_review_decision_email(self, document_id: int, status_code: str):
     if not (user.notify_review_emails and user.email and is_active_student(user)):
         logger.info("decision email skipped: doc id=%s, user id=%s opted out or inactive", document_id, user.pk)
         return
-    # dev-база - копия реальных студентов: при DEBUG письма уходят только test_*-учёткам.
-    if settings.DEBUG and not user.username.startswith('test_'):
+    # dev-база - копия реальных студентов: при DEBUG письма уходят только test_*-учёткам
+    # или все на DEV_EMAIL_REDIRECT (его подставляет _send_email).
+    if settings.DEBUG and not settings.DEV_EMAIL_REDIRECT and not user.username.startswith('test_'):
         logger.warning("decision email skipped (DEBUG): user id=%s is not a test account", user.pk)
         return
     try:

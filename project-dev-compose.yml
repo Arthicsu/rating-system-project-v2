@@ -41,7 +41,8 @@ services:
       - ${SHARED_HOST_DIR:-./shared}:/shared
     env_file:
       - .env
-    # Как у backend: письма о решениях при DEBUG уходят только test_*-учёткам (dev-база - копия реальной).
+    # Как у backend: при DEBUG письма о решениях уходят только test_*-учёткам (dev-база - копия
+    # реальной), а с DEV_EMAIL_REDIRECT все письма - на этот адрес.
     environment:
       - DEBUG=true
     deploy:
