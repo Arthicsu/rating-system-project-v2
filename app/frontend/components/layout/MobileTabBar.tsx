@@ -23,15 +23,19 @@ export default function MobileTabBar() {
     : { href: '/profile', label: 'Профиль', icon: 'fa-solid fa-user', isActive: (p) => p.startsWith('/profile') };
 
   return (
-    <nav
-      aria-label="Разделы"
-      className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-2 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] sm:hidden"
-    >
-      {/* useSearchParams требует Suspense при пререндере. */}
-      <Suspense fallback={null}>
-        <TabLinks items={[home, main]} />
-      </Suspense>
-    </nav>
+    <>
+      {/* Место под панель в конце страницы, иначе панель закрывает низ подвала. */}
+      <div aria-hidden="true" className="h-16 shrink-0 sm:hidden low-vision:h-28" />
+      <nav
+        aria-label="Разделы"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-2 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] sm:hidden"
+      >
+        {/* useSearchParams требует Suspense при пререндере. */}
+        <Suspense fallback={null}>
+          <TabLinks items={[home, main]} />
+        </Suspense>
+      </nav>
+    </>
   );
 }
 

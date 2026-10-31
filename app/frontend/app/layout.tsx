@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: LOW_VISION_SCRIPT }} />
       </head>
       {/* Нижнее меню телефона с крупным шрифтом выше - отступ под ним тоже больше. */}
-      <body className="flex min-h-dvh flex-col bg-slate-50 pb-16 sm:pb-0 low-vision:pb-28 sm:low-vision:pb-0 pr-(--scrollbar-gap)">
+      <body className="flex min-h-dvh flex-col bg-slate-50 pr-(--scrollbar-gap)">
         <SkipLink />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Providers>
