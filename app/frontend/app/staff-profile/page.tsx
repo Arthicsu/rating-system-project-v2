@@ -9,6 +9,7 @@ import type { AxiosError } from 'axios';
 import { useMySession } from '@/context/AuthContext';
 import ErrorState from '@/components/ErrorState';
 import MobileFilterToggle from '@/components/MobileFilterToggle';
+import PageContainer from '@/components/layout/PageContainer';
 
 import FilterPanel from './_components/FilterPanel';
 import PastPendingNotice from './_components/PastPendingNotice';
@@ -389,123 +390,121 @@ function StaffDashboard() {
 
   return (
     <>
-      <main className="min-h-screen bg-slate-50 pt-24 pb-10">
-        <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <MobileFilterToggle
-            expanded={mobileFiltersOpen}
-            controls="mobile-filters"
-            onClick={() => setMobileFiltersOpen((prev) => !prev)}
-            visibleAt="max-[640px]:flex"
-          />
+      <PageContainer>
+        <MobileFilterToggle
+          expanded={mobileFiltersOpen}
+          controls="mobile-filters"
+          onClick={() => setMobileFiltersOpen((prev) => !prev)}
+          visibleAt="max-[640px]:flex"
+        />
 
-          <FilterPanel filters={filters} isRectorate={isRectorate} mobileFiltersOpen={mobileFiltersOpen} />
+        <FilterPanel filters={filters} isRectorate={isRectorate} mobileFiltersOpen={mobileFiltersOpen} />
 
-          <PastPendingNotice
-            items={(pendingCountQuery.data?.past_pending ?? []).filter((item) => period !== `year:${item.year_start}`)}
-            onPick={(yearStart) => {
-              filters.changePeriod(`year:${yearStart}`);
-              setActiveTab('pending-requests');
+        <PastPendingNotice
+          items={(pendingCountQuery.data?.past_pending ?? []).filter((item) => period !== `year:${item.year_start}`)}
+          onPick={(yearStart) => {
+            filters.changePeriod(`year:${yearStart}`);
+            setActiveTab('pending-requests');
+          }}
+        />
+
+        <TabsNav tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+        <div role="tabpanel" id="staff-tabpanel" aria-labelledby={`tab-${activeTab}`}>
+        {activeTab === 'my-group' && (studentsErrorCode ? (
+          <ErrorState code={studentsErrorCode} onReset={() => { void studentsQuery.refetch(); }} />
+        ) : (
+          <StudentsTab
+            students={studentsData}
+            loading={studentsLoading}
+            totalStudents={totalStudents}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            isRectorate={isRectorate}
+            selectedGroupId={groupId}
+            currentGroupName={currentGroupName}
+            categoryTabs={categoryTabs}
+            activeCategory={category}
+            scoreKey={scoreKey}
+            direction={direction}
+            searchValue={groupSearchValue}
+            exportParams={{
+              faculty_id: filters.facultyId,
+              course: filters.course,
+              group_id: groupId,
+              category,
+              direction,
+              ...periodParams,
+              page: currentPage,
             }}
+            onCategoryChange={handleCategoryChange}
+            onDirectionToggle={handleDirectionToggle}
+            onSearch={handleGroupSearch}
+            onPageChange={setCurrentPage}
           />
+        ))}
 
-          <TabsNav tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+        {activeTab === 'pending-requests' && (pendingListErrorCode ? (
+          <ErrorState code={pendingListErrorCode} onReset={() => { void pendingListQuery.refetch(); }} />
+        ) : (
+          <PendingRequestsTab
+            docs={pendingDocsData}
+            loading={pendingLoading}
+            totalRequests={pendingListCount}
+            requestsPage={requestsPage}
+            requestsPageSize={requestsPageSize}
+            currentGroupName={currentGroupName}
+            periodLabel={periodLabel}
+            title={canApprove ? 'Заявки' : 'На контроле'}
+            hint={canApprove ? undefined : 'Одобренные кафедрой заявки: можно отклонить или вернуть кафедре на повторное рассмотрение.'}
+            showStateFilter={canApprove}
+            stateValue={pendingState}
+            onStateChange={(value) => { setPendingState(value); setRequestsPage(1); }}
+            searchValue={pendingSearchValue}
+            onSearch={handlePendingSearch}
+            onResetFilters={() => { setPendingSearchValue(''); setPendingState('all'); setRequestsPage(1); }}
+            onPageChange={setRequestsPage}
+            actionsFor={actionsFor}
+            onAction={openModal}
+          />
+        ))}
 
-          <div role="tabpanel" id="staff-tabpanel" aria-labelledby={`tab-${activeTab}`}>
-          {activeTab === 'my-group' && (studentsErrorCode ? (
-            <ErrorState code={studentsErrorCode} onReset={() => { void studentsQuery.refetch(); }} />
-          ) : (
-            <StudentsTab
-              students={studentsData}
-              loading={studentsLoading}
-              totalStudents={totalStudents}
-              currentPage={currentPage}
-              pageSize={pageSize}
-              isRectorate={isRectorate}
-              selectedGroupId={groupId}
-              currentGroupName={currentGroupName}
-              categoryTabs={categoryTabs}
-              activeCategory={category}
-              scoreKey={scoreKey}
-              direction={direction}
-              searchValue={groupSearchValue}
-              exportParams={{
-                faculty_id: filters.facultyId,
-                course: filters.course,
-                group_id: groupId,
-                category,
-                direction,
-                ...periodParams,
-                page: currentPage,
-              }}
-              onCategoryChange={handleCategoryChange}
-              onDirectionToggle={handleDirectionToggle}
-              onSearch={handleGroupSearch}
-              onPageChange={setCurrentPage}
-            />
-          ))}
+        {activeTab === 'reviewed-requests' && (reviewedErrorCode ? (
+          <ErrorState code={reviewedErrorCode} onReset={() => { void reviewedQuery.refetch(); }} />
+        ) : (
+          <ReviewedRequestsTab
+            docs={reviewedDocsData}
+            loading={reviewedLoading}
+            totalReviewed={totalReviewed}
+            reviewedPage={reviewedPage}
+            requestsPageSize={requestsPageSize}
+            currentGroupName={currentGroupName}
+            periodLabel={periodLabel}
+            stateValue={reviewedState}
+            onStateChange={(value) => { setReviewedState(value); setReviewedPage(1); }}
+            searchValue={reviewedSearchValue}
+            onSearch={handleReviewedSearch}
+            onResetFilters={() => { setReviewedSearchValue(''); setReviewedState('all'); setReviewedPage(1); }}
+            onPageChange={setReviewedPage}
+            actionsFor={actionsFor}
+            onAction={openModal}
+          />
+        ))}
 
-          {activeTab === 'pending-requests' && (pendingListErrorCode ? (
-            <ErrorState code={pendingListErrorCode} onReset={() => { void pendingListQuery.refetch(); }} />
-          ) : (
-            <PendingRequestsTab
-              docs={pendingDocsData}
-              loading={pendingLoading}
-              totalRequests={pendingListCount}
-              requestsPage={requestsPage}
-              requestsPageSize={requestsPageSize}
-              currentGroupName={currentGroupName}
-              periodLabel={periodLabel}
-              title={canApprove ? 'Заявки' : 'На контроле'}
-              hint={canApprove ? undefined : 'Одобренные кафедрой заявки: можно отклонить или вернуть кафедре на повторное рассмотрение.'}
-              showStateFilter={canApprove}
-              stateValue={pendingState}
-              onStateChange={(value) => { setPendingState(value); setRequestsPage(1); }}
-              searchValue={pendingSearchValue}
-              onSearch={handlePendingSearch}
-              onResetFilters={() => { setPendingSearchValue(''); setPendingState('all'); setRequestsPage(1); }}
-              onPageChange={setRequestsPage}
-              actionsFor={actionsFor}
-              onAction={openModal}
-            />
-          ))}
-
-          {activeTab === 'reviewed-requests' && (reviewedErrorCode ? (
-            <ErrorState code={reviewedErrorCode} onReset={() => { void reviewedQuery.refetch(); }} />
-          ) : (
-            <ReviewedRequestsTab
-              docs={reviewedDocsData}
-              loading={reviewedLoading}
-              totalReviewed={totalReviewed}
-              reviewedPage={reviewedPage}
-              requestsPageSize={requestsPageSize}
-              currentGroupName={currentGroupName}
-              periodLabel={periodLabel}
-              stateValue={reviewedState}
-              onStateChange={(value) => { setReviewedState(value); setReviewedPage(1); }}
-              searchValue={reviewedSearchValue}
-              onSearch={handleReviewedSearch}
-              onResetFilters={() => { setReviewedSearchValue(''); setReviewedState('all'); setReviewedPage(1); }}
-              onPageChange={setReviewedPage}
-              actionsFor={actionsFor}
-              onAction={openModal}
-            />
-          ))}
-
-          {activeTab === 'statistics' && (pendingErrorCode ? (
-            <ErrorState code={pendingErrorCode} onReset={() => { void pendingQuery.refetch(); }} />
-          ) : (
-            <StatisticsTab
-              stats={stats}
-              top5={top5Students}
-              activeRequests={totalRequests}
-              isLeadership={!canApprove}
-              scopeLabel={statsScopeLabel}
-              periodLabel={periodLabel}
-            />
-          ))}
-          </div>
+        {activeTab === 'statistics' && (pendingErrorCode ? (
+          <ErrorState code={pendingErrorCode} onReset={() => { void pendingQuery.refetch(); }} />
+        ) : (
+          <StatisticsTab
+            stats={stats}
+            top5={top5Students}
+            activeRequests={totalRequests}
+            isLeadership={!canApprove}
+            scopeLabel={statsScopeLabel}
+            periodLabel={periodLabel}
+          />
+        ))}
         </div>
-      </main>
+      </PageContainer>
 
       <ModalApprove {...modalApproveProps} />
 

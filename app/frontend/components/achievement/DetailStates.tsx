@@ -1,5 +1,6 @@
 import type { AxiosError } from 'axios';
 import type { useRouter } from 'next/navigation';
+import PageContainer from '@/components/layout/PageContainer';
 
 /** Назад по истории, а если страницу открыли в новой вкладке — на `fallback`. */
 export function goBack(router: ReturnType<typeof useRouter>, fallback: string) {
@@ -20,18 +21,16 @@ export function detailLoadState(isPending: boolean, error: unknown): DetailLoadS
 /** Скелетон страницы заявки на время загрузки. */
 export function DetailSkeleton() {
   return (
-    <main className="min-h-screen bg-slate-50 pt-24 pb-10">
-      <div className="mx-auto max-w-350 px-4 sm:px-5">
-        <div className="animate-pulse space-y-4">
-          <div className="h-11 w-32 rounded-lg bg-slate-200" />
-          <div className="h-28 rounded-2xl bg-slate-200" />
-          <div className="grid gap-6 lg:grid-cols-5">
-            <div className="h-96 rounded-2xl bg-slate-200 lg:col-span-2" />
-            <div className="h-96 rounded-2xl bg-slate-200 lg:col-span-3" />
-          </div>
+    <PageContainer>
+      <div className="animate-pulse space-y-4">
+        <div className="h-11 w-32 rounded-lg bg-slate-200" />
+        <div className="h-28 rounded-2xl bg-slate-200" />
+        <div className="grid gap-6 lg:grid-cols-5">
+          <div className="h-96 rounded-2xl bg-slate-200 lg:col-span-2" />
+          <div className="h-96 rounded-2xl bg-slate-200 lg:col-span-3" />
         </div>
       </div>
-    </main>
+    </PageContainer>
   );
 }
 
@@ -45,21 +44,19 @@ const MESSAGES: Record<Exclude<DetailLoadState, 'loading' | 'ready'>, string> = 
 export function DetailError({ state, onBack }: { state: DetailLoadState; onBack: () => void }) {
   const message = MESSAGES[state as keyof typeof MESSAGES] ?? MESSAGES.error;
   return (
-    <main className="min-h-screen bg-slate-50 pt-24 pb-10">
-      <div className="mx-auto max-w-350 px-4 sm:px-5">
-        <div className="rounded-2xl border border-slate-100 bg-white p-10 text-center shadow-sm">
-          <i className="fa-solid fa-circle-exclamation mb-3 text-3xl text-slate-300" aria-hidden="true" />
-          <p className="text-sm text-slate-600">{message}</p>
-          <button
-            type="button"
-            onClick={onBack}
-            className="mt-4 min-h-11 cursor-pointer rounded-lg bg-sky-700 px-4 text-sm font-medium text-white transition hover:bg-sky-800"
-          >
-            Назад
-          </button>
-        </div>
+    <PageContainer>
+      <div className="rounded-2xl border border-slate-100 bg-white p-10 text-center shadow-sm">
+        <i className="fa-solid fa-circle-exclamation mb-3 text-3xl text-slate-300" aria-hidden="true" />
+        <p className="text-sm text-slate-600">{message}</p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="mt-4 min-h-11 cursor-pointer rounded-lg bg-sky-700 px-4 text-sm font-medium text-white transition hover:bg-sky-800"
+        >
+          Назад
+        </button>
       </div>
-    </main>
+    </PageContainer>
   );
 }
 

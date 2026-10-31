@@ -4,6 +4,7 @@ import { useMySession } from '@/context/AuthContext';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import PageContainer from '@/components/layout/PageContainer';
 
 export default function Main() {
   const { loading, user } = useMySession();
@@ -19,7 +20,7 @@ export default function Main() {
   // и живёт вкладкой в /staff-profile.
   if (user?.isAuthenticated === true) {redirect(user.is_employee ? "/staff-profile" : "/profile")}
   return (
-    <section className="min-h-screen px-4 flex flex-col justify-center pb-6">
+    <PageContainer className="my-auto">
       <div className="mx-auto flex max-w-300 flex-col gap-6 rounded-2xl bg-white/90 p-6 shadow-sm items-center lg:flex-row md:gap-8 md:px-10 md:py-8">
         {/* Левая колонка с описанием */}
         <div className="flex-1 space-y-4">
@@ -81,6 +82,6 @@ export default function Main() {
           </button> */}
         </div>
       </div>
-    </section>
+    </PageContainer>
   );
 }

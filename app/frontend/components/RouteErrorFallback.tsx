@@ -28,9 +28,5 @@ export default function RouteErrorFallback({
     console.error(`${label} error boundary:`, error);
   }, [label, error]);
 
-  return (
-    <main className="px-5 pt-25">
-      <ErrorState code={500} title={title} description={description} onReset={reset} />
-    </main>
-  );
+  return <ErrorState code={500} title={title} description={description} onReset={reset} />;
 }

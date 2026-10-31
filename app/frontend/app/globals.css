@@ -218,11 +218,6 @@ html[data-lv-scheme] .app-select option::checkmark {
   color: inherit !important;
 }
 
-/* Шапка при крупном шрифте не закреплена (Header.tsx) - отступ страниц под закреплённую шапку не нужен. */
-html[data-lv-size] body :is(main, section).min-h-screen {
-  padding-top: 1.5rem;
-}
-
 /* Кольцо фокуса с отступом (ring-offset) в тёмной теме - без белого ободка. */
 @layer base {
   .dark * {

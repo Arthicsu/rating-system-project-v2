@@ -15,6 +15,7 @@ import AchievementFiles from '@/components/achievement/AchievementFiles';
 import AchievementPreviewPane from '@/components/achievement/AchievementPreviewPane';
 import { BackButton, DetailError, DetailSkeleton, detailLoadState, goBack } from '@/components/achievement/DetailStates';
 import ModalPreview from '@/components/modals/ModalPreview';
+import PageContainer from '@/components/layout/PageContainer';
 import ModalApprove from '../../_components/ModalApprove';
 import ModalReject from '../../_components/ModalReject';
 import ModerationPanel from '../../_components/ModerationPanel';
@@ -73,46 +74,44 @@ function StaffRequest({ id }: { id: string }) {
 
   return (
     <>
-      <main className="min-h-screen bg-slate-50 pt-24 pb-10">
-        <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <BackButton onClick={() => goBack(router, '/staff-profile?tab=pending-requests')} />
+      <PageContainer>
+        <BackButton onClick={() => goBack(router, '/staff-profile?tab=pending-requests')} />
 
-          <div className={`mt-5 grid gap-6 ${hasFiles ? 'lg:grid-cols-5' : 'mx-auto max-w-3xl grid-cols-1'}`}>
-            <div className={`min-w-0 animate-fade-in space-y-5 ${hasFiles ? 'lg:col-span-2' : ''}`}>
-              <AchievementHeader
-                doc={doc}
-                approvedLabel="Одобрено"
-                title={
-                  <Link href={`/profile/${doc.student_id}`} className="text-sky-700 hover:text-sky-900 hover:underline">
-                    {doc.student_name}
-                  </Link>
-                }
-              >
-                <p className="mt-1 break-words text-sm text-slate-600">{meta}</p>
-              </AchievementHeader>
+        <div className={`mt-5 grid gap-6 ${hasFiles ? 'lg:grid-cols-5' : 'mx-auto max-w-3xl grid-cols-1'}`}>
+          <div className={`min-w-0 animate-fade-in space-y-5 ${hasFiles ? 'lg:col-span-2' : ''}`}>
+            <AchievementHeader
+              doc={doc}
+              approvedLabel="Одобрено"
+              title={
+                <Link href={`/profile/${doc.student_id}`} className="text-sky-700 hover:text-sky-900 hover:underline">
+                  {doc.student_name}
+                </Link>
+              }
+            >
+              <p className="mt-1 break-words text-sm text-slate-600">{meta}</p>
+            </AchievementHeader>
 
-              <ModerationPanel doc={doc} actions={actionsFor(doc)} onAction={openModal} />
+            <ModerationPanel doc={doc} actions={actionsFor(doc)} onAction={openModal} />
 
-              {reasonTitle && doc.rejection_reason && <ReasonNote title={reasonTitle} text={doc.rejection_reason} />}
+            {reasonTitle && doc.rejection_reason && <ReasonNote title={reasonTitle} text={doc.rejection_reason} />}
 
-              <AchievementDetails doc={doc} />
-              <AchievementFiles files={files} purgedAt={doc.files_purged_at} onDownload={download} />
-            </div>
-
-            {hasFiles && (
-              <div className="min-w-0 animate-fade-in lg:col-span-3">
-                <AchievementPreviewPane
-                  files={files}
-                  selectedIndex={Math.min(selectedFileIndex, files.length - 1)}
-                  onSelect={setSelectedFileIndex}
-                  onFullscreen={() => setPreviewOpen(true)}
-                  onDownload={download}
-                />
-              </div>
-            )}
+            <AchievementDetails doc={doc} />
+            <AchievementFiles files={files} purgedAt={doc.files_purged_at} onDownload={download} />
           </div>
+
+          {hasFiles && (
+            <div className="min-w-0 animate-fade-in lg:col-span-3">
+              <AchievementPreviewPane
+                files={files}
+                selectedIndex={Math.min(selectedFileIndex, files.length - 1)}
+                onSelect={setSelectedFileIndex}
+                onFullscreen={() => setPreviewOpen(true)}
+                onDownload={download}
+              />
+            </div>
+          )}
         </div>
-      </main>
+      </PageContainer>
 
       <ModalPreview isOpen={previewOpen} doc={previewOpen ? doc : null} onClose={() => setPreviewOpen(false)} onDownload={download} />
       <ModalApprove {...modalApproveProps} />

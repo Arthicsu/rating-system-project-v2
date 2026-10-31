@@ -98,7 +98,7 @@ export default function ModalShell({
     if (!isOpen) return;
 
     // Без полосы прокрутки страница шире и центрированный контент съезжает вправо:
-    // её ширину возвращают отступом body и шапка (pr-(--scrollbar-gap)).
+    // её ширину возвращает отступ body (pr-(--scrollbar-gap)).
     // Вложенная модалка меряет 0 и переменную не трогает.
     const root = document.documentElement;
     const prevGap = root.style.getPropertyValue('--scrollbar-gap');

@@ -3,6 +3,7 @@ import '@/app/globals.css';
 import '@/styles/fontawesome-free-7.2.0-web/css/all.min.css';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
 import Header from '@/components/Header';
+import SkipLink from '@/components/layout/SkipLink';
 import Providers from '@/app/providers';
 import { AuthProvider } from '@/context/AuthContext';
 import { LOW_VISION_SCRIPT } from '@/lib/lowVision';
@@ -19,11 +20,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: LOW_VISION_SCRIPT }} />
       </head>
       {/* Нижнее меню телефона с крупным шрифтом выше - отступ под ним тоже больше. */}
-      <body className="bg-slate-100 dark:bg-slate-50 pb-16 sm:pb-0 low-vision:pb-28 sm:low-vision:pb-0 pr-(--scrollbar-gap)">
+      <body className="flex min-h-dvh flex-col bg-slate-50 pb-16 sm:pb-0 low-vision:pb-28 sm:low-vision:pb-0 pr-(--scrollbar-gap)">
+        <SkipLink />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Providers>
             <AuthProvider>
               <Header />
+              {/* tabIndex: «К содержимому» переводит фокус сюда, следующий Tab - первый элемент страницы.
+                  flex-col: короткая страница может встать по центру между шапкой и низом (my-auto). */}
+              <main id="content" tabIndex={-1} className="flex flex-1 flex-col outline-none">
+                {children}
+              </main>
               {/* --surface задана только в тёмной теме; в светлой уведомление белое. */}
               <Toaster
                 toastOptions={{
@@ -34,7 +41,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   },
                 }}
               />
-              {children}
             </AuthProvider>
           </Providers>
           <CookieConsentBanner />

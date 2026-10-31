@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
+import PageContainer from '@/components/layout/PageContainer';
 import { useMySession } from '@/context/AuthContext';
 import { authApi } from '@/lib/apiRequests';
 import { resetPasswordSchema, type ResetPasswordFormValues } from '@/lib/validation/auth';
@@ -77,7 +78,7 @@ function ResetPasswordForm() {
   };
 
   return (
-    <section className="min-h-screen bg-slate-100 dark:bg-slate-50 px-4 pt-35 pb-10">
+    <PageContainer>
       <div className="mx-auto flex max-w-275 flex-col gap-8">
         <div className="mx-auto w-full max-w-md rounded-2xl bg-white px-6 py-8 shadow-md md:px-10">
           <h1 className="mb-6 text-2xl font-semibold text-slate-900 text-center sm:text-3xl">
@@ -176,6 +177,6 @@ function ResetPasswordForm() {
           </div>
         </div>
       </div>
-    </section>
+    </PageContainer>
   );
 }

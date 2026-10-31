@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import type { AxiosError } from 'axios';
 
 import ModalChangePassword from '@/components/modals/ModalChangePassword';
+import PageContainer from '@/components/layout/PageContainer';
 import LowVisionSettings from '@/components/LowVisionSettings';
 import Switch from '@/components/Switch';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -43,8 +44,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 pt-24 pb-10">
-      <div className="mx-auto max-w-2xl space-y-4 px-4 sm:px-5">
+    <>
+      <PageContainer width="narrow" className="space-y-4">
         <h1 className="text-lg font-semibold text-slate-900 sm:text-xl md:text-2xl">Настройки</h1>
 
         <section aria-labelledby="settings-account" className={SECTION}>
@@ -119,9 +120,9 @@ export default function SettingsPage() {
             <LowVisionSettings />
           </div>
         </section>
-      </div>
+      </PageContainer>
 
       {isStudent && <ModalChangePassword isOpen={changingPassword} onClose={() => setChangingPassword(false)} />}
-    </main>
+    </>
   );
 }

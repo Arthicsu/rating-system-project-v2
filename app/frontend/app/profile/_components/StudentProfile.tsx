@@ -16,6 +16,7 @@ import ScoreBreakdown from './ScoreBreakdown';
 import SemesterHistoryTable from './SemesterHistoryTable';
 import AchievementSection from './AchievementSection';
 import ProfileSkeleton from './ProfileSkeleton';
+import PageContainer from '@/components/layout/PageContainer';
 
 /**
  * Профиль студента, собранный из подкомпонентов: шапка, диаграмма баллов,
@@ -71,13 +72,11 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
 
   if (!profile) {
     return (
-      <section className="min-h-screen bg-slate-50 pt-24 pb-10">
-        <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
-            <p className="text-center text-slate-500">Профиль не найден</p>
-          </div>
+      <PageContainer>
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
+          <p className="text-center text-slate-500">Профиль не найден</p>
         </div>
-      </section>
+      </PageContainer>
     );
   }
 
@@ -86,39 +85,37 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
       {/* Обёртка нужна сканеру boneyard: кости снимаются с настоящего DOM.
           Рантайм-скелетон живёт в ветке loading выше, здесь профиль уже загружен. */}
       <Skeleton name="student-profile" loading={false}>
-      <section className="min-h-screen bg-slate-50 pt-24 pb-10">
-        <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:p-5">
-            <ProfileHeaderCard
-              profile={profile}
-              onChangePassword={isOwner && !user?.is_employee ? () => setChangingPassword(true) : undefined}
-            />
-            <ScoreBreakdown radarLabels={radarLabels} radarData={radarData} isOwner={isOwner} />
-          </div>
-
-          <SemesterHistoryTable semesterHistory={semesterHistory} />
-
-          <div className="mt-6 space-y-5">
-            <AchievementSection variant="approved" docs={approvedDocs} />
-
-            {/* {isOwner && pendingDocs.length > 0 && ( */}
-            <AchievementSection
-              variant="pending"
-              docs={pendingDocs}
-              onEdit={isOwner ? (d) => setEditingDoc(d) : undefined}
-              onDelete={isOwner ? (d) => setDeletingDoc(d) : undefined}
-            />
-
-            {/* {isOwner && rejectedDocs.length > 0 && ( */}
-            <AchievementSection
-              variant="rejected"
-              docs={rejectedDocs}
-              onEdit={isOwner ? (d) => setEditingDoc(d) : undefined}
-              onDelete={isOwner ? (d) => setDeletingDoc(d) : undefined}
-            />
-          </div>
+      <PageContainer>
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:p-5">
+          <ProfileHeaderCard
+            profile={profile}
+            onChangePassword={isOwner && !user?.is_employee ? () => setChangingPassword(true) : undefined}
+          />
+          <ScoreBreakdown radarLabels={radarLabels} radarData={radarData} isOwner={isOwner} />
         </div>
-      </section>
+
+        <SemesterHistoryTable semesterHistory={semesterHistory} />
+
+        <div className="mt-6 space-y-5">
+          <AchievementSection variant="approved" docs={approvedDocs} />
+
+          {/* {isOwner && pendingDocs.length > 0 && ( */}
+          <AchievementSection
+            variant="pending"
+            docs={pendingDocs}
+            onEdit={isOwner ? (d) => setEditingDoc(d) : undefined}
+            onDelete={isOwner ? (d) => setDeletingDoc(d) : undefined}
+          />
+
+          {/* {isOwner && rejectedDocs.length > 0 && ( */}
+          <AchievementSection
+            variant="rejected"
+            docs={rejectedDocs}
+            onEdit={isOwner ? (d) => setEditingDoc(d) : undefined}
+            onDelete={isOwner ? (d) => setDeletingDoc(d) : undefined}
+          />
+        </div>
+      </PageContainer>
       </Skeleton>
 
       <ModalEditAchievement

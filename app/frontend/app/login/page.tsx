@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import { useMySession } from '@/context/AuthContext';
 import PasswordInput from '@/components/forms/PasswordInput';
+import PageContainer from '@/components/layout/PageContainer';
 import { loginSchema, type LoginFormValues } from '@/lib/validation/auth';
 import type ApiError from '@/interfaces/GeneralInterfaces';
 
@@ -68,7 +69,7 @@ export default function LoginPage() {
   };
 
   return (
-    <section className="min-h-screen bg-slate-100 dark:bg-slate-50 px-4 pt-35 pb-10">
+    <PageContainer>
       <div className="mx-auto flex max-w-275 flex-col gap-8">
         {/* Форма авторизации */}
         <div className="mx-auto w-full max-w-md rounded-2xl bg-white px-6 py-8 shadow-md md:px-10">
@@ -184,6 +185,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-    </section>
+    </PageContainer>
   );
 }

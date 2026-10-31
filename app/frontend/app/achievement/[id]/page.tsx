@@ -17,6 +17,7 @@ import AchievementPreviewPane from '@/components/achievement/AchievementPreviewP
 import { BackButton, DetailError, DetailSkeleton, detailLoadState, goBack } from '@/components/achievement/DetailStates';
 import ModalPreview from '@/components/modals/ModalPreview';
 import ModalConfirm from '@/components/modals/ModalConfirm';
+import PageContainer from '@/components/layout/PageContainer';
 import ModalEditAchievement from '@/components/modals/ModalEditAchievement';
 
 /** Страница заявки студента: сведения, файлы, предпросмотр; правка и удаление неподтверждённой. */
@@ -78,72 +79,70 @@ export default function AchievementDetailPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-slate-50 pt-24 pb-10">
-        <div className="mx-auto max-w-350 px-4 sm:px-5">
-          <BackButton onClick={() => goBack(router, '/profile')} />
+      <PageContainer>
+        <BackButton onClick={() => goBack(router, '/profile')} />
 
-          <div className={`mt-5 grid gap-6 ${hasFiles ? 'lg:grid-cols-5' : 'mx-auto max-w-3xl grid-cols-1'}`}>
-            <div className={`min-w-0 animate-fade-in space-y-5 ${hasFiles ? 'lg:col-span-2' : ''}`}>
-              <AchievementHeader
-                doc={doc}
-                title="Заявка на достижение"
-                actions={
-                  canChange && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setEditing(true)}
-                        className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg bg-sky-700 px-4 text-sm font-semibold text-white transition hover:bg-sky-800"
-                      >
-                        <i className="fa-solid fa-pen" aria-hidden="true" />
-                        Редактировать
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDelete(true)}
-                        className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
-                      >
-                        <i className="fa-solid fa-trash" aria-hidden="true" />
-                        Удалить
-                      </button>
-                    </>
-                  )
+        <div className={`mt-5 grid gap-6 ${hasFiles ? 'lg:grid-cols-5' : 'mx-auto max-w-3xl grid-cols-1'}`}>
+          <div className={`min-w-0 animate-fade-in space-y-5 ${hasFiles ? 'lg:col-span-2' : ''}`}>
+            <AchievementHeader
+              doc={doc}
+              title="Заявка на достижение"
+              actions={
+                canChange && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(true)}
+                      className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg bg-sky-700 px-4 text-sm font-semibold text-white transition hover:bg-sky-800"
+                    >
+                      <i className="fa-solid fa-pen" aria-hidden="true" />
+                      Редактировать
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(true)}
+                      className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
+                    >
+                      <i className="fa-solid fa-trash" aria-hidden="true" />
+                      Удалить
+                    </button>
+                  </>
+                )
+              }
+            />
+
+            {doc.rejection_reason && (
+              <ReasonNote
+                // Повторно поданная заявка хранит причину прошлого отклонения; возвращённую
+                // руководством кафедра проверяет ещё раз — это не отклонение.
+                title={
+                  doc.status_display !== 'pending'
+                    ? 'Причина отклонения'
+                    : doc.returned_by
+                      ? 'Комментарий к повторной проверке'
+                      : 'Причина прошлого отклонения'
                 }
+                text={doc.rejection_reason}
               />
-
-              {doc.rejection_reason && (
-                <ReasonNote
-                  // Повторно поданная заявка хранит причину прошлого отклонения; возвращённую
-                  // руководством кафедра проверяет ещё раз — это не отклонение.
-                  title={
-                    doc.status_display !== 'pending'
-                      ? 'Причина отклонения'
-                      : doc.returned_by
-                        ? 'Комментарий к повторной проверке'
-                        : 'Причина прошлого отклонения'
-                  }
-                  text={doc.rejection_reason}
-                />
-              )}
-
-              <AchievementDetails doc={doc} />
-              <AchievementFiles files={files} purgedAt={doc.files_purged_at} onDownload={(fileId, name) => downloadFile(fileId, name)} />
-            </div>
-
-            {hasFiles && (
-              <div className="min-w-0 animate-fade-in lg:col-span-3">
-                <AchievementPreviewPane
-                  files={files}
-                  selectedIndex={Math.min(selectedFileIndex, files.length - 1)}
-                  onSelect={setSelectedFileIndex}
-                  onFullscreen={() => setPreviewOpen(true)}
-                  onDownload={(fileId, name) => downloadFile(fileId, name)}
-                />
-              </div>
             )}
+
+            <AchievementDetails doc={doc} />
+            <AchievementFiles files={files} purgedAt={doc.files_purged_at} onDownload={(fileId, name) => downloadFile(fileId, name)} />
           </div>
+
+          {hasFiles && (
+            <div className="min-w-0 animate-fade-in lg:col-span-3">
+              <AchievementPreviewPane
+                files={files}
+                selectedIndex={Math.min(selectedFileIndex, files.length - 1)}
+                onSelect={setSelectedFileIndex}
+                onFullscreen={() => setPreviewOpen(true)}
+                onDownload={(fileId, name) => downloadFile(fileId, name)}
+              />
+            </div>
+          )}
         </div>
-      </main>
+      </PageContainer>
 
       <ModalPreview
         isOpen={previewOpen}
