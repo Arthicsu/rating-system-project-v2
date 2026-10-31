@@ -41,8 +41,14 @@ try {
             $version = (Get-Content app/frontend/package.json -Raw -Encoding UTF8 | ConvertFrom-Json).version
             Write-Output $version
             $compose = if ($env:VERSION_COMPOSE) { $env:VERSION_COMPOSE } else { 'docker-compose.yml' }
-            $bad = @(Select-String -Path $compose -Pattern 'arthicsu/bgitu-rating-[a-z-]*:[^\s"]*' -AllMatches |
-                ForEach-Object { $_.Matches.Value } | Where-Object { $_ -notlike "*:$version" })
+            $tags = @(if (Test-Path $compose) {
+                Select-String -Path $compose -Pattern 'arthicsu/bgitu-rating-[a-z-]*:[^\s"]*' -AllMatches | ForEach-Object { $_.Matches.Value }
+            })
+            if ($tags.Count -eq 0) {
+                Write-Output "Не найдены образы arthicsu/bgitu-rating-* в $compose"
+                exit 1
+            }
+            $bad = @($tags | Where-Object { $_ -notlike "*:$version" })
             if ($bad.Count -gt 0) {
                 Write-Output "Теги образов не совпадают с версией ${version}:"
                 $bad | Write-Output

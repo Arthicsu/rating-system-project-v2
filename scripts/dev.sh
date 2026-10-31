@@ -40,7 +40,12 @@ case "$cmd" in
         # Единственный источник версии - app/frontend/package.json; теги наших образов в compose обязаны совпадать.
         v=$(grep -m1 '"version"' app/frontend/package.json | sed 's/.*"version": *"\([^"]*\)".*/\1/')
         echo "$v"
-        bad=$(grep -o 'arthicsu/bgitu-rating-[a-z-]*:[^[:space:]"]*' "${VERSION_COMPOSE:-docker-compose.yml}" | grep -v ":$v\$" || true)
+        compose=${VERSION_COMPOSE:-docker-compose.yml}
+        tags=$(grep -o 'arthicsu/bgitu-rating-[a-z-]*:[^[:space:]"]*' "$compose") || {
+            echo "Не найдены образы arthicsu/bgitu-rating-* в $compose"
+            exit 1
+        }
+        bad=$(printf '%s\n' "$tags" | grep -v ":$v\$" || true)
         if [ -n "$bad" ]; then
             echo "Теги образов не совпадают с версией $v:"
             echo "$bad"
