@@ -2,7 +2,8 @@
 import '@/app/globals.css';
 import '@/styles/fontawesome-free-7.2.0-web/css/all.min.css';
 import CookieConsentBanner from '@/components/CookieConsentBanner';
-import Header from '@/components/Header';
+import Header from '@/components/layout/Header';
+import MobileTabBar from '@/components/layout/MobileTabBar';
 import SkipLink from '@/components/layout/SkipLink';
 import Providers from '@/app/providers';
 import { AuthProvider } from '@/context/AuthContext';
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <main id="content" tabIndex={-1} className="flex flex-1 flex-col outline-none">
                 {children}
               </main>
+              <MobileTabBar />
               {/* --surface задана только в тёмной теме; в светлой уведомление белое. */}
               <Toaster
                 toastOptions={{
