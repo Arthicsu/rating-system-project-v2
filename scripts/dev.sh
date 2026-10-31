@@ -36,6 +36,17 @@ case "$cmd" in
         # backend применяет миграции при старте - дамп старше кода догонит схему.
         dc start backend celery
         ;;
+    version)
+        # Единственный источник версии - app/frontend/package.json; теги наших образов в compose обязаны совпадать.
+        v=$(grep -m1 '"version"' app/frontend/package.json | sed 's/.*"version": *"\([^"]*\)".*/\1/')
+        echo "$v"
+        bad=$(grep -o 'arthicsu/bgitu-rating-[a-z-]*:[^[:space:]"]*' "${VERSION_COMPOSE:-docker-compose.yml}" | grep -v ":$v\$" || true)
+        if [ -n "$bad" ]; then
+            echo "Теги образов не совпадают с версией $v:"
+            echo "$bad"
+            exit 1
+        fi
+        ;;
     *)
         cat <<'EOF'
 Команды dev-среды (project-dev-compose.yml):
@@ -49,6 +60,7 @@ case "$cmd" in
   front <скрипт>       pnpm во фронте, например: front typecheck, front lint
   api                  обновить контракт API: schema.yml, lib/api-types.ts и проверка
   db-restore           пересоздать dev-базу из DEV_DB_DUMP (.env) и очистить Redis
+  version              версия сайта из package.json и проверка тегов образов в docker-compose.yml
 EOF
         ;;
 esac

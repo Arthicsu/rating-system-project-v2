@@ -2,8 +2,14 @@
 // пакет typescript в рантайме, а он dev-зависимость и в прод-образ не попадает
 // (см. Dockerfile, стадия prod-deps). Типизация сохранена через JSDoc.
 
+import { readFileSync } from 'node:fs';
+
+// Версия сайта - одна, из package.json (её же проверяет scripts/dev.sh version); подвал берёт её из env.
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: { NEXT_PUBLIC_APP_VERSION: version },
   compress: true,
   // Без output: 'standalone'. Прод-образ запускает "next start" через pnpm,
   // а next start со standalone-выводом несовместим (см. Dockerfile).

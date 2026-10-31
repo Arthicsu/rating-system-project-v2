@@ -94,6 +94,20 @@ archive/
    ```bash
    docker compose exec -u app backend python manage.py createsuperuser
    ```
+
+## Выпуск версии
+
+Версия сайта одна - поле `version` в `app/frontend/package.json`; подвал сайта показывает её («Версия 1.2.0b»).
+
+1. Поднимите `version` в `app/frontend/package.json` и теги образов `arthicsu/bgitu-rating-*` в `docker-compose.yml` до той же версии.
+2. Проверьте, что они совпадают (в PowerShell - `scripts\dev.ps1 version`); при расхождении команда перечислит образы и завершится с ошибкой:
+   ```bash
+   scripts/dev.sh version
+   ```
+3. Закоммитьте и поставьте git-тег `v{версия}`, например:
+   ```bash
+   git tag v1.2.0b
+   ```
    
 ## Разработка (dev-среда)
 

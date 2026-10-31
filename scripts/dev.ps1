@@ -36,6 +36,19 @@ try {
             # backend применяет миграции при старте - дамп старше кода догонит схему.
             dc start backend celery
         }
+        'version' {
+            # Единственный источник версии - app/frontend/package.json; теги наших образов в compose обязаны совпадать.
+            $version = (Get-Content app/frontend/package.json -Raw -Encoding UTF8 | ConvertFrom-Json).version
+            Write-Output $version
+            $compose = if ($env:VERSION_COMPOSE) { $env:VERSION_COMPOSE } else { 'docker-compose.yml' }
+            $bad = @(Select-String -Path $compose -Pattern 'arthicsu/bgitu-rating-[a-z-]*:[^\s"]*' -AllMatches |
+                ForEach-Object { $_.Matches.Value } | Where-Object { $_ -notlike "*:$version" })
+            if ($bad.Count -gt 0) {
+                Write-Output "Теги образов не совпадают с версией ${version}:"
+                $bad | Write-Output
+                exit 1
+            }
+        }
         default {
             Write-Output @'
 Команды dev-среды (project-dev-compose.yml):
@@ -49,6 +62,7 @@ try {
   front <скрипт>       pnpm во фронте, например: front typecheck, front lint
   api                  обновить контракт API: schema.yml, lib/api-types.ts и проверка
   db-restore           пересоздать dev-базу из DEV_DB_DUMP (.env) и очистить Redis
+  version              версия сайта из package.json и проверка тегов образов в docker-compose.yml
 '@
         }
     }
