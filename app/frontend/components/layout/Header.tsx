@@ -35,8 +35,9 @@ export default function Header() {
             href="https://eos.bgitu.ru/"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden min-h-11 items-center px-2 text-sm text-slate-600 transition-colors hover:text-sky-700 sm:inline-flex"
+            className="hidden min-h-11 items-center gap-1.5 px-2 text-sm text-slate-600 transition-colors hover:text-sky-700 sm:inline-flex"
           >
+            <Image src="/media/logo_EOS.svg" alt="" width={20} height={20} className="size-5 rounded-[25%]" />
             ЭОС
           </a>
           {loading ? (

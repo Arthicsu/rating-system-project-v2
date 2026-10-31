@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import HeaderPopover from '@/components/layout/HeaderPopover';
 import { initials, roleLabel } from '@/components/layout/userLabels';
@@ -7,7 +8,7 @@ import { useMySession } from '@/context/AuthContext';
 
 const ITEM = 'flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-left text-sm transition';
 const LINK = `${ITEM} text-slate-700 hover:bg-slate-100 hover:text-slate-900`;
-const ICON = 'w-4 shrink-0 text-center text-slate-500';
+const ICON = 'shrink-0 text-slate-500';
 
 /** Кнопка с именем и меню пользователя: профиль или кабинет, настройки, ЭОС (телефон), выход. */
 export default function UserMenu() {
@@ -52,12 +53,13 @@ export default function UserMenu() {
         Настройки
       </Link>
       <a href="https://eos.bgitu.ru/" target="_blank" rel="noopener noreferrer" className={`${LINK} sm:hidden`}>
-        <i className={`fa-solid fa-graduation-cap ${ICON}`} aria-hidden="true" />
+        {/* 1.25em - ширина иконок Font Awesome: подписи пунктов стоят ровно при любом размере шрифта. */}
+        <Image src="/media/logo_EOS.svg" alt="" width={20} height={20} className="size-[1.25em] shrink-0 rounded-[25%]" />
         ЭОС
       </a>
       <hr className="my-1 border-slate-200" />
       <button type="button" onClick={logoutUser} className={`${ITEM} text-rose-600 hover:bg-rose-50 hover:text-rose-700`}>
-        <i className="fa-solid fa-arrow-right-from-bracket w-4 shrink-0 text-center" aria-hidden="true" />
+        <i className="fa-solid fa-arrow-right-from-bracket shrink-0" aria-hidden="true" />
         Выйти
       </button>
     </HeaderPopover>
