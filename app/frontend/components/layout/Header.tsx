@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import LowVisionButton from '@/components/layout/LowVisionButton';
 import MainNav from '@/components/layout/MainNav';
 import UserMenu from '@/components/layout/UserMenu';
 import { useMySession } from '@/context/AuthContext';
@@ -40,6 +41,7 @@ export default function Header() {
             <Image src="/media/logo_EOS.svg" alt="" width={20} height={20} className="size-5 rounded-[25%]" />
             ЭОС
           </a>
+          <LowVisionButton />
           {loading ? (
             <span className="h-11 w-20 animate-pulse rounded-full bg-slate-200" />
           ) : user ? (

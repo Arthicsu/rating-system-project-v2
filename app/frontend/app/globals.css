@@ -168,8 +168,9 @@ html[data-lv-scheme] body :is(button, input, select, textarea, a[class*='bg-']) 
   border-style: solid !important;
 }
 
-html[data-lv-scheme] body :is([aria-current='page'], [aria-selected='true'], [aria-pressed='true'], label:has(> input:checked)):not([data-lv-keep]),
-html[data-lv-scheme] body :is([aria-current='page'], [aria-selected='true'], [aria-pressed='true'], label:has(> input:checked)) *:not(img, svg, [data-lv-keep], [data-lv-keep] *) {
+/* Кнопка с очками - тоже инверсией: схема бывает только при включённой версии, а кольцо-подсветку схема убирает. */
+html[data-lv-scheme] body :is([aria-current='page'], [aria-selected='true'], [aria-pressed='true'], label:has(> input:checked), [aria-controls='low-vision-panel']):not([data-lv-keep]),
+html[data-lv-scheme] body :is([aria-current='page'], [aria-selected='true'], [aria-pressed='true'], label:has(> input:checked), [aria-controls='low-vision-panel']) *:not(img, svg, [data-lv-keep], [data-lv-keep] *) {
   background-color: var(--lv-fg) !important;
   color: var(--lv-bg) !important;
 }

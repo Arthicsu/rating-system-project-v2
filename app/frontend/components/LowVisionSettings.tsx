@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import Switch from '@/components/Switch';
 import { useLowVision } from '@/hooks/useLowVision';
 import { LOW_VISION, type LowVisionFont, type LowVisionScheme } from '@/lib/lowVision';
@@ -81,30 +82,32 @@ function Stepper({ id, label, value, index, count, onChange }: StepperProps) {
  */
 export default function LowVisionSettings() {
   const { settings, update, reset } = useLowVision();
+  // Свои id и имена радиогрупп у каждого экземпляра: панель в шапке и «Настройки» бывают на одной странице.
+  const uid = useId();
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-0.5">
-          <p id="low-vision-label" className="text-sm font-medium text-slate-800">
+          <p id={`${uid}-label`} className="text-sm font-medium text-slate-800">
             Версия для слабовидящих
           </p>
-          <p id="low-vision-hint" className="text-sm text-slate-500">
+          <p id={`${uid}-hint`} className="text-sm text-slate-500">
             Крупный шрифт, интервалы и контрастные цвета на всех страницах в этом браузере.
           </p>
         </div>
         <Switch
           checked={settings.enabled}
           onToggle={() => update({ enabled: !settings.enabled })}
-          labelledBy="low-vision-label"
-          describedBy="low-vision-hint"
+          labelledBy={`${uid}-label`}
+          describedBy={`${uid}-hint`}
         />
       </div>
 
       {settings.enabled && (
-        <div className="space-y-4 rounded-xl border border-slate-100 bg-slate-50 p-3 sm:p-4">
+        <div className="animate-fade-in space-y-4 rounded-xl border border-slate-100 bg-slate-50 p-3 sm:p-4">
           <Stepper
-            id="low-vision-size"
+            id={`${uid}-size`}
             label="Размер шрифта"
             value={`${Math.round(LOW_VISION.sizes[settings.size] * 100)}%`}
             index={settings.size}
@@ -112,7 +115,7 @@ export default function LowVisionSettings() {
             onChange={(size) => update({ size })}
           />
           <Stepper
-            id="low-vision-letter"
+            id={`${uid}-letter`}
             label="Интервал между буквами"
             value={SPACING_LABELS[settings.letter]}
             index={settings.letter}
@@ -120,7 +123,7 @@ export default function LowVisionSettings() {
             onChange={(letter) => update({ letter })}
           />
           <Stepper
-            id="low-vision-line"
+            id={`${uid}-line`}
             label="Интервал между строками"
             value={SPACING_LABELS[settings.line]}
             index={settings.line}
@@ -135,7 +138,7 @@ export default function LowVisionSettings() {
                 <label key={font.value} className={OPTION} style={{ fontFamily: LOW_VISION.fonts[font.value] || undefined }}>
                   <input
                     type="radio"
-                    name="low-vision-font"
+                    name={`${uid}-font`}
                     value={font.value}
                     checked={settings.font === font.value}
                     onChange={() => update({ font: font.value })}
@@ -156,7 +159,7 @@ export default function LowVisionSettings() {
                   <label key={scheme.value} className={`${OPTION} flex-col gap-1.5 py-2`}>
                     <input
                       type="radio"
-                      name="low-vision-scheme"
+                      name={`${uid}-scheme`}
                       value={scheme.value}
                       checked={settings.scheme === scheme.value}
                       onChange={() => update({ scheme: scheme.value })}
