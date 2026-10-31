@@ -298,3 +298,10 @@ input[type=password]::-ms-clear {
     }
   }
 }
+
+/* Без Popover API (Safari до 17) панели шапки не открываются - и не стоят невидимыми в шапке. */
+@supports not selector(:popover-open) {
+  [popover] {
+    display: none;
+  }
+}
