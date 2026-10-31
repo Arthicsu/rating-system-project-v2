@@ -174,7 +174,7 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
         </div>
 
         {/* Правая колонка: кнопка + QR */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
           <div>
             <button
                 type="button"
