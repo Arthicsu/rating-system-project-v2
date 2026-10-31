@@ -43,14 +43,17 @@ export function handleTabListKey(
   e.currentTarget.querySelector<HTMLElement>(`[data-tab-id="${target}"]`)?.focus();
 }
 
-/** Переключатель вкладок кабинета сотрудника (Студенты / заявки / статистика). */
+/**
+ * Переключатель вкладок кабинета сотрудника (Студенты / заявки / статистика).
+ * `relative` у полосы: иначе подписи счётчиков (`sr-only`) выходят из прокрутки и растягивают страницу.
+ */
 export default function TabsNav({ tabs, activeTab, onChange }: TabsNavProps) {
   return (
     <div
       role="tablist"
       aria-label="Разделы кабинета"
       onKeyDown={(e) => handleTabListKey(e, tabs.map((t) => t.id), activeTab, onChange)}
-      className="flex overflow-x-auto border-b border-slate-200 pb-1.5 text-xs sm:text-sm"
+      className="relative flex overflow-x-auto border-b border-slate-200 pb-1.5 text-xs sm:text-sm"
     >
       {tabs.map((tab, i) => {
         const rounded = i === 0 ? 'rounded-l-md' : i === tabs.length - 1 ? 'rounded-r-md' : '';
