@@ -7,7 +7,7 @@ import MainNav from '@/components/layout/MainNav';
 import UserMenu from '@/components/layout/UserMenu';
 import { useMySession } from '@/context/AuthContext';
 
-/** Шапка: логотип, главный раздел роли, ЭОС, меню пользователя или вход. */
+/** Шапка: логотип, главный раздел роли, версия для слабовидящих, меню пользователя или вход. */
 export default function Header() {
   const { user, loading } = useMySession();
 
@@ -17,7 +17,7 @@ export default function Header() {
     <header className="sticky top-0 z-20 w-full bg-white shadow-[0px_20px_40px_-10px_rgba(34,60,80,0.15)] low-vision:static">
       <div className="mx-auto flex max-w-350 items-center justify-between gap-3 px-4 py-2 sm:px-5 sm:py-2.5 low-vision:flex-wrap">
         <div className="flex min-w-0 items-center gap-4 sm:gap-6">
-          <Link href="/" className="flex shrink-0 items-center gap-2.5">
+          <Link href="/" className="flex min-h-11 min-w-11 shrink-0 items-center gap-2.5">
             <Image
               src="/media/logo_BGITU.svg"
               alt="БГИТУ"

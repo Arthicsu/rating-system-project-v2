@@ -59,16 +59,7 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
   const rejectedDocs = documents.filter((d) => d.status_display === 'rejected');
   const semesterHistory = profile?.semester_history ?? [];
 
-  if (loading) {
-    // Кости student-profile рисуются поверх скрытого pulse-макета: он задаёт
-    // высоту контейнера и остаётся запасным вариантом до гидрации бандла
-    // (и на случай, если имя выпадет из bones/registry.js).
-    return (
-      <Skeleton name="student-profile" loading fallback={<ProfileSkeleton />}>
-        <ProfileSkeleton />
-      </Skeleton>
-    );
-  }
+  if (loading) return <ProfileSkeleton />;
 
   if (!profile) {
     return (

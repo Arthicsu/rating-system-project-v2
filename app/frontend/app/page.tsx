@@ -10,9 +10,9 @@ export default function Main() {
   const { loading, user } = useMySession();
   if (loading) {
       return (
-        <div className="loader-container">
+        <PageContainer className="my-auto text-center">
           <p>Загрузка сессии...</p>
-        </div>
+        </PageContainer>
       );
     }
     
