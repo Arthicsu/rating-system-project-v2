@@ -32,7 +32,7 @@ export default function Header() {
         </div>
 
         <div className="flex min-w-0 items-center gap-1 sm:gap-2">
-          <a
+          {/* <a
             href="https://eos.bgitu.ru/"
             target="_blank"
             rel="noopener noreferrer"
@@ -40,7 +40,7 @@ export default function Header() {
           >
             <Image src="/media/logo_EOS.svg" alt="" width={20} height={20} className="size-5 rounded-[25%]" />
             ЭОС
-          </a>
+          </a> */}
           <LowVisionButton />
           {loading ? (
             <span className="h-11 w-20 animate-pulse rounded-full bg-slate-200" />
