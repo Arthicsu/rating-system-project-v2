@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import LowVisionButton from '@/components/layout/LowVisionButton';
 import MainNav from '@/components/layout/MainNav';
+import { Bone } from '@/components/Skeleton';
 import UserMenu from '@/components/layout/UserMenu';
 import { useMySession } from '@/context/AuthContext';
 
@@ -43,7 +44,7 @@ export default function Header() {
           </a> */}
           <LowVisionButton />
           {loading ? (
-            <span className="h-11 w-20 animate-pulse rounded-full bg-slate-200" />
+            <Bone className="h-11 w-20 rounded-full" />
           ) : user ? (
             <UserMenu />
           ) : (

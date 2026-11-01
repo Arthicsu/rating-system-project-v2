@@ -3,9 +3,12 @@ import { useMySession } from '@/context/AuthContext';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
 import type { AchievementItemProps } from '@/interfaces/AchievementInterfaces';
 import { STATUS_BADGE } from '@/components/achievement/AchievementHeader';
-import { Skeleton } from 'boneyard-js/react';
 
-export default function AchievementItem({ doc, loading = false, onEdit, onDelete }: AchievementItemProps) {
+/** Карточка заявки; её же повторяет скелетон ленты. */
+export const ITEM_CARD =
+  'flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-4.5';
+
+export default function AchievementItem({ doc, onEdit, onDelete }: AchievementItemProps) {
   const { downloadFile } = useDownloadFile();
   // Сотрудник (профиль студента из кабинета) открывает заявку на своей странице, с модерацией.
   const { user } = useMySession();
@@ -14,37 +17,13 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
   const receivedDateText = doc?.date_received ? new Date(doc.date_received).toLocaleDateString('ru-RU') : 'Не указана';
   const uploadedDateText = doc?.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('ru-RU') : 'Не указана';
   
-  if (loading) {
-    // Ручной pulse на время загрузки; кости boneyard снимаются
-    // с реальной карточки ниже.
-    return (
-        <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-4.5 animate-pulse">
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-slate-200" />
-            <div className="min-w-0 space-y-2 flex-1">
-              <div className="h-4 w-3/4 rounded bg-slate-200" />
-              <div className="flex gap-2">
-                <div className="h-5 w-16 rounded bg-slate-200" />
-                <div className="h-5 w-20 rounded bg-slate-200" />
-              </div>
-              <div className="h-4 w-1/2 rounded bg-slate-200" />
-            </div>
-          </div>
-          <div className="h-6 w-12 rounded-full bg-slate-200" />
-        </div>
-    );
-  }
-
   if (!doc) {
     return null;
   }
 
   return (
     <>
-    {/* Skeleton вокруг РЕАЛЬНОЙ карточки: сканер boneyard снимает кости с
-        настоящего DOM (loading={false} — рантайм не меняется до скана). */}
-    <Skeleton name="achievement-item" loading={false}>
-    <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-4.5">
+    <div className={ITEM_CARD}>
       <div className="flex min-w-0 flex-1 items-start gap-3">
         <div className="mt-1 flex px-1.5 sm:px-2 lg:px-2 py-1.5 sm:py-2 lg:py-2 items-center justify-center rounded-full bg-sky-700 text-white">
           <i className={`fa-regular ${statusIcon} text-sm`} />
@@ -144,7 +123,6 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
         )}
       </div>
     </div>
-    </Skeleton>
     {doc?.status_display == 'rejected' && doc?.rejection_reason && (
       <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50/70 p-4">
         <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-rose-700">

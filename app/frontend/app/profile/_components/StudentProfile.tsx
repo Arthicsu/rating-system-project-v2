@@ -10,7 +10,6 @@ import { useDeleteAchievement } from '@/hooks/mutations/useAchievementMutations'
 import { apiErrorMessage } from '@/lib/apiError';
 import type { StudentProfileProps } from '@/interfaces/ProfileInterfaces';
 import type { Achievement } from '@/interfaces/AchievementInterfaces';
-import { Skeleton } from 'boneyard-js/react';
 import ProfileHeaderCard from './ProfileHeaderCard';
 import ScoreBreakdown from './ScoreBreakdown';
 import SemesterHistoryTable from './SemesterHistoryTable';
@@ -56,7 +55,7 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
   const documents: Achievement[] = profile?.documents || [];
   const semesterHistory = profile?.semester_history ?? [];
 
-  if (loading) return <ProfileSkeleton />;
+  if (loading) return <ProfileSkeleton isOwner={isOwner} />;
 
   if (!profile) {
     return (
@@ -70,10 +69,7 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
 
   return (
     <>
-      {/* Обёртка нужна сканеру boneyard: кости снимаются с настоящего DOM.
-          Рантайм-скелетон живёт в ветке loading выше, здесь профиль уже загружен. */}
-      <Skeleton name="student-profile" loading={false}>
-      <PageContainer>
+      <PageContainer className="animate-reveal">
         <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:p-5">
           <ProfileHeaderCard
             profile={profile}
@@ -97,7 +93,6 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
           </Suspense>
         </div>
       </PageContainer>
-      </Skeleton>
 
       <ModalEditAchievement
         isOpen={!!editingDoc}

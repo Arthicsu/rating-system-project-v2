@@ -26,9 +26,8 @@ export default function ProfilePage() {
 
   // Выключенный запрос тоже isPending: скелетон, пока грузится сессия и до любого редиректа.
   if (isPending) {
-    // StudentProfile в режиме loading рисует скелетон: кости boneyard,
-    // до гидрации ручной pulse.
-    return <StudentProfile profile={null} isOwner={false} loading />;
+    // Свой профиль открывает только студент: в скелетоне есть его кнопка загрузки.
+    return <StudentProfile profile={null} isOwner loading />;
   }
 
   if (!profile) {

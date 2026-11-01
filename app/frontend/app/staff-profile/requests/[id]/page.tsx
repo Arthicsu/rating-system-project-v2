@@ -51,7 +51,7 @@ function StaffRequest({ id }: { id: string }) {
   const { data: doc, isPending, error } = useAchievement(id, true);
   const state = detailLoadState(isPending, error);
 
-  if (state === 'loading') return <DetailSkeleton />;
+  if (state === 'loading') return <DetailSkeleton staff />;
   if (state !== 'ready' || !doc) return <DetailError state={state} onBack={() => goBack(router, '/staff-profile?tab=pending-requests')} />;
 
   const files = doc.files ?? [];

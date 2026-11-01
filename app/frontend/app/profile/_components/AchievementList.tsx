@@ -18,8 +18,8 @@ const TAB_LABELS: Record<StatusTab, string> = {
   rejected: 'Отклонённые',
 };
 
-const CARD = 'rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5';
-const TITLE = 'mb-3 text-sm font-semibold text-slate-700 sm:text-base';
+export const LIST_CARD = 'rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5';
+export const LIST_TITLE = 'mb-3 text-sm font-semibold text-slate-700 sm:text-base';
 
 interface AchievementListProps {
   docs: Achievement[];
@@ -63,8 +63,8 @@ export default function AchievementList({ docs, categoryLabels, isOwner, onEdit,
 
   if (docs.length === 0) {
     return (
-      <section aria-labelledby="achievements-title" className={CARD}>
-        <h2 id="achievements-title" className={TITLE}>Достижения</h2>
+      <section aria-labelledby="achievements-title" className={LIST_CARD}>
+        <h2 id="achievements-title" className={LIST_TITLE}>Достижения</h2>
         <div className="py-6 text-center">
           <p className="text-base font-semibold text-slate-900">Пока нет достижений</p>
           {isOwner && (
@@ -91,8 +91,8 @@ export default function AchievementList({ docs, categoryLabels, isOwner, onEdit,
   ];
 
   return (
-    <section aria-labelledby="achievements-title" className={CARD}>
-      <h2 id="achievements-title" className={TITLE}>Достижения</h2>
+    <section aria-labelledby="achievements-title" className={LIST_CARD}>
+      <h2 id="achievements-title" className={LIST_TITLE}>Достижения</h2>
       <TabsNav
         label="Статус заявок"
         panelId="achievements-panel"

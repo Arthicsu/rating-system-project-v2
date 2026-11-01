@@ -253,6 +253,76 @@ input[type=password]::-ms-clear {
     }
 }
 
+/* Скелетон загрузки: кости - цветом темы, в схемах версии для слабовидящих - смесью её цветов
+   (у костей нет классов bg-*, поэтому общая перекраска фона схемы их не гасит). */
+:root {
+  --bone: var(--color-slate-200);
+  --bone-shine: color-mix(in oklab, var(--bone), white 60%);
+}
+
+.dark {
+  --bone-shine: color-mix(in oklab, var(--bone), white 12%);
+}
+
+html[data-lv-scheme] {
+  --bone: color-mix(in srgb, var(--lv-fg) 25%, var(--lv-bg));
+  --bone-shine: color-mix(in srgb, var(--lv-fg) 45%, var(--lv-bg));
+}
+
+/* В слое components: классы Tailwind (rounded-full, h-*) перекрывают значения по умолчанию. */
+@layer components {
+  /* Блик закреплён за окном (fixed): одна волна проходит по всем костям сразу. */
+  .bone {
+    display: block;
+    border-radius: 0.375rem;
+    background-color: var(--bone);
+    background-image: linear-gradient(100deg, transparent 40%, var(--bone-shine) 50%, transparent 60%);
+    background-size: 200vw 100%;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    animation: bone-shine 1.8s ease-in-out infinite;
+  }
+
+  /* Строка текста: высота - строка своего шрифта (растёт с версией для слабовидящих), полоса - посередине. */
+  .bone-line {
+    height: 1lh;
+    padding-block: 0.22lh;
+    background-clip: content-box;
+  }
+
+  /* Скелетон проявляется, только если загрузка дольше 150 мс: быстрая не мигает. */
+  .skeleton-screen {
+    animation: appear 0.2s ease-out 0.15s both;
+  }
+
+  /* Загруженное проявляется на месте скелетона. */
+  .animate-reveal {
+    animation: appear 0.25s ease-out both;
+  }
+}
+
+@keyframes bone-shine {
+  from {
+    background-position: -120vw 0;
+  }
+  to {
+    background-position: 20vw 0;
+  }
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bone {
+    animation: none;
+    background-image: none;
+  }
+}
+
 @supports (appearance: base-select) {
   @media (hover: hover) and (pointer: fine) {
     .app-select,

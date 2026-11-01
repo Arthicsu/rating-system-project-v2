@@ -5,6 +5,7 @@ import Link from 'next/link';
 import SearchInput from '@/components/SearchInput';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import Pagination from '@/components/Pagination';
+import { Bone, BoneLine } from '@/components/Skeleton';
 import RatingTabs from './RatingTabs';
 import type { ExportExcelParams, Tab } from '@/interfaces/RatingInterfaces';
 import type Student from '@/interfaces/StudentInterfaces';
@@ -87,7 +88,7 @@ export default function StudentsTab({
 
         <div className="mt-4 rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
           <div className="w-full overflow-x-auto">
-              <table className="min-w-full border-collapse text-xs sm:text-sm" style={{ tableLayout: 'fixed' }}>
+              <table aria-busy={loading} className="min-w-full border-collapse text-xs sm:text-sm" style={{ tableLayout: 'fixed' }}>
                 <thead>
                   <tr className="bg-sky-700 text-white">
                     <th className="w-10 sm:w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-2xs sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
@@ -179,10 +180,15 @@ export default function StudentsTab({
                   // строк-заглушек. При пагинации и поиске строки уже есть,
                   // и работает затемнение tbody выше.
                   Array.from({ length: pageSize }).map((_, i) => (
-                    <tr key={`sk-${i}`} className="border-b border-slate-100 last:border-b-0">
-                      <td colSpan={isRectorate ? 8 : 7} className="p-2 md:px-4 md:py-3">
-                        <div className="h-5 w-full animate-pulse rounded bg-slate-100" />
+                    <tr key={`sk-${i}`} aria-hidden="true" className="skeleton-screen border-b border-slate-100 last:border-b-0">
+                      <td className="p-1 sm:p-2 md:px-4 md:py-3">
+                        <Bone className="mx-auto h-4 w-4 rounded-full sm:h-6 sm:w-6 md:h-8 md:w-8" />
                       </td>
+                      {Array.from({ length: isRectorate ? 7 : 6 }, (_, j) => (
+                        <td key={j} className="p-1 text-xs sm:p-2 md:px-4 md:py-3 md:text-sm">
+                          <BoneLine className="w-3/4" />
+                        </td>
+                      ))}
                     </tr>
                   ))
                 ) : (

@@ -32,8 +32,6 @@ export default function ProfilePage() {
   useRedirectIfStaff(isStaffProfile);
 
   if (isPending) {
-    // StudentProfile в режиме loading рисует скелетон: кости boneyard,
-    // до гидрации ручной pulse.
     return <StudentProfile profile={null} isOwner={false} loading />;
   }
 

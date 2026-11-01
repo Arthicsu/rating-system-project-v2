@@ -5,7 +5,6 @@ export type Achievement = DocumentDto;
 
 export interface AchievementItemProps {
   doc?: Achievement;
-  loading?: boolean;
   onEdit?: (doc: Achievement) => void;
   onDelete?: (doc: Achievement) => void;
 }

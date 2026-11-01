@@ -7,10 +7,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Skeleton } from 'boneyard-js/react';
 import { AxiosError } from 'axios';
 
 import FileDropZone from '@/components/upload/FileDropZone';
+import UploadFormSkeleton from './UploadFormSkeleton';
 import AchievementFields, { FieldError, getCurrentScore } from '@/components/achievement/AchievementFields';
 import { useAchievementConfig } from '@/hooks/queries';
 import { useUploadAchievement } from '@/hooks/mutations/useAchievementMutations';
@@ -141,10 +141,10 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
           </p>
         </div>
       </div>
-      {/* Пока конфиг достижений грузится, поверх формы рисуются кости.
-          Скрытая форма с пустыми списками задает высоту контейнера. */}
-      <Skeleton name="upload-form-fields" loading={configLoading}>
-        <div className="grid gap-6 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)] sm:p-5">
+      {configLoading ? (
+        <UploadFormSkeleton />
+      ) : (
+        <div className="grid animate-reveal gap-6 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)] sm:p-5">
           {/* Левая колонка: форма */}
           <div className="space-y-4">
           {/* Номер зачетной */}
@@ -216,7 +216,7 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
           </div> */}
         </div>
       </div>
-      </Skeleton>
+      )}
     </>
   );
 }

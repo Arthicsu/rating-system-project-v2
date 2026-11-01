@@ -6,6 +6,7 @@ import type { AxiosError } from 'axios';
 
 import ModalChangePassword from '@/components/modals/ModalChangePassword';
 import PageContainer from '@/components/layout/PageContainer';
+import { Bone, BoneLine, SkeletonScreen } from '@/components/Skeleton';
 import LowVisionSettings from '@/components/LowVisionSettings';
 import Switch from '@/components/Switch';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -53,7 +54,16 @@ export default function SettingsPage() {
             Аккаунт
           </h2>
           {!user ? (
-            <div className="mt-3 h-11 animate-pulse rounded-lg bg-slate-100" />
+            <SkeletonScreen className="mt-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-0.5 text-sm">
+                  <BoneLine className="w-20" />
+                  <BoneLine className="w-96 max-w-full" />
+                  <BoneLine className="hidden w-40 max-sm:block" />
+                </div>
+                <Bone className="h-11 w-44 shrink-0 rounded-full" />
+              </div>
+            </SkeletonScreen>
           ) : (
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-0.5">
@@ -77,6 +87,23 @@ export default function SettingsPage() {
             </div>
           )}
         </section>
+
+        {/* Раздел есть у студента; пока сессия грузится, место под него держит скелетон. */}
+        {!user && (
+          <SkeletonScreen className={SECTION}>
+            <BoneLine className="w-32 text-base" />
+            <div className="mt-3 flex items-center justify-between gap-4">
+              <div className="space-y-0.5 text-sm">
+                <BoneLine className="w-60 max-w-full" />
+                <BoneLine className="w-96 max-w-full" />
+                <BoneLine className="hidden w-48 max-sm:block" />
+              </div>
+              <span className="flex h-11 w-14 shrink-0 items-center justify-center">
+                <Bone className="h-6 w-11 rounded-full" />
+              </span>
+            </div>
+          </SkeletonScreen>
+        )}
 
         {isStudent && (
           <section aria-labelledby="settings-notifications" className={SECTION}>
