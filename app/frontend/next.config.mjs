@@ -7,6 +7,15 @@ import { readFileSync } from 'node:fs';
 // Версия сайта - одна, из package.json (её же проверяет scripts/dev.sh version); подвал берёт её из env.
 const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
+// Обычная сборка pdf.js 6 вызывает Promise.try, Map#getOrInsertComputed и другие новинки без полифилов;
+// legacy-сборка несёт их (core-js), и просмотр PDF работает в старых браузерах. Воркер - public/pdf.worker.entry.mjs.
+// pdfjs-dist - прямая зависимость той же версии, что у react-pdf: Turbopack ищет цель псевдонима от корня проекта.
+const pdfjsLegacy = {
+  'pdfjs-dist': 'pdfjs-dist/legacy/build/pdf.mjs',
+  'pdfjs-dist/web/pdf_viewer.mjs': 'pdfjs-dist/legacy/web/pdf_viewer.mjs',
+  'pdfjs-dist/build/pdf.worker.mjs': 'pdfjs-dist/legacy/build/pdf.worker.mjs',
+};
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   env: { NEXT_PUBLIC_APP_VERSION: version },
@@ -18,6 +27,12 @@ const nextConfig = {
   // webpack-dev его внутренний рантайм падает (Object.defineProperty called on
   // non-object). Транспиляция обоих пакетов через Next устраняет конфликт.
   transpilePackages: ['react-pdf', 'pdfjs-dist'],
+  // Прод-сборка - Turbopack, dev - webpack (DEV_NEXT_BUNDLER); у webpack «$» - точное совпадение имени.
+  turbopack: { resolveAlias: pdfjsLegacy },
+  webpack(config) {
+    for (const [from, to] of Object.entries(pdfjsLegacy)) config.resolve.alias[`${from}$`] = to;
+    return config;
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
   },

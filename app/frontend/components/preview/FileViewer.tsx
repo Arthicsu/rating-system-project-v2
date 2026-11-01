@@ -1,16 +1,19 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+// Полифил - до react-pdf: модули выполняются по порядку импорта.
+import '@/lib/promiseWithResolvers';
 import { Document, Page, pdfjs } from 'react-pdf';
 import type { FilePreviewKind } from '@/hooks/useFilePreview';
 
 // Воркер pdf.js отдаётся статикой из public/ — работает одинаково и в webpack-dev,
 // и в turbopack-build (Turbopack не резолвит bare-спецификатор в new URL()).
-// ВАЖНО: public/pdf.worker.min.mjs скопирован из pdfjs-dist (сейчас 6.3.289, react-pdf 11).
-// При обновлении react-pdf/pdfjs пересоздать файл:
-//   cp node_modules/.pnpm/pdfjs-dist@<ver>/node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs
+// ВАЖНО: public/pdf.worker.min.mjs скопирован из legacy-сборки pdfjs-dist (сейчас 6.3.289, react-pdf 11) —
+// как и сам pdf.js (псевдонимы в next.config.mjs); public/pdf.worker.entry.mjs ставит перед ним полифил.
+// При обновлении react-pdf поднять pdfjs-dist в package.json до его версии и пересоздать файл:
+//   cp node_modules/.pnpm/pdfjs-dist@<ver>/node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs public/pdf.worker.min.mjs
 // Если версия воркера разойдётся с pdf.js — сработает мягкий фолбэк на <iframe>.
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.entry.mjs';
 
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3;
