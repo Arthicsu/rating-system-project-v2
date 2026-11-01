@@ -24,7 +24,7 @@ export function getCurrentScore(
 /** Подпись ошибки под полем; ничего не рендерит, пока поле валидно. */
 export function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="text-xs text-rose-700">{message}</p>;
+  return <p className="animate-shake text-xs text-rose-700">{message}</p>;
 }
 
 const LABEL = 'text-xs font-medium text-slate-600';

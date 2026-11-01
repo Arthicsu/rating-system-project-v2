@@ -1,3 +1,4 @@
+import CountUp from '@/components/CountUp';
 import type { Profile } from '@/interfaces/ProfileInterfaces';
 
 /**
@@ -50,7 +51,7 @@ export default function ProfileHeaderCard({
             Общий балл
           </div>
           <div className="text-2xl font-bold text-sky-700 sm:text-3xl">
-            {profile.total_score}
+            <CountUp value={profile.total_score} />
           </div>
         </div>
       </div>

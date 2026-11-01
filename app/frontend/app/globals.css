@@ -244,7 +244,7 @@ input[type=password]::-ms-clear {
 }
 
 .animate-fade-in {
-    animation: fadeIn 0.28s ease-out both;
+    animation: fadeIn 0.28s ease-out backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -292,12 +292,12 @@ html[data-lv-scheme] {
 
   /* Скелетон проявляется, только если загрузка дольше 150 мс: быстрая не мигает. */
   .skeleton-screen {
-    animation: appear 0.2s ease-out 0.15s both;
+    animation: appear 0.2s ease-out 0.15s backwards;
   }
 
   /* Загруженное проявляется на месте скелетона. */
   .animate-reveal {
-    animation: appear 0.25s ease-out both;
+    animation: appear 0.25s ease-out backwards;
   }
 }
 
@@ -320,6 +320,260 @@ html[data-lv-scheme] {
   .bone {
     animation: none;
     background-image: none;
+  }
+}
+
+/* Движение: вход «сочных» элементов - пружиной с перелётом, выход быстрее входа. Кривые - и утилитами ease-*.
+   Анимации появления - с заполнением backwards: оставшаяся в силе анимация transform делает блок опорным
+   для position: fixed внутри (окна страниц рисуются без портала), а opacity - отдельным контекстом наложения. */
+@theme {
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-soft: cubic-bezier(0.4, 0, 1, 1);
+
+  --animate-rise: rise 0.32s var(--ease-out-soft) backwards;
+  --animate-page-in: rise 0.28s var(--ease-out-soft) backwards;
+  --animate-from-right: from-right 0.28s var(--ease-out-soft) backwards;
+  --animate-from-left: from-left 0.28s var(--ease-out-soft) backwards;
+  --animate-shake: shake 0.42s var(--ease-out-soft) backwards;
+}
+
+:root {
+  --spinner: var(--color-sky-700);
+  --spinner-track: var(--color-sky-100);
+}
+
+html[data-lv-scheme] {
+  --spinner: var(--lv-fg);
+  --spinner-track: color-mix(in srgb, var(--lv-fg) 25%, var(--lv-bg));
+}
+
+@layer components {
+  .spinner {
+    display: block;
+    width: 2.5rem;
+    aspect-ratio: 1;
+    border: 3px solid var(--spinner-track);
+    border-top-color: var(--spinner);
+    border-radius: 9999px;
+    animation: spinner-turn 0.8s linear infinite;
+  }
+
+  /* Индикатор загрузки показывается, только если ждать дольше 150 мс. */
+  .delayed-appear {
+    animation: appear 0.2s ease-out 0.15s backwards;
+  }
+
+  /* Полоса перехода между страницами: растёт, пока грузится следующая, и гаснет там, где застал конец. */
+  .nav-progress {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 60;
+    height: 3px;
+    background: var(--spinner);
+    transform: scaleX(0);
+    transform-origin: left;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .nav-progress[data-state='loading'] {
+    opacity: 1;
+    animation: nav-progress 8s var(--ease-out-soft) 0.15s both;
+  }
+
+  .nav-progress[data-state='done'] {
+    animation: nav-progress 8s var(--ease-out-soft) 0.15s both paused;
+    opacity: 0;
+    transition: opacity 0.25s var(--ease-in-soft);
+  }
+
+  /* Волна: дети проявляются по очереди, с 13-го - вместе. */
+  .stagger > * {
+    animation: rise 0.32s var(--ease-out-soft) backwards;
+  }
+
+  .stagger > :nth-child(2) {
+    animation-delay: 40ms;
+  }
+
+  .stagger > :nth-child(3) {
+    animation-delay: 80ms;
+  }
+
+  .stagger > :nth-child(4) {
+    animation-delay: 120ms;
+  }
+
+  .stagger > :nth-child(5) {
+    animation-delay: 160ms;
+  }
+
+  .stagger > :nth-child(6) {
+    animation-delay: 200ms;
+  }
+
+  .stagger > :nth-child(7) {
+    animation-delay: 240ms;
+  }
+
+  .stagger > :nth-child(8) {
+    animation-delay: 280ms;
+  }
+
+  .stagger > :nth-child(9) {
+    animation-delay: 320ms;
+  }
+
+  .stagger > :nth-child(10) {
+    animation-delay: 360ms;
+  }
+
+  .stagger > :nth-child(11) {
+    animation-delay: 400ms;
+  }
+
+  .stagger > :nth-child(12) {
+    animation-delay: 440ms;
+  }
+
+  .stagger > :nth-child(n + 13) {
+    animation-delay: 480ms;
+  }
+
+  /* Строки-заглушки в волне появляются, как и любой скелетон, через 150 мс. */
+  .stagger > .skeleton-screen {
+    animation: appear 0.2s ease-out 0.15s backwards;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes from-right {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+}
+
+@keyframes from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-1.5rem);
+  }
+}
+
+@keyframes shake {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  25% {
+    opacity: 1;
+    transform: translateX(-4px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes spinner-turn {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes nav-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
+}
+
+/* Без движения остаётся только проявление; кружок крутится медленнее - он сообщает о загрузке. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-page-in,
+  .animate-from-right,
+  .animate-from-left,
+  .animate-shake,
+  .stagger > * {
+    animation-name: appear;
+  }
+
+  .spinner {
+    animation-duration: 2.4s;
+  }
+
+  .nav-progress[data-state='loading'] {
+    animation: none;
+    transform: scaleX(1);
+    opacity: 0.6;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* Смена темы кругом: обычное растворение корня выключено, новый вид раскрывает clip-path из ThemeToggle. */
+:root.theme-switching::view-transition-old(root),
+:root.theme-switching::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+@layer base {
+  /* Отклик нажатия: кнопка чуть сжимается и пружинит обратно. */
+  button {
+    transition: scale 0.15s var(--ease-spring);
+  }
+
+  button:not(:disabled):active {
+    scale: 0.97;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active {
+    scale: none;
+  }
+}
+
+/* Уведомления на телефоне - над нижней панелью (с крупным текстом она выше), без неё - у края. */
+:root {
+  --toast-bottom: 1rem;
+}
+
+@media (max-width: 39.99rem) {
+  body:has([data-tab-bar]) {
+    --toast-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+
+  html[data-lv-size] body:has([data-tab-bar]) {
+    --toast-bottom: calc(7.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Где страницы сменяет View Transitions (ViewTransition в app/template.tsx), своё проявление страницы не нужно. */
+@supports (view-transition-name: none) {
+  .animate-page-in {
+    animation: none;
   }
 }
 
@@ -380,19 +634,4 @@ html[data-lv-scheme] {
 /* Запасная панель шапки не в верхнем слое: открытая поднимает шапку над нижней панелью и баннером cookie. */
 header:has([data-popover-fallback][open]) {
   z-index: 40;
-}
-
-/* Уведомления на телефоне - над нижней панелью (с крупным текстом она выше), без неё - у края. */
-:root {
-  --toast-bottom: 1rem;
-}
-
-@media (max-width: 39.99rem) {
-  body:has([data-tab-bar]) {
-    --toast-bottom: calc(4.5rem + env(safe-area-inset-bottom));
-  }
-
-  html[data-lv-size] body:has([data-tab-bar]) {
-    --toast-bottom: calc(7.5rem + env(safe-area-inset-bottom));
-  }
 }

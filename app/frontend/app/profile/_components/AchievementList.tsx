@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import EmptyRequests from '@/components/EmptyRequests';
@@ -44,6 +44,14 @@ export default function AchievementList({ docs, categoryLabels, isOwner, onEdit,
   const labels = categoryLabels.length > 0 ? categoryLabels : [...codes.keys()];
   const state = readListState(searchParams, [...codes.values()]);
   const { items, total, page, pages, statusCounts, categoryCounts } = listAchievements(docs, state);
+
+  // Листание - сдвигом в сторону новой страницы, смена вкладки или категории - волной карточек.
+  const listKey = `${state.status}|${state.category}|${page}`;
+  const [shown, setShown] = useState({ key: listKey, page, motion: 'stagger' });
+  if (shown.key !== listKey) {
+    const paging = shown.key.startsWith(`${state.status}|${state.category}|`);
+    setShown({ key: listKey, page, motion: paging ? (page > shown.page ? 'animate-from-right' : 'animate-from-left') : 'stagger' });
+  }
 
   const update = (next: Partial<ListState>) => {
     const query = listQuery({ ...state, page: 1, ...next });
@@ -125,7 +133,7 @@ export default function AchievementList({ docs, categoryLabels, isOwner, onEdit,
             onReset={() => update({ status: 'all', category: 'all' })}
           />
         ) : (
-          <div key={`${state.status}|${state.category}|${page}`} className="animate-fade-in space-y-3">
+          <div key={listKey} className={`space-y-3 ${shown.motion}`}>
             {items.map((doc) => {
               const editable = doc.status_display !== 'approved';
               return (

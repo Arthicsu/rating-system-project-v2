@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import '@/lib/promiseWithResolvers';
 import { Document, Page, pdfjs } from 'react-pdf';
 import type { FilePreviewKind } from '@/hooks/useFilePreview';
+import Spinner from '@/components/Spinner';
 
 // Воркер pdf.js отдаётся статикой из public/ — работает одинаково и в webpack-dev,
 // и в turbopack-build (Turbopack не резолвит bare-спецификатор в new URL()).
@@ -131,7 +132,7 @@ export default function FileViewer({ previewUrl, previewKind, fileName, onDownlo
             onLoadError={() => setPdfFailed(true)}
             loading={
               <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                <i className="fa-solid fa-spinner fa-spin mr-2" /> Загрузка документа…
+                <Spinner label="Загрузка документа…" visibleLabel />
               </div>
             }
             error={
@@ -150,7 +151,7 @@ export default function FileViewer({ previewUrl, previewKind, fileName, onDownlo
               className="shadow-md"
               loading={
                 <div className="flex h-[600px] items-center justify-center text-sm text-slate-400">
-                  <i className="fa-solid fa-spinner fa-spin" />
+                  <Spinner label="Загрузка страницы…" />
                 </div>
               }
             />

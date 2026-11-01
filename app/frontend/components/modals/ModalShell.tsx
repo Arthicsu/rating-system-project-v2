@@ -125,8 +125,8 @@ export default function ModalShell({
   return (
     <div
       id={id}
-      className={`fixed inset-0 flex transition-all duration-200 ${overlayClassName} ${
-        visible ? 'bg-slate-950/60' : 'bg-slate-950/0 pointer-events-none'
+      className={`fixed inset-0 flex transition-colors ${overlayClassName} ${
+        visible ? 'bg-slate-950/60 duration-200 ease-out' : 'bg-slate-950/0 pointer-events-none duration-150 ease-in'
       }`}
       onMouseDown={(e) => { pressedOnBackdropRef.current = e.target === e.currentTarget; }}
       onClick={closeOnBackdrop ? (e) => { if (pressedOnBackdropRef.current && e.target === e.currentTarget) handleClose(); } : undefined}
@@ -136,8 +136,8 @@ export default function ModalShell({
       <div
         role="dialog"
         aria-labelledby={labelledBy}
-        className={`transform transition-all duration-200 ${panelClassName} ${
-        visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+        className={`transition-[opacity,scale] motion-reduce:scale-100 ${panelClassName} ${
+        visible ? 'opacity-100 scale-100 duration-300 ease-spring' : 'opacity-0 scale-95 duration-150 ease-in-soft'
       }`}>
         {closeButton && (
           <button

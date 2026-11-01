@@ -12,6 +12,39 @@ const OPTIONS = [
 const noSubscribe = () => () => {};
 
 /**
+ * Тема разливается кругом от выбранного варианта (View Transitions); без API и при reduced motion -
+ * сразу. Класс темы ставим сами: снимок нового вида браузер снимает сразу после колбэка, а next-themes
+ * поставил бы класс позже, в эффекте.
+ */
+function switchTheme(value: string, origin: Element, setTheme: (theme: string) => void) {
+  if (!('startViewTransition' in document) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    setTheme(value);
+    return;
+  }
+  const dark = value === 'dark' || (value === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const { left, top, width, height } = origin.getBoundingClientRect();
+  const x = left + width / 2;
+  const y = top + height / 2;
+  const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+  const root = document.documentElement;
+  root.classList.add('theme-switching');
+  const transition = document.startViewTransition(() => {
+    root.classList.toggle('dark', dark);
+    root.style.colorScheme = dark ? 'dark' : 'light';
+    setTheme(value);
+  });
+  transition.ready
+    .then(() =>
+      root.animate(
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+        { duration: 500, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', pseudoElement: '::view-transition-new(root)' },
+      ),
+    )
+    .catch(() => {});
+  transition.finished.finally(() => root.classList.remove('theme-switching'));
+}
+
+/**
  * Выбор темы: как в системе, светлая, тёмная. Выбор next-themes хранит в localStorage браузера.
  * Нативные радиокнопки дают переход стрелками и чтение экранными дикторами без своего кода.
  */
@@ -39,7 +72,7 @@ export default function ThemeToggle() {
               name="theme"
               value={option.value}
               checked={checked}
-              onChange={() => setTheme(option.value)}
+              onChange={(event) => switchTheme(option.value, event.currentTarget.parentElement ?? event.currentTarget, setTheme)}
               className="sr-only"
             />
             <i className={option.icon} aria-hidden="true" />

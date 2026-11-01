@@ -119,7 +119,7 @@ export default function ModalChangePassword({ isOpen, onClose }: ModalChangePass
                 />
                 {error ? (
                   // role=alert: фокус ставится раньше перерисовки, и без озвучки ошибку не услышать.
-                  <p id={`${id}-error`} role="alert" className="text-xs text-rose-600">
+                  <p id={`${id}-error`} role="alert" className="animate-shake text-xs text-rose-600">
                     {error}
                   </p>
                 ) : (
@@ -134,7 +134,7 @@ export default function ModalChangePassword({ isOpen, onClose }: ModalChangePass
           })}
 
           {formError && (
-            <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            <p role="alert" className="animate-shake rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">
               {formError}
             </p>
           )}

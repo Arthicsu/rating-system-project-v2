@@ -5,13 +5,14 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import PageContainer from '@/components/layout/PageContainer';
+import Spinner from '@/components/Spinner';
 
 export default function Main() {
   const { loading, user } = useMySession();
   if (loading) {
       return (
-        <PageContainer className="my-auto text-center">
-          <p>Загрузка сессии...</p>
+        <PageContainer className="my-auto flex justify-center">
+          <Spinner label="Загрузка сессии…" />
         </PageContainer>
       );
     }

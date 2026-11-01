@@ -10,6 +10,8 @@ import Providers from '@/app/providers';
 import { AuthProvider } from '@/context/AuthContext';
 import { LOW_VISION_SCRIPT } from '@/lib/lowVision';
 import { ThemeProvider } from 'next-themes';
+import { Suspense } from 'react';
+import NavigationProgress from '@/components/layout/NavigationProgress';
 import AppToaster from '@/components/AppToaster';
 
 
@@ -24,6 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       {/* Нижнее меню телефона с крупным шрифтом выше - отступ под ним тоже больше. */}
       <body className="flex min-h-dvh flex-col bg-slate-50 pr-(--scrollbar-gap)">
         <SkipLink />
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Providers>
             <AuthProvider>

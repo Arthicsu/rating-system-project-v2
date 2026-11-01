@@ -2,14 +2,14 @@
 
 import dynamic from 'next/dynamic';
 import { useFilePreview, getFilePreviewKind } from '@/hooks/useFilePreview';
+import Spinner from '@/components/Spinner';
 
 // pdf.js (внутри FileViewer) не должен исполняться на сервере — грузим только на клиенте.
 const FileViewer = dynamic(() => import('@/components/preview/FileViewer'), {
   ssr: false,
   loading: () => (
     <div className="flex h-full flex-1 items-center justify-center p-6 text-sm text-slate-500">
-      <i className="fa-solid fa-spinner fa-spin mr-2" />
-      Загрузка просмотрщика…
+      <Spinner label="Загрузка просмотрщика…" visibleLabel />
     </div>
   ),
 });
@@ -40,8 +40,7 @@ export default function FilePreviewPanel({ fileId, fileName, isOpen, onDownload 
   if (loading) {
     return (
       <div className="flex h-full flex-1 items-center justify-center p-6 text-sm text-slate-500">
-        <i className="fa-solid fa-spinner fa-spin mr-2" />
-        Загрузка предпросмотра...
+        <Spinner label="Загрузка предпросмотра…" visibleLabel />
       </div>
     );
   }

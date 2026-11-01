@@ -130,7 +130,7 @@ export default function StudentsTab({
                     </th>
                   </tr>
                 </thead>
-                <tbody className={`transition-opacity duration-300 ${loading && students.length > 0 ? 'opacity-40' : 'opacity-100'}`}>
+                <tbody className={`stagger transition-opacity duration-300 ${loading && students.length > 0 ? 'opacity-40' : 'opacity-100'}`}>
                   {students.length > 0 ? (
                     students.map((student, idx) => (
                       <tr

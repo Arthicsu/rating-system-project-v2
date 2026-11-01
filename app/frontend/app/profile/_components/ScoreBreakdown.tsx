@@ -1,5 +1,6 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import CountUp from '@/components/CountUp';
 
 // chart.js грузим только на клиенте и только когда профиль реально рендерится —
 // не тащим его в общий бандл.
@@ -22,7 +23,8 @@ export default function ScoreBreakdown({ radarLabels, radarData, isOwner }: Scor
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
           Диаграмма распределения баллов
         </p>
-        <div className="relative h-64 sm:h-80">
+        {/* Холст Chart.js до первого замера - 300px шириной: без обрезки он на миг шире телефона. */}
+        <div className="relative h-64 overflow-hidden sm:h-80">
           <RadarChart labels={radarLabels} data={radarData} />
         </div>
       </div>
@@ -43,7 +45,7 @@ export default function ScoreBreakdown({ radarLabels, radarData, isOwner }: Scor
                   <span className="min-w-0 wrap-break-word">{label}</span>
                 </div>
                 <span className="shrink-0 rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-sky-700 shadow-sm">
-                  {radarData[index]}
+                  <CountUp value={radarData[index]} />
                 </span>
               </div>
             )

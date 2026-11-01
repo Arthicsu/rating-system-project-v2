@@ -410,7 +410,7 @@ function StaffDashboard() {
 
         <TabsNav label="Разделы кабинета" panelId="staff-tabpanel" tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-        <div role="tabpanel" id="staff-tabpanel" aria-labelledby={`tab-${activeTab}`}>
+        <div key={activeTab} role="tabpanel" id="staff-tabpanel" aria-labelledby={`tab-${activeTab}`} className="animate-rise">
         {activeTab === 'my-group' && (studentsErrorCode ? (
           <ErrorState code={studentsErrorCode} onReset={() => { void studentsQuery.refetch(); }} />
         ) : (
