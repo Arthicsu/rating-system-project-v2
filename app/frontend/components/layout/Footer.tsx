@@ -57,7 +57,6 @@ export default function Footer() {
             </li>
             <li>
               <a href="https://bgitu.ru/" {...EXTERNAL} className={LINK}>
-                {/* Герб занимает в файле 3/4 холста: увеличение выравнивает его по размеру с соседними значками. */}
                 <Image src="/media/logo_BGITU_color.svg" alt="" width={20} height={20} className={`${ICON} scale-133`} />
                 Сайт вуза
               </a>
