@@ -1,7 +1,7 @@
 'use client';
 
 import CustomSelect from '@/components/CustomSelect';
-import { handleTabListKey } from './TabsNav';
+import { handleTabListKey } from '@/components/TabsNav';
 import type { Tab } from '@/interfaces/RatingInterfaces';
 
 interface RatingTabsProps {

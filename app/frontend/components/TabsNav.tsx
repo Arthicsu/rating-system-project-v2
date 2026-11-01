@@ -14,6 +14,10 @@ interface TabItem {
 }
 
 interface TabsNavProps {
+  /** Подпись списка вкладок для скринридера. */
+  label: string;
+  /** id панели (role="tabpanel"), которой управляют вкладки. */
+  panelId: string;
   tabs: TabItem[];
   activeTab: string;
   onChange: (id: string) => void;
@@ -44,14 +48,14 @@ export function handleTabListKey(
 }
 
 /**
- * Переключатель вкладок кабинета сотрудника (Студенты / заявки / статистика).
+ * Переключатель вкладок: кабинет сотрудника (студенты, заявки, статистика), лента заявок студента.
  * `relative` у полосы: иначе подписи счётчиков (`sr-only`) выходят из прокрутки и растягивают страницу.
  */
-export default function TabsNav({ tabs, activeTab, onChange }: TabsNavProps) {
+export default function TabsNav({ label, panelId, tabs, activeTab, onChange }: TabsNavProps) {
   return (
     <div
       role="tablist"
-      aria-label="Разделы кабинета"
+      aria-label={label}
       onKeyDown={(e) => handleTabListKey(e, tabs.map((t) => t.id), activeTab, onChange)}
       className="relative flex overflow-x-auto border-b border-slate-200 pb-1.5 text-xs sm:text-sm"
     >
@@ -66,10 +70,10 @@ export default function TabsNav({ tabs, activeTab, onChange }: TabsNavProps) {
             type="button"
             role="tab"
             aria-selected={selected}
-            aria-controls="staff-tabpanel"
+            aria-controls={panelId}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(tab.id)}
-            className={`cursor-pointer inline-flex items-center whitespace-nowrap ${rounded} px-4 py-2 font-medium transition ${
+            className={`cursor-pointer inline-flex items-center whitespace-nowrap ${rounded} px-4 py-2 font-medium transition motion-reduce:transition-none max-sm:min-h-11 ${
               selected
                 ? 'bg-sky-700 text-white shadow-sm'
                 : 'bg-slate-100 text-sky-700 hover:bg-slate-200 hover:text-slate-900'

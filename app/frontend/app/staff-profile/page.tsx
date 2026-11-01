@@ -13,7 +13,7 @@ import PageContainer from '@/components/layout/PageContainer';
 
 import FilterPanel from './_components/FilterPanel';
 import PastPendingNotice from './_components/PastPendingNotice';
-import TabsNav from './_components/TabsNav';
+import TabsNav from '@/components/TabsNav';
 import StudentsTab from './_components/StudentsTab';
 import PendingRequestsTab from './_components/PendingRequestsTab';
 import ReviewedRequestsTab from './_components/ReviewedRequestsTab';
@@ -408,7 +408,7 @@ function StaffDashboard() {
           }}
         />
 
-        <TabsNav tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+        <TabsNav label="Разделы кабинета" panelId="staff-tabpanel" tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
         <div role="tabpanel" id="staff-tabpanel" aria-labelledby={`tab-${activeTab}`}>
         {activeTab === 'my-group' && (studentsErrorCode ? (

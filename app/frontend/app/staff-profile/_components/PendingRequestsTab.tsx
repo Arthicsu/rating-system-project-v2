@@ -6,8 +6,8 @@ import SearchInput from '@/components/SearchInput';
 import Pagination from '@/components/Pagination';
 import RequestCard from './RequestCard';
 import RequestCardsSkeleton from './RequestCardsSkeleton';
-import StateFilter from './StateFilter';
-import EmptyRequests from './EmptyRequests';
+import StateFilter from '@/components/StateFilter';
+import EmptyRequests from '@/components/EmptyRequests';
 import type { Document, ReviewAction } from '@/interfaces/StaffInterfaces';
 
 const STATE_OPTIONS = [
