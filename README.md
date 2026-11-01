@@ -97,7 +97,8 @@ archive/
 
 ## Выпуск версии
 
-Версия сайта одна - поле `version` в `app/frontend/package.json`; подвал сайта показывает её («Версия 1.2.0b»).
+Версия сайта одна - поле `version` в `app/frontend/package.json`; подвал сайта показывает её («Версия 1.9.9d»).
+Буква в конце номера - стадия: `d` - разработка (development), `r` - выпуск (release).
 
 1. Поднимите `version` в `app/frontend/package.json` и теги образов `arthicsu/bgitu-rating-*` в `docker-compose.yml` до той же версии.
 2. Проверьте, что они совпадают (в PowerShell - `scripts\dev.ps1 version`); при расхождении команда перечислит образы и завершится с ошибкой:
@@ -106,7 +107,7 @@ archive/
    ```
 3. Закоммитьте и поставьте git-тег `v{версия}`, например:
    ```bash
-   git tag v1.2.0b
+   git tag v1.9.9r
    ```
    
 ## Разработка (dev-среда)
