@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalShellProps {
   isOpen: boolean;
@@ -122,7 +123,8 @@ export default function ModalShell({
 
   if (!isOpen && !closing) return null;
 
-  return (
+  // Окно - в body: предок с transform или своим контекстом наложения не удержит его внутри себя.
+  return createPortal(
     <div
       id={id}
       className={`fixed inset-0 flex transition-colors ${overlayClassName} ${
@@ -151,6 +153,7 @@ export default function ModalShell({
         )}
         {children(handleClose)}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
