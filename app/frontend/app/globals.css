@@ -299,9 +299,15 @@ input[type=password]::-ms-clear {
   }
 }
 
-/* Без Popover API (Safari до 17) панели шапки не открываются - и не стоят невидимыми в шапке. */
+/* Без Popover API (Safari до 17) панель шапки, отрисованная сервером, не стоит в шапке, пока HeaderPopover
+   не перешёл на запасной вариант. */
 @supports not selector(:popover-open) {
   [popover] {
     display: none;
   }
+}
+
+/* Запасная панель шапки не в верхнем слое: открытая поднимает шапку над нижней панелью и баннером cookie. */
+header:has([data-popover-fallback][open]) {
+  z-index: 40;
 }
