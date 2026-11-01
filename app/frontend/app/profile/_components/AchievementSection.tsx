@@ -1,3 +1,4 @@
+// НЕ ЗАДЕЙСТВОВАНО: секции по статусу заменены лентой с вкладками и страницами (AchievementList).
 import AchievementItem from './AchievementItem';
 import type { Achievement } from '@/interfaces/AchievementInterfaces';
 

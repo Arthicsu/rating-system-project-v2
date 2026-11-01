@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import type { PendingDocumentDto } from '@/lib/api';
 
-const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+export const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   approved: { label: 'Подтверждено', className: 'bg-emerald-100 text-emerald-800' },
   rejected: { label: 'Отклонено', className: 'bg-rose-100 text-rose-700' },
   pending: { label: 'На рассмотрении', className: 'bg-amber-100 text-amber-800' },

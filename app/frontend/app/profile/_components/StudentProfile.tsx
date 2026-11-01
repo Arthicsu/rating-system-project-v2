@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModalChangePassword from '@/components/modals/ModalChangePassword';
 import ModalConfirm from '@/components/modals/ModalConfirm';
@@ -14,13 +14,13 @@ import { Skeleton } from 'boneyard-js/react';
 import ProfileHeaderCard from './ProfileHeaderCard';
 import ScoreBreakdown from './ScoreBreakdown';
 import SemesterHistoryTable from './SemesterHistoryTable';
-import AchievementSection from './AchievementSection';
+import AchievementList from './AchievementList';
 import ProfileSkeleton from './ProfileSkeleton';
 import PageContainer from '@/components/layout/PageContainer';
 
 /**
  * Профиль студента, собранный из подкомпонентов: шапка, диаграмма баллов,
- * история по семестрам и секции достижений. Здесь живут состояние модалок
+ * история по семестрам и лента достижений. Здесь живут состояние модалок
  * и мутация удаления достижения.
  */
 export default function StudentProfile({ profile, isOwner, loading = false }: StudentProfileProps) {
@@ -54,9 +54,6 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
   const radarData = profile?.radar_stats?.data ?? [];
 
   const documents: Achievement[] = profile?.documents || [];
-  const approvedDocs = documents.filter((d) => d.status_display === 'approved');
-  const pendingDocs = documents.filter((d) => d.status_display === 'pending');
-  const rejectedDocs = documents.filter((d) => d.status_display === 'rejected');
   const semesterHistory = profile?.semester_history ?? [];
 
   if (loading) return <ProfileSkeleton />;
@@ -87,24 +84,17 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
 
         <SemesterHistoryTable semesterHistory={semesterHistory} />
 
-        <div className="mt-6 space-y-5">
-          <AchievementSection variant="approved" docs={approvedDocs} />
-
-          {/* {isOwner && pendingDocs.length > 0 && ( */}
-          <AchievementSection
-            variant="pending"
-            docs={pendingDocs}
-            onEdit={isOwner ? (d) => setEditingDoc(d) : undefined}
-            onDelete={isOwner ? (d) => setDeletingDoc(d) : undefined}
-          />
-
-          {/* {isOwner && rejectedDocs.length > 0 && ( */}
-          <AchievementSection
-            variant="rejected"
-            docs={rejectedDocs}
-            onEdit={isOwner ? (d) => setEditingDoc(d) : undefined}
-            onDelete={isOwner ? (d) => setDeletingDoc(d) : undefined}
-          />
+        <div className="mt-6">
+          {/* useSearchParams в ленте требует Suspense; профиль и так рисуется только на клиенте. */}
+          <Suspense fallback={null}>
+            <AchievementList
+              docs={documents}
+              categoryLabels={radarLabels}
+              isOwner={isOwner}
+              onEdit={isOwner ? (d) => setEditingDoc(d) : undefined}
+              onDelete={isOwner ? (d) => setDeletingDoc(d) : undefined}
+            />
+          </Suspense>
         </div>
       </PageContainer>
       </Skeleton>

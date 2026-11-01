@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { useMySession } from '@/context/AuthContext';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
 import type { AchievementItemProps } from '@/interfaces/AchievementInterfaces';
+import { STATUS_BADGE } from '@/components/achievement/AchievementHeader';
 import { Skeleton } from 'boneyard-js/react';
 
 export default function AchievementItem({ doc, loading = false, onEdit, onDelete }: AchievementItemProps) {
@@ -9,6 +10,7 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
   // Сотрудник (профиль студента из кабинета) открывает заявку на своей странице, с модерацией.
   const { user } = useMySession();
   const statusIcon = doc?.status_display === 'rejected' ? 'fa-circle-xmark' : 'fa-file-lines';
+  const status = doc ? STATUS_BADGE[doc.status_display] : undefined;
   const receivedDateText = doc?.date_received ? new Date(doc.date_received).toLocaleDateString('ru-RU') : 'Не указана';
   const uploadedDateText = doc?.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('ru-RU') : 'Не указана';
   
@@ -102,13 +104,20 @@ export default function AchievementItem({ doc, loading = false, onEdit, onDelete
         </div>
       </div>
 
-      {/* На телефоне балл и кнопки - нижней строкой, чтобы текст занимал всю ширину карточки. */}
-      <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3 sm:ml-2 sm:flex-col sm:items-end sm:justify-start sm:border-0 sm:pt-0">
-        <div className="flex items-center whitespace-nowrap rounded-full border tracking-wide border-emerald-100 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
-          +{doc?.score}
+      {/* На телефоне статус, балл и кнопки - нижней строкой, чтобы текст занимал всю ширину карточки. */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 sm:ml-2 sm:flex-col sm:items-end sm:justify-start sm:border-0 sm:pt-0">
+        <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end">
+          {status && (
+            <span className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}>
+              {status.label}
+            </span>
+          )}
+          <div className="flex items-center whitespace-nowrap rounded-full border tracking-wide border-emerald-100 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+            +{doc?.score}
+          </div>
         </div>
         {(onEdit || onDelete) && (
-          <div className="flex items-center gap-2 sm:gap-1.5">
+          <div className="ml-auto flex items-center gap-2 sm:gap-1.5">
             {onEdit && (
               <button
                 type="button"
