@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** Число набегает от прежнего значения (сначала от нуля) за 0,7 с; при reduced motion - сразу. */
+/** Число набегает от прежнего значения (сначала от нуля) за 0,7 с; при reduced motion - сразу, со следующего кадра. */
 export default function CountUp({ value }: { value: number }) {
-  const [shown, setShown] = useState(() => (typeof window === 'undefined' || reducedMotion() ? value : 0));
+  const [shown, setShown] = useState(0);
   const from = useRef(shown);
 
   useEffect(() => {

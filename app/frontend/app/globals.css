@@ -539,8 +539,10 @@ html[data-lv-scheme] {
 }
 
 @layer base {
-  /* Отклик нажатия: кнопка чуть сжимается и пружинит обратно. */
+  /* Отклик нажатия: кнопка чуть сжимается и пружинит обратно; у кнопок с transition-утилитами пружину
+     даёт --tw-ease, их кривая по умолчанию. */
   button {
+    --tw-ease: var(--ease-spring);
     transition: scale 0.15s var(--ease-spring);
   }
 
@@ -570,8 +572,9 @@ html[data-lv-scheme] {
   }
 }
 
-/* Где страницы сменяет View Transitions (ViewTransition в app/template.tsx), своё проявление страницы не нужно. */
-@supports (view-transition-name: none) {
+/* Страницы сменяет View Transitions (ViewTransition в app/template.tsx), если браузер знает типы переходов:
+   без них React переход не запускает (Chrome 111–124), и там страница проявляется сама. */
+@supports selector(:active-view-transition-type(a)) {
   .animate-page-in {
     animation: none;
   }
