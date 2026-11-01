@@ -31,9 +31,10 @@ function setShown(panel: HTMLElement, shown: boolean) {
   panel.dispatchEvent(Object.assign(new Event('toggle'), { newState: shown ? 'open' : 'closed' }));
 }
 
+// Ранние реализации Popover API бросали исключение на hidePopover() у закрытой панели.
 function hide(panel: HTMLElement) {
-  if (panel.hasAttribute('popover')) panel.hidePopover?.();
-  else setShown(panel, false);
+  if (!panel.hasAttribute('popover')) setShown(panel, false);
+  else if (panel.hidePopover && panel.matches(':popover-open')) panel.hidePopover();
 }
 
 const noSubscribe = () => () => {};
