@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import toast from 'react-hot-toast';
+import toast from '@/lib/toast';
 import type { AxiosError } from 'axios';
 
 import ModalChangePassword from '@/components/modals/ModalChangePassword';

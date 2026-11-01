@@ -381,3 +381,18 @@ html[data-lv-scheme] {
 header:has([data-popover-fallback][open]) {
   z-index: 40;
 }
+
+/* Уведомления на телефоне - над нижней панелью (с крупным текстом она выше), без неё - у края. */
+:root {
+  --toast-bottom: 1rem;
+}
+
+@media (max-width: 39.99rem) {
+  body:has([data-tab-bar]) {
+    --toast-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+
+  html[data-lv-size] body:has([data-tab-bar]) {
+    --toast-bottom: calc(7.5rem + env(safe-area-inset-bottom));
+  }
+}

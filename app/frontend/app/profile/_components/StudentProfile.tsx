@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import toast from 'react-hot-toast';
+import toast from '@/lib/toast';
 import ModalChangePassword from '@/components/modals/ModalChangePassword';
 import ModalConfirm from '@/components/modals/ModalConfirm';
 import ModalEditAchievement from '@/components/modals/ModalEditAchievement';

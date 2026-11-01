@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import toast from 'react-hot-toast';
+import toast from '@/lib/toast';
 import { universityApi } from '@/lib/apiRequests';
 import { saveBlob } from '@/hooks/useDownloadFile';
 import type { ExportExcelButtonProps } from '@/interfaces/GeneralInterfaces';

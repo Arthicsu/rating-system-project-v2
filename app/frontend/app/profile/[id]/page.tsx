@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import toast from 'react-hot-toast';
+import toast from '@/lib/toast';
 import type { AxiosError } from 'axios';
 
 import StudentProfile from '@/app/profile/_components/StudentProfile';

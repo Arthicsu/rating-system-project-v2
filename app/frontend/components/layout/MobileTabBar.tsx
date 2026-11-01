@@ -27,6 +27,7 @@ export default function MobileTabBar() {
       {/* Место под панель в конце страницы, иначе панель закрывает низ подвала. */}
       <div aria-hidden="true" className="h-16 shrink-0 sm:hidden low-vision:h-28" />
       <nav
+        data-tab-bar
         aria-label="Разделы"
         className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-2 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] sm:hidden"
       >

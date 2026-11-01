@@ -1,4 +1,4 @@
-import toast from 'react-hot-toast';
+import toast from '@/lib/toast';
 import { studentApi } from '@/lib/apiRequests';
 
 /** Сохраняет blob на диск через временную ссылку. */

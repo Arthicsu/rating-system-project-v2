@@ -1,5 +1,5 @@
 import axios from 'axios';
-import toast from 'react-hot-toast';
+import toast from '@/lib/toast';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
 declare module 'axios' {

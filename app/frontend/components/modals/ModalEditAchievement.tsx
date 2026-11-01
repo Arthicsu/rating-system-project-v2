@@ -1,6 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
-import toast from 'react-hot-toast';
+import toast from '@/lib/toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAchievement, useAchievementConfig } from '@/hooks/queries';

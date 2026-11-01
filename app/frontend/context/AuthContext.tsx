@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/lib/apiRequests';
+import toast from '@/lib/toast';
+import { isAuthError } from '@/lib/apiError';
 import { useRouter } from 'next/navigation';
 
 import type { AuthUser, AuthContextValue, LoginFormData, RegisterFormData } from '@/interfaces/AuthInterfaces';
@@ -65,12 +67,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logoutUser = async () => {
     try {
       await authApi.logout();
-    } catch {
-      // Сервер недоступен или сессия уже погашена: локальный выход всё равно
-      // выполняем, иначе пользователь застрянет "залогиненным" без сессии.
+    } catch (error) {
+      // Сессия уже погашена (401/403) - выходим и локально, иначе пользователь застрянет «в аккаунте»
+      // без сессии. Без ответа сервера сессия жива: мнимый выход на общем компьютере опасен.
+      if (!isAuthError(error)) {
+        toast.error('Не удалось выйти: нет связи с сервером. Попробуйте ещё раз.');
+        return;
+      }
     }
     setUser(null);
     router.push('/login');
+    toast.success('Вы вышли из аккаунта');
     // Данные вышедшего пользователя не должны остаться в памяти вкладки
     // (общий компьютер кафедры). Полная перезагрузка, как в интерсепторе
     // axios, тоже сбросила бы кэш, но выход остаётся SPA-навигацией.

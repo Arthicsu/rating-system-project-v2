@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import toast from 'react-hot-toast';
+import toast from '@/lib/toast';
 import type { AxiosError } from 'axios';
 
 import { useMySession } from '@/context/AuthContext';

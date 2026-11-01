@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import toast from 'react-hot-toast';
+import toast from '@/lib/toast';
 
 import StudentProfile from '@/app/profile/_components/StudentProfile';
 import { useMySession } from '@/context/AuthContext';

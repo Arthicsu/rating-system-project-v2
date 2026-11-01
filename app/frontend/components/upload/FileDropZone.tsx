@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, DragEvent } from 'react';
-import toast from 'react-hot-toast';
+import toast from '@/lib/toast';
 
 import {
   MAX_FILES,

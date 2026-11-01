@@ -10,7 +10,7 @@ import Providers from '@/app/providers';
 import { AuthProvider } from '@/context/AuthContext';
 import { LOW_VISION_SCRIPT } from '@/lib/lowVision';
 import { ThemeProvider } from 'next-themes';
-import { Toaster } from 'react-hot-toast';
+import AppToaster from '@/components/AppToaster';
 
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -35,16 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </main>
               <Footer />
               <MobileTabBar />
-              {/* --surface задана только в тёмной теме; в светлой уведомление белое. */}
-              <Toaster
-                toastOptions={{
-                  style: {
-                    background: 'var(--surface, #fff)',
-                    color: 'var(--color-slate-900)',
-                    border: '1px solid var(--color-slate-200)',
-                  },
-                }}
-              />
+              <AppToaster />
             </AuthProvider>
           </Providers>
           <CookieConsentBanner />
