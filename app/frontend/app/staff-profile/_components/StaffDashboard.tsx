@@ -9,6 +9,8 @@ import { useMySession } from '@/context/AuthContext';
 import ErrorState from '@/components/ErrorState';
 import MobileFilterToggle from '@/components/MobileFilterToggle';
 import PageContainer from '@/components/layout/PageContainer';
+import PageHeader from '@/components/layout/PageHeader';
+import { cabinetTitle } from '@/components/layout/userLabels';
 
 import FilterPanel from './FilterPanel';
 import PastPendingNotice from './PastPendingNotice';
@@ -253,11 +255,16 @@ export default function StaffDashboard() {
   return (
     <>
       <PageContainer>
-        <MobileFilterToggle
-          expanded={mobileFiltersOpen}
-          controls="mobile-filters"
-          onClick={() => setMobileFiltersOpen((prev) => !prev)}
-          visibleAt="max-[640px]:flex"
+        <PageHeader
+          title={cabinetTitle(user?.roles ?? [])}
+          actions={
+            <MobileFilterToggle
+              expanded={mobileFiltersOpen}
+              controls="mobile-filters"
+              onClick={() => setMobileFiltersOpen((prev) => !prev)}
+              visibleAt="max-[640px]:flex"
+            />
+          }
         />
 
         <FilterPanel filters={filters} isRectorate={isRectorate} mobileFiltersOpen={mobileFiltersOpen} />

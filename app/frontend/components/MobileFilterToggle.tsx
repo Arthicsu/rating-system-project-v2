@@ -1,5 +1,7 @@
 'use client';
 
+import { buttonClass } from '@/components/Button';
+
 interface MobileFilterToggleProps {
   onClick: () => void;
   /** Раскрыта ли панель (aria-expanded) и её id (aria-controls). */
@@ -12,13 +14,13 @@ interface MobileFilterToggleProps {
 /** Кнопка «Фильтры», раскрывающая панель фильтров на узких экранах. */
 export default function MobileFilterToggle({ onClick, expanded, controls, visibleAt }: MobileFilterToggleProps) {
   return (
-    <div className={`mb-2 hidden ${visibleAt} items-center`}>
+    <div className={`hidden ${visibleAt} items-center`}>
       <button
         type="button"
         aria-expanded={expanded}
         aria-controls={controls}
         onClick={onClick}
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm active:scale-95 transition"
+        className={buttonClass('secondary')}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

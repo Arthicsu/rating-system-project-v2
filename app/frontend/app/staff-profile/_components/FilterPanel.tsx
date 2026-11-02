@@ -1,5 +1,6 @@
 'use client';
 
+import Card from '@/components/Card';
 import CustomSelect from '@/components/CustomSelect';
 import type { StaffFilters } from '@/hooks/useStaffFilters';
 
@@ -12,7 +13,7 @@ interface FilterPanelProps {
 
 /**
  * Фильтры staff-профиля: один конфиг селектов, который рендерят и мобильный
- * блок, и десктопная панель (различаются только обёрткой и классами).
+ * блок, и строка фильтров на ПК (различаются только обёрткой и классами).
  */
 export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }: FilterPanelProps) {
   const {
@@ -42,6 +43,7 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
             ...facultiesList.map((f) => ({ value: String(f.id), label: f.short_name })),
           ],
           onChange: changeFaculty,
+          width: 'w-40',
         }]
       : []),
     {
@@ -53,6 +55,7 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
         ...[1, 2, 3, 4, 5].map((c) => ({ value: String(c), label: `${c} курс` })),
       ],
       onChange: changeCourse,
+      width: 'w-32',
     },
     {
       id: 'group',
@@ -66,6 +69,7 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
             ]
           : [{ value: 'all', label: 'Нет групп' }],
       onChange: changeGroup,
+      width: 'w-40',
     },
     {
       id: 'period',
@@ -73,26 +77,24 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
       value: period,
       options: periodOptions,
       onChange: changePeriod,
-      // «2025-2026 уч. год — весна» в одну колонку не входит: обрезалось бы само слово семестра.
-      className: 'md:col-span-2',
-      extra: (
-        <label className="mt-1.5 inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm text-slate-700 sm:min-h-0">
-          <input
-            type="checkbox"
-            checked={onlyCurrentYear}
-            onChange={(e) => changeOnlyCurrentYear(e.target.checked)}
-            className="size-4 cursor-pointer accent-sky-700"
-          />
-          Только текущий учебный год
-        </label>
-      ),
+      // Шире остальных: в узком поле «2025-2026 уч. год — весна» обрезалось бы на самом слове семестра.
+      width: 'w-64',
     },
   ];
+
+  const onlyCurrentYearBox = (
+    <input
+      type="checkbox"
+      checked={onlyCurrentYear}
+      onChange={(e) => changeOnlyCurrentYear(e.target.checked)}
+      className="size-4 cursor-pointer accent-sky-700"
+    />
+  );
 
   return (
     <>
       {mobileFiltersOpen && (
-        <div id="mobile-filters" className="mb-3 max-[640px]:block hidden rounded-lg bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.08)] text-xs text-sky-700">
+        <Card padding="sm" id="mobile-filters" className="mb-3 hidden max-[640px]:block">
           <div className="space-y-2">
             {selects.map((s) => (
               <div key={s.id}>
@@ -103,32 +105,35 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
                   options={s.options}
                   onChange={s.onChange}
                 />
-                {s.extra}
+                {s.id === 'period' && (
+                  <label className="mt-1.5 inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm text-slate-700 sm:min-h-0">
+                    {onlyCurrentYearBox}
+                    Только текущий учебный год
+                  </label>
+                )}
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="hidden sm:block mb-5 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.12)] sm:p-5">
-        <p className="mb-3 text-xl font-semibold text-slate-900 sm:text-2xl md:text-3xl">
-          Фильтры
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 sm:gap-4">
-          {selects.map((s) => (
-            <div key={s.id} className={s.className}>
-              <CustomSelect
-                id={`${s.id}-select`}
-                label={s.label}
-                value={s.value}
-                size="sm"
-                options={s.options}
-                onChange={s.onChange}
-              />
-              {s.extra}
-            </div>
-          ))}
-        </div>
+      <div role="group" aria-label="Фильтры" className="mb-4 hidden flex-wrap items-end gap-x-3 gap-y-2 sm:flex">
+        {selects.map((s) => (
+          <CustomSelect
+            key={s.id}
+            id={`${s.id}-select`}
+            label={s.label}
+            value={s.value}
+            size="sm"
+            options={s.options}
+            onChange={s.onChange}
+            className={s.width}
+          />
+        ))}
+        <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 text-sm text-slate-700">
+          {onlyCurrentYearBox}
+          Только текущий учебный год
+        </label>
       </div>
     </>
   );

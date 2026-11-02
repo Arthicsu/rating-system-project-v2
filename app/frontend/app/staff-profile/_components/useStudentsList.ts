@@ -42,10 +42,7 @@ export function useStudentsList({
   const categoryTabs = useMemo<Tab[]>(
     () => [
       { id: 'common', label: 'Общий рейтинг' },
-      ...(categoriesData ?? []).map((cat) => ({
-        id: cat.code,
-        label: cat.label.endsWith('рейтинг') ? cat.label : `${cat.label} деятельность`,
-      })),
+      ...(categoriesData ?? []).map((cat) => ({ id: cat.code, label: cat.label })),
     ],
     [categoriesData]
   );

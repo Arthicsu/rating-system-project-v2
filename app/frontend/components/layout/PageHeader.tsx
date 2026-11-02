@@ -15,7 +15,8 @@ export default function PageHeader({
 }) {
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-      <div className="min-w-0 flex-1">
+      {/* min-w-48: при крупном шрифте действия переносятся под заголовок, а не сжимают его до обрывков слов. */}
+      <div className="min-w-48 flex-1">
         <h1 className={PAGE_TITLE}>{title}</h1>
         {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
       </div>

@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 
+import Button from '@/components/Button';
+import Card, { CARD_TITLE } from '@/components/Card';
 import SearchInput from '@/components/SearchInput';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import Pagination from '@/components/Pagination';
@@ -35,10 +37,14 @@ interface StudentsTabProps {
   onPageChange: (page: number) => void;
 }
 
+const PLACE = 'flex size-7 shrink-0 items-center justify-center rounded-full bg-sky-700 text-xs font-bold text-white';
+const TH = 'px-3 py-2.5 text-xs font-normal md:text-sm';
+const TD = 'px-3 py-2 text-sm';
+
 /**
  * Вкладка «Студенты»: рейтинг за выбранный в фильтрах семестр с подвкладками
  * категорий, сортировкой по баллам и выгрузкой в Excel. Заменяет прежние
- * отдельные вкладки «Группа» и «Рейтинг».
+ * отдельные вкладки «Группа» и «Рейтинг». До 640px вместо таблицы — список.
  */
 export default function StudentsTab({
   students,
@@ -60,14 +66,19 @@ export default function StudentsTab({
   onSearch,
   onPageChange,
 }: StudentsTabProps) {
+  const firstPlace = (currentPage - 1) * pageSize + 1;
+  const columns = isRectorate ? 7 : 6;
+  const sortIcon = `fa-solid ${direction === 'asc' ? 'fa-arrow-up-short-wide' : 'fa-arrow-down-wide-short'}`;
+  const dimmed = loading && students.length > 0 ? 'opacity-40' : 'opacity-100';
+
   return (
-    <div className="mt-5 animate-fade-in">
+    <div className="mt-4 animate-fade-in">
       <RatingTabs tabs={categoryTabs} activeTab={activeCategory} onChange={onCategoryChange} />
 
-      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.10)] sm:p-5">
+      <Card>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
+            <h2 className={CARD_TITLE}>
               {selectedGroupId === 'all' ? 'Все студенты' : `Список студентов группы ${currentGroupName}`}{' '}
               <span className="text-xs font-normal text-sky-700">
                 (всего: {totalStudents})
@@ -86,136 +97,156 @@ export default function StudentsTab({
           </div>
         </div>
 
-        <div className="mt-4 rounded-lg bg-white p-2 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
-          <div className="w-full overflow-x-auto">
-              <table aria-busy={loading} className="min-w-full border-collapse text-xs sm:text-sm" style={{ tableLayout: 'fixed' }}>
-                <thead>
-                  <tr className="bg-sky-700 text-white">
-                    <th className="w-10 sm:w-14 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-2xs sm:text-xs md:text-sm lg:text-base font-normal rounded-l-lg">
-                    </th>
-                    <th className="w-[28%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
-                      ФИО студента
-                    </th>
-                    <th className="w-[18%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
-                      Зачетная книжка
-                    </th>
-                    {isRectorate && (
-                      <th className="w-[12%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
-                        Факультет
-                      </th>
-                    )}
-                    <th className="w-16 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
-                      Курс
-                    </th>
-                    <th className="w-[14%] px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-left text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
-                      Группа
-                    </th>
-                    <th className="w-24 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-center text-2xs sm:text-xs md:text-sm lg:text-base font-normal">
-                      {/* Клик по заголовку переключает направление сортировки по баллам. */}
-                      <button
-                        type="button"
-                        onClick={onDirectionToggle}
-                        title={direction === 'asc' ? 'По возрастанию' : 'По убыванию'}
-                        className="cursor-pointer inline-flex items-center gap-1 bg-transparent text-inherit hover:opacity-80"
-                      >
-                        Баллы
-                        <i
-                          className={`fa-solid ${direction === 'asc' ? 'fa-arrow-up-short-wide' : 'fa-arrow-down-wide-short'} text-3xs sm:text-xs`}
-                          aria-hidden="true"
-                        />
-                      </button>
-                    </th>
-                    <th className="w-20 px-1.5 sm:px-2 md:px-3 lg:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 text-right text-2xs sm:text-xs md:text-sm lg:text-base font-normal rounded-r-lg">
-                      Действия
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className={`stagger transition-opacity duration-300 ${loading && students.length > 0 ? 'opacity-40' : 'opacity-100'}`}>
-                  {students.length > 0 ? (
-                    students.map((student, idx) => (
-                      <tr
-                        key={student.id}
-                        className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50"
-                      >
-                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center align-middle">
-                          <div className="mx-auto flex h-4 w-4 sm:h-6 sm:w-6 md:h-8 md:w-8 items-center justify-center rounded-full bg-sky-700 text-2xs md:text-sm font-bold text-white">
-                            {(currentPage - 1) * pageSize + idx + 1}
-                          </div>
-                        </td>
-                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm text-slate-700 overflow-hidden">
-                          <span className="inline md:hidden block truncate">
-                            {student.short_name}
-                          </span>
-                          <span className="hidden md:inline truncate">{student.full_name}</span>
-                        </td>
-                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm">
-                          {student.record_book}
-                        </td>
-                        {isRectorate && (
-                          <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm">
-                            {student.faculty}
-                          </td>
-                        )}
-                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm">
-                          {student.course}
-                        </td>
-                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-left text-xs md:text-sm">
-                          {student.group}
-                        </td>
-                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm font-bold text-sky-700">
-                          {Number(student[scoreKey])}
-                        </td>
-                        <td className="p-1 sm:p-2 md:px-4 md:py-3 text-right text-xs md:text-sm">
-                          <Link
-                            href={`/profile/${student.id}`}
-                            className="font-medium text-slate-700 underline-offset-2 hover:text-sky-900 hover:underline"
-                          >
-                            Профиль
-                          </Link>
-                      </td>
-                    </tr>
-                  ))
-                ) : loading ? (
-                  // Скелетон первой загрузки: строк ещё нет, показываем pageSize
-                  // строк-заглушек. При пагинации и поиске строки уже есть,
-                  // и работает затемнение tbody выше.
-                  Array.from({ length: pageSize }).map((_, i) => (
-                    <tr key={`sk-${i}`} aria-hidden="true" className="skeleton-screen border-b border-slate-100 last:border-b-0">
-                      <td className="p-1 sm:p-2 md:px-4 md:py-3">
-                        <Bone className="mx-auto h-4 w-4 rounded-full sm:h-6 sm:w-6 md:h-8 md:w-8" />
-                      </td>
-                      {Array.from({ length: isRectorate ? 7 : 6 }, (_, j) => (
-                        <td key={j} className="p-1 text-xs sm:p-2 md:px-4 md:py-3 md:text-sm">
-                          <BoneLine className="w-3/4" />
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={isRectorate ? 8 : 7}
-                      className="p-1 sm:p-2 md:px-4 md:py-3 text-center text-xs md:text-sm text-slate-500"
-                    >
-                      Студенты не найдены
-                    </td>
-                  </tr>
-                )}
-                </tbody>
-              </table>
-
-            <div className="border-t border-slate-200 pt-4">
-              <Pagination
-                page={currentPage}
-                totalCount={totalStudents}
-                pageSize={pageSize}
-                loading={loading}
-                onPageChange={onPageChange}
-              />
-            </div>
-          </div>
+        <div className="mt-3 flex justify-end sm:hidden">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onDirectionToggle}
+            aria-label={direction === 'desc' ? 'Баллы: по убыванию' : 'Баллы: по возрастанию'}
+          >
+            Баллы
+            <i className={sortIcon} aria-hidden="true" />
+          </Button>
         </div>
-      </div>
+
+        <div className="mt-3 hidden overflow-x-auto sm:block">
+          <table aria-busy={loading} className="min-w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+            <thead>
+              <tr className="bg-sky-700 text-white">
+                <th className={`w-12 rounded-l-lg text-left ${TH}`}>
+                  <span className="sr-only">Место</span>
+                </th>
+                <th className={`text-left ${TH}`}>ФИО студента</th>
+                <th className={`w-[18%] text-left ${TH}`}>Зачетная книжка</th>
+                {isRectorate && <th className={`w-[12%] text-left ${TH}`}>Факультет</th>}
+                <th className={`w-16 text-center ${TH}`}>Курс</th>
+                <th className={`w-[14%] text-left ${TH}`}>Группа</th>
+                <th className={`w-24 rounded-r-lg text-center ${TH}`}>
+                  {/* Клик по заголовку переключает направление сортировки по баллам. */}
+                  <button
+                    type="button"
+                    onClick={onDirectionToggle}
+                    title={direction === 'asc' ? 'По возрастанию' : 'По убыванию'}
+                    className="cursor-pointer inline-flex items-center gap-1 bg-transparent text-inherit hover:opacity-80"
+                  >
+                    Баллы
+                    <i className={`${sortIcon} text-xs`} aria-hidden="true" />
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody className={`stagger transition-opacity duration-300 ${dimmed}`}>
+              {students.length > 0 ? (
+                students.map((student, idx) => (
+                  <tr key={student.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50">
+                    <td className={`text-center align-middle ${TD}`}>
+                      <div className={`mx-auto ${PLACE}`}>{firstPlace + idx}</div>
+                    </td>
+                    <td className={`overflow-hidden text-left ${TD}`}>
+                      <Link
+                        href={`/profile/${student.id}`}
+                        className="font-medium text-sky-700 hover:text-sky-900 hover:underline"
+                      >
+                        <span className="block truncate md:hidden">{student.short_name}</span>
+                        <span className="hidden md:inline">{student.full_name}</span>
+                      </Link>
+                    </td>
+                    <td className={`text-left ${TD}`}>{student.record_book}</td>
+                    {isRectorate && <td className={`text-left ${TD}`}>{student.faculty}</td>}
+                    <td className={`text-center ${TD}`}>{student.course}</td>
+                    <td className={`text-left ${TD}`}>{student.group}</td>
+                    <td className={`text-center font-bold text-sky-700 ${TD}`}>{Number(student[scoreKey])}</td>
+                  </tr>
+                ))
+              ) : loading ? (
+                // Скелетон первой загрузки: строк ещё нет, показываем pageSize
+                // строк-заглушек. При пагинации и поиске строки уже есть,
+                // и работает затемнение tbody выше.
+                Array.from({ length: pageSize }).map((_, i) => (
+                  <tr key={`sk-${i}`} aria-hidden="true" className="skeleton-screen border-b border-slate-100 last:border-b-0">
+                    <td className={TD}>
+                      <Bone className="mx-auto size-7 rounded-full" />
+                    </td>
+                    {Array.from({ length: columns - 1 }, (_, j) => (
+                      <td key={j} className={TD}>
+                        <BoneLine className="w-3/4" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={columns} className={`text-center text-slate-500 ${TD}`}>
+                    Студенты не найдены
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <ol
+          start={firstPlace}
+          aria-busy={loading}
+          className={`stagger mt-1 divide-y divide-slate-100 transition-opacity duration-300 motion-reduce:transition-none sm:hidden ${dimmed}`}
+        >
+          {students.length > 0 ? (
+            students.map((student, idx) => (
+              <li key={student.id} className="flex items-center gap-3 py-2.5">
+                <span className={PLACE}>
+                  <span className="sr-only">Место </span>
+                  {firstPlace + idx}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/profile/${student.id}`}
+                    className="block truncate text-sm font-medium text-sky-700 hover:text-sky-900"
+                  >
+                    {student.short_name}
+                  </Link>
+                  <p className="truncate text-xs text-slate-600">
+                    {[
+                      student.record_book,
+                      student.group,
+                      student.course ? `${student.course} курс` : null,
+                      isRectorate ? student.faculty : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                </div>
+                <span className="shrink-0 text-base font-bold tabular-nums text-sky-700">
+                  <span className="sr-only">Баллы: </span>
+                  {Number(student[scoreKey])}
+                </span>
+              </li>
+            ))
+          ) : loading ? (
+            Array.from({ length: pageSize }).map((_, i) => (
+              <li key={`sk-${i}`} aria-hidden="true" className="skeleton-screen flex items-center gap-3 py-2.5">
+                <Bone className="size-7 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1">
+                  <BoneLine className="w-3/5 text-sm" />
+                  <BoneLine className="w-4/5 text-xs" />
+                </div>
+                <BoneLine className="w-8 shrink-0 text-base" />
+              </li>
+            ))
+          ) : (
+            <li className="py-3 text-center text-sm text-slate-500">Студенты не найдены</li>
+          )}
+        </ol>
+
+        <div className="mt-3 border-t border-slate-200 pt-3">
+          <Pagination
+            page={currentPage}
+            totalCount={totalStudents}
+            pageSize={pageSize}
+            loading={loading}
+            onPageChange={onPageChange}
+          />
+        </div>
+      </Card>
     </div>
   );
 }

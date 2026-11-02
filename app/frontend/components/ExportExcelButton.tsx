@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Button from '@/components/Button';
 import toast from '@/lib/toast';
 import { universityApi } from '@/lib/apiRequests';
 import { saveBlob } from '@/hooks/useDownloadFile';
@@ -57,16 +58,12 @@ export default function ExportExcelButton({
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleExportToExcel}
-      disabled={loading}
-      className="cursor-pointer inline-flex items-center rounded-md bg-emerald-600 px-2 py-1 text-3xs sm:px-3 sm:py-1.5 sm:text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 transition shadow-emerald-300 shadow-lg"
-    >
+    <Button variant="secondary" size="sm" className="shrink-0" onClick={handleExportToExcel} disabled={loading}>
+      <i className="fa-solid fa-file-excel text-emerald-700" aria-hidden="true" />
       {loading ? 'Выгрузка...' : <>
         <span className="sm:hidden">Excel</span>
         <span className="hidden sm:inline">Выгрузить в Excel</span>
       </>}
-    </button>
+    </Button>
   );
 }

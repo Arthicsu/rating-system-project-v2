@@ -21,3 +21,11 @@ export function roleLabel(user: Pick<AuthUser, 'is_employee' | 'roles' | 'record
   if (user.roles.includes('Department')) return 'Кафедра';
   return 'Сотрудник';
 }
+
+/** Заголовок кабинета сотрудника по старшей роли — та же очерёдность, что у roleLabel. */
+export function cabinetTitle(roles: readonly string[]): string {
+  if (roles.includes('Rectorate')) return 'Кабинет ректората';
+  if (roles.includes('Dean')) return 'Кабинет деканата';
+  if (roles.includes('Department')) return 'Кабинет кафедры';
+  return 'Кабинет сотрудника';
+}
