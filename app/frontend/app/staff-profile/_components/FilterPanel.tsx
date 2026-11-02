@@ -127,7 +127,7 @@ export default function FilterPanel({ filters, isRectorate, mobileFiltersOpen }:
             size="sm"
             options={s.options}
             onChange={s.onChange}
-            className={s.width}
+            className={`${s.width} low-vision:w-auto`}
           />
         ))}
         <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 text-sm text-slate-700">

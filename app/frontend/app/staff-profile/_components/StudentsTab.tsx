@@ -37,7 +37,11 @@ interface StudentsTabProps {
   onPageChange: (page: number) => void;
 }
 
-const PLACE = 'flex size-7 shrink-0 items-center justify-center rounded-full bg-sky-700 text-xs font-bold text-white';
+// inline-flex и min-размеры: трёхзначное место с крупным шрифтом растит кружок, а не вылезает из него.
+const PLACE =
+  'inline-flex min-h-7 min-w-7 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-sky-700 px-1 align-middle text-xs font-bold text-white';
+// В контрастной схеме весь текст одного цвета: ссылку ФИО выдаёт подчёркивание.
+const NAME_LINK = 'font-medium text-sky-700 underline-offset-2 hover:text-sky-900 hover:underline [[data-lv-scheme]_&]:underline';
 const TH = 'px-3 py-2.5 text-xs font-normal md:text-sm';
 const TD = 'px-3 py-2 text-sm';
 
@@ -91,8 +95,11 @@ export default function StudentsTab({
             </p>
           </div>
           {/* Поиск растягивается: на телефоне во всю ширину, на десктопе — широкое поле рядом с выгрузкой. */}
-          <div className="flex w-full items-center gap-2 md:w-[26rem] lg:w-[32rem]">
-            <SearchInput initialValue={searchValue} onSearch={onSearch} placeholder="ФИО или зачётка" />
+          {/* min-w-48 у поиска: с крупным шрифтом выгрузка переносится на строку ниже, а не сжимает поле. */}
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-[26rem] lg:w-[32rem]">
+            <div className="flex min-w-48 flex-1">
+              <SearchInput initialValue={searchValue} onSearch={onSearch} placeholder="ФИО или зачётка" />
+            </div>
             <ExportExcelButton {...exportParams} />
           </div>
         </div>
@@ -140,13 +147,10 @@ export default function StudentsTab({
                 students.map((student, idx) => (
                   <tr key={student.id} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50">
                     <td className={`text-center align-middle ${TD}`}>
-                      <div className={`mx-auto ${PLACE}`}>{firstPlace + idx}</div>
+                      <span className={PLACE}>{firstPlace + idx}</span>
                     </td>
                     <td className={`overflow-hidden text-left ${TD}`}>
-                      <Link
-                        href={`/profile/${student.id}`}
-                        className="font-medium text-sky-700 hover:text-sky-900 hover:underline"
-                      >
+                      <Link href={`/profile/${student.id}`} className={`inline-block max-w-full py-0.5 ${NAME_LINK}`}>
                         <span className="block truncate md:hidden">{student.short_name}</span>
                         <span className="hidden md:inline">{student.full_name}</span>
                       </Link>
@@ -192,19 +196,20 @@ export default function StudentsTab({
         >
           {students.length > 0 ? (
             students.map((student, idx) => (
-              <li key={student.id} className="flex items-center gap-3 py-2.5">
+              <li key={student.id} className="relative flex items-center gap-3 py-2.5">
                 <span className={PLACE}>
                   <span className="sr-only">Место </span>
                   {firstPlace + idx}
                 </span>
                 <div className="min-w-0 flex-1">
+                  {/* Ссылка растянута на всю строку (after): строка — цель нажатия не меньше 44px. */}
                   <Link
                     href={`/profile/${student.id}`}
-                    className="block truncate text-sm font-medium text-sky-700 hover:text-sky-900"
+                    className={`block truncate text-sm after:absolute after:inset-0 low-vision:whitespace-normal ${NAME_LINK}`}
                   >
                     {student.short_name}
                   </Link>
-                  <p className="truncate text-xs text-slate-600">
+                  <p className="text-xs text-slate-600">
                     {[
                       student.record_book,
                       student.group,
