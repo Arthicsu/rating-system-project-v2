@@ -232,7 +232,7 @@ export default function ModalEditAchievement({ isOpen, doc, onClose }: ModalEdit
                 <FieldError message={errors.newFiles?.message} />
               </fieldset>
 
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-2 pt-1 low-vision:flex-col">
                 <Button type="submit" aria-disabled={saving} className="flex-1">
                   {saving ? 'Сохранение…' : 'Сохранить'}
                 </Button>

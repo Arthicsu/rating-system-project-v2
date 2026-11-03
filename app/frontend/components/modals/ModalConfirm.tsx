@@ -26,7 +26,7 @@ export default function ModalConfirm({
           <h2 className="mb-2 text-base font-semibold text-slate-900">{title}</h2>
           <p className="mb-5 text-sm text-slate-600">{message}</p>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 low-vision:flex-col">
             <Button variant={danger ? 'danger' : 'primary'} disabled={loading} onClick={onConfirm} className="flex-1">
               {loading ? 'Подождите…' : confirmLabel}
             </Button>

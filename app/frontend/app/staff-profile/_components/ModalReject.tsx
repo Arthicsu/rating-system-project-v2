@@ -99,7 +99,7 @@ export default function ModalReject({
               </div>
             </div>
 
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex gap-2 low-vision:flex-col">
               {/* aria-disabled, а не disabled: кнопка в фокусе не теряет его на время сохранения. */}
               <Button
                 type="submit"

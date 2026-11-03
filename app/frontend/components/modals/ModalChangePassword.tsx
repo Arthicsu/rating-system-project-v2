@@ -140,7 +140,7 @@ export default function ModalChangePassword({ isOpen, onClose }: ModalChangePass
             </p>
           )}
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-1 low-vision:flex-col">
             <Button type="submit" disabled={isSubmitting || done} className="flex-1">
               {isSubmitting ? 'Сохранение…' : 'Сменить пароль'}
             </Button>

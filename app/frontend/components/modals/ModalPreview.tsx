@@ -56,7 +56,7 @@ export default function ModalPreview({ isOpen, doc, onClose }: ModalPreviewProps
             <button
               type="button"
               aria-label="Закрыть"
-              className="cursor-pointer inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-xl text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100 hover:text-slate-800"
+              className="cursor-pointer inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-xl text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100 hover:text-slate-800 sm:h-9 sm:w-9"
               onClick={close}
             >
               &times;

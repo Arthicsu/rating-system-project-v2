@@ -41,7 +41,7 @@ export default function ModalApprove({ isOpen, doc, saving, onClose, onConfirm }
           <p className="text-sm text-slate-700">
             Будет начислено <b className="font-semibold text-slate-900">{doc?.score ?? 0}</b> балл(-ов).
           </p>
-          <div className="mt-5 flex gap-2">
+          <div className="mt-5 flex gap-2 low-vision:flex-col">
             {/* aria-disabled, а не disabled: кнопка в фокусе не теряет его на время сохранения. */}
             <Button
               variant="approve"

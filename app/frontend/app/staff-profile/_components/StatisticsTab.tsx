@@ -126,8 +126,8 @@ export default function StatisticsTab({
                           {idx + 1}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-sm">
-                        {/* Поля с отрицательными отступами: цель нажатия 44px на телефоне и 24px на ПК, а строка таблицы не растёт. */}
+                      <td className="px-4 py-3 text-sm sm:py-2.5">
+                        {/* Поля с отрицательными отступами: цель нажатия 44px на телефоне и 24px на ПК; ячейка вмещает её поля. */}
                         <Link
                           href={`/profile/${student.id}`}
                           className="inline-block -my-3 py-3 text-sky-700 underline-offset-2 hover:text-sky-900 hover:underline sm:-my-0.5 sm:py-0.5 [[data-lv-scheme]_&]:underline"
