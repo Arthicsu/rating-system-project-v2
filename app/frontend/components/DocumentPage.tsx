@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import Card, { CARD_TITLE } from '@/components/Card';
+import { PAGE_TITLE } from '@/components/layout/PageHeader';
 
 export interface DocumentSection {
   /** Якорь раздела для оглавления. */
@@ -27,8 +29,8 @@ export default function DocumentPage({
 }) {
   const title = POLICY_DOCUMENTS.find((doc) => doc.href === href)!.title;
   return (
-    <article className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-8">
-      <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{title}</h1>
+    <Card as="article" padding="lg">
+      <h1 className={PAGE_TITLE}>{title}</h1>
       <p className="mt-1 text-sm text-slate-600">Портал «Портфолио БГИТУ». Редакция от [уточнить дату]</p>
       <p role="note" className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
         Текст-заглушка: будет заменён утверждённым текстом БГИТУ. Места, которые нужно уточнить, помечены
@@ -36,7 +38,7 @@ export default function DocumentPage({
       </p>
 
       <nav aria-label="Содержание" className="mt-6">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-600">Содержание</h2>
+        <h2 className={CARD_TITLE}>Содержание</h2>
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
           {sections.map((section) => (
             <li key={section.id}>
@@ -60,7 +62,7 @@ export default function DocumentPage({
       ))}
 
       <nav aria-label="Другие документы" className="mt-10 border-t border-slate-100 pt-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-600">Другие документы</h2>
+        <h2 className={CARD_TITLE}>Другие документы</h2>
         <ul className="mt-2 space-y-1 text-sm">
           {POLICY_DOCUMENTS.filter((doc) => doc.href !== href).map((doc) => (
             <li key={doc.href}>
@@ -71,6 +73,6 @@ export default function DocumentPage({
           ))}
         </ul>
       </nav>
-    </article>
+    </Card>
   );
 }

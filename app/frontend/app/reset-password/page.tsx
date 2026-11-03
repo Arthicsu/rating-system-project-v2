@@ -6,7 +6,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
+import Button from '@/components/Button';
+import Card from '@/components/Card';
 import PageContainer from '@/components/layout/PageContainer';
+import { PAGE_TITLE } from '@/components/layout/PageHeader';
 import { useMySession } from '@/context/AuthContext';
 import { authApi } from '@/lib/apiRequests';
 import { resetPasswordSchema, type ResetPasswordFormValues } from '@/lib/validation/auth';
@@ -78,8 +81,8 @@ function ResetPasswordForm() {
 
   return (
     <PageContainer width="auth">
-      <div className="rounded-2xl bg-white px-6 py-8 shadow-md md:px-10">
-        <h1 className="mb-6 text-2xl font-semibold text-slate-900 text-center sm:text-3xl">
+      <Card padding="lg">
+        <h1 className={`mb-6 text-center ${PAGE_TITLE}`}>
           {copy.title}
         </h1>
 
@@ -112,7 +115,7 @@ function ResetPasswordForm() {
                 autoComplete="email"
                 inputMode="email"
                 placeholder="Введите E-mail"
-                className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
+                className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
                 {...register('email')}
               />
             </div>
@@ -123,13 +126,9 @@ function ResetPasswordForm() {
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="cursor-pointer mt-2 w-full rounded-md bg-sky-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
+            <Button type="submit" disabled={isSubmitting} className="mt-2 w-full">
               {isSubmitting ? 'Отправка...' : copy.submit}
-            </button>
+            </Button>
           </form>
         )}
 
@@ -141,7 +140,7 @@ function ResetPasswordForm() {
             Вернуться ко входу
           </Link>
         </div>
-      </div>
+      </Card>
     </PageContainer>
   );
 }

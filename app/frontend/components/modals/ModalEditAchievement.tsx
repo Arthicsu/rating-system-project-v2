@@ -16,6 +16,7 @@ import {
 import type { PendingDocumentDto } from '@/lib/api';
 import type { AchievementConfigResponse } from '@/interfaces/AchievementInterfaces';
 import type { ModalEditAchievementProps } from '@/interfaces/ModalInterfaces';
+import Button from '@/components/Button';
 import ModalShell from '@/components/modals/ModalShell';
 import FileDropZone from '@/components/upload/FileDropZone';
 import AchievementFields, { FieldError, getCurrentScore } from '@/components/achievement/AchievementFields';
@@ -232,21 +233,12 @@ export default function ModalEditAchievement({ isOpen, doc, onClose }: ModalEdit
               </fieldset>
 
               <div className="flex gap-2 pt-1">
-                <button
-                  type="submit"
-                  aria-disabled={saving}
-                  className="cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
-                >
+                <Button type="submit" aria-disabled={saving} className="flex-1">
                   {saving ? 'Сохранение…' : 'Сохранить'}
-                </button>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={close}
-                  className="cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-slate-200 px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
-                >
+                </Button>
+                <Button variant="secondary" disabled={saving} onClick={close} className="flex-1">
                   Отмена
-                </button>
+                </Button>
               </div>
             </form>
           )}

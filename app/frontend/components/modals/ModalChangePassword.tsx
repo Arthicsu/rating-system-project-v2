@@ -7,6 +7,7 @@ import toast from '@/lib/toast';
 import type { AxiosError } from 'axios';
 
 import ModalShell from './ModalShell';
+import Button from '@/components/Button';
 import PasswordInput from '@/components/forms/PasswordInput';
 import { authApi } from '@/lib/apiRequests';
 import { changePasswordSchema, type ChangePasswordFormValues } from '@/lib/validation/auth';
@@ -32,7 +33,7 @@ const SERVER_FIELDS: Record<string, FieldName> = {
 };
 
 const INPUT_CLASS =
-  'h-11 w-full rounded-md border border-slate-300 bg-white px-3 pr-11 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 aria-[invalid=true]:border-rose-400';
+  'h-11 w-full rounded-lg border border-slate-300 bg-white px-3 pr-11 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700 aria-[invalid=true]:border-rose-400';
 
 /**
  * Смена пароля студентом: текущий, новый и повтор. Остальные сессии студента
@@ -140,21 +141,12 @@ export default function ModalChangePassword({ isOpen, onClose }: ModalChangePass
           )}
 
           <div className="flex gap-2 pt-1">
-            <button
-              type="submit"
-              disabled={isSubmitting || done}
-              className="cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-sky-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
-            >
+            <Button type="submit" disabled={isSubmitting || done} className="flex-1">
               {isSubmitting ? 'Сохранение…' : 'Сменить пароль'}
-            </button>
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={close}
-              className="cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-slate-200 px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
-            >
+            </Button>
+            <Button variant="secondary" disabled={isSubmitting} onClick={close} className="flex-1">
               Отмена
-            </button>
+            </Button>
           </div>
         </form>
       )}

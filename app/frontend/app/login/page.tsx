@@ -7,8 +7,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import { useMySession } from '@/context/AuthContext';
+import Button from '@/components/Button';
+import Card from '@/components/Card';
 import PasswordInput from '@/components/forms/PasswordInput';
 import PageContainer from '@/components/layout/PageContainer';
+import { PAGE_TITLE } from '@/components/layout/PageHeader';
 import { loginSchema, type LoginFormValues } from '@/lib/validation/auth';
 import type ApiError from '@/interfaces/GeneralInterfaces';
 
@@ -70,8 +73,8 @@ export default function LoginPage() {
   return (
     <PageContainer width="auth">
       {/* Форма авторизации */}
-      <div className="rounded-2xl bg-white px-6 py-8 shadow-md md:px-10">
-        <h1 className="mb-6 text-2xl font-semibold text-slate-900 text-center sm:text-3xl">
+      <Card padding="lg">
+        <h1 className={`mb-6 text-center ${PAGE_TITLE}`}>
           Авторизация
         </h1>
 
@@ -93,7 +96,7 @@ export default function LoginPage() {
               autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}
-              className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
+              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
               {...register('username')}
             />
           </div>
@@ -106,7 +109,7 @@ export default function LoginPage() {
               id="password"
               required
               autoComplete="current-password"
-              className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 pr-10 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
+              className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 pr-10 text-sm text-slate-900 outline-none focus:border-sky-700 focus:ring-1 focus:ring-sky-700"
               {...register('password')}
             />
           </div>
@@ -117,13 +120,9 @@ export default function LoginPage() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="cursor-pointer mt-2 w-full rounded-md bg-sky-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-          >
+          <Button type="submit" disabled={isSubmitting} className="mt-2 w-full">
             {isSubmitting ? 'Вход...' : 'Войти'}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-5 space-y-2 text-center text-sm">
@@ -148,7 +147,7 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
-      </div>
+      </Card>
     </PageContainer>
   );
 }

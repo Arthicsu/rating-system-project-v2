@@ -1,4 +1,5 @@
 'use client';
+import Button from '@/components/Button';
 import ModalShell from './ModalShell';
 import type { ModalConfirmProps } from '@/interfaces/ModalInterfaces';
 
@@ -13,10 +14,6 @@ export default function ModalConfirm({
   onConfirm,
   onClose,
 }: ModalConfirmProps) {
-  const confirmClasses = danger
-    ? 'bg-rose-600 hover:bg-rose-700 focus:ring-rose-500'
-    : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500';
-
   return (
     <ModalShell
       isOpen={isOpen}
@@ -30,22 +27,12 @@ export default function ModalConfirm({
           <p className="mb-5 text-sm text-slate-600">{message}</p>
 
           <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={loading}
-              onClick={onConfirm}
-              className={`cursor-pointer inline-flex flex-1 items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60 ${confirmClasses}`}
-            >
+            <Button variant={danger ? 'danger' : 'primary'} disabled={loading} onClick={onConfirm} className="flex-1">
               {loading ? 'Подождите…' : confirmLabel}
-            </button>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={close}
-              className="cursor-pointer inline-flex flex-1 items-center justify-center rounded-full bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
-            >
+            </Button>
+            <Button variant="secondary" disabled={loading} onClick={close} className="flex-1">
               {cancelLabel}
-            </button>
+            </Button>
           </div>
         </>
       )}

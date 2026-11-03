@@ -72,7 +72,7 @@ function MainNavLink({ section }: { section: Section }) {
     <Link
       href={section.href}
       aria-current={active ? 'page' : undefined}
-      className={`inline-flex min-h-11 items-center gap-2 rounded-md text-sm transition ${look}`}
+      className={`inline-flex min-h-11 items-center gap-2 rounded-lg text-sm transition ${look}`}
     >
       <i className={section.icon} aria-hidden="true" />
       {section.label}

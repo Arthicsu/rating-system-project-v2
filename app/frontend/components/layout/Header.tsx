@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { buttonClass } from '@/components/Button';
 import LowVisionButton from '@/components/layout/LowVisionButton';
 import MainNav from '@/components/layout/MainNav';
 import { Bone } from '@/components/Skeleton';
@@ -44,14 +45,11 @@ export default function Header() {
           </a> */}
           <LowVisionButton />
           {loading ? (
-            <Bone className="h-11 w-20 rounded-full" />
+            <Bone className="h-11 w-20 rounded-lg" />
           ) : user ? (
             <UserMenu />
           ) : (
-            <Link
-              href="/login"
-              className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md bg-sky-700 px-4 text-sm font-medium text-white transition hover:bg-sky-800"
-            >
+            <Link href="/login" className={`${buttonClass()} whitespace-nowrap`}>
               Войти
             </Link>
           )}

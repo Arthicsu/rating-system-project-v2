@@ -1,6 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import Button, { buttonClass } from '@/components/Button';
+import Card from '@/components/Card';
+import { PAGE_TITLE } from '@/components/layout/PageHeader';
 
 type ErrorStateProps = {
   code?: number;
@@ -38,31 +41,21 @@ export default function ErrorState({
   
   return (
     <div className="flex items-center justify-center px-4 py-12 sm:py-16">
-      <div className="w-full max-w-2xl rounded-2xl bg-white p-6 text-center shadow-[0_6px_20px_rgba(0,0,0,0.08)] sm:p-8">
+      <Card padding="lg" className="w-full max-w-2xl text-center">
         <p className="text-5xl font-bold text-sky-700 sm:text-9xl">{code}</p>
-        <Title className="mt-3 text-xl font-semibold text-slate-800 sm:text-2xl">{displayTitle}</Title>
+        <Title className={`mt-3 ${PAGE_TITLE}`}>{displayTitle}</Title>
         <p className="mt-2 text-sm text-slate-600 sm:text-base">{displayDescription}</p>
         {/* {message && (
           <p className="mt-2 text-xs text-red-500 sm:text-sm">{message}</p>
         )} */}
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3 ">
-          {onReset && (
-            <button
-              onClick={onReset}
-              className="cursor-pointer inline-flex items-center rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-800"
-            >
-              Попробовать снова
-            </button>
-          )}
-          <Link
-            href="/"
-            className="inline-flex items-center rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-800"
-          >
+          {onReset && <Button onClick={onReset}>Попробовать снова</Button>}
+          <Link href="/" className={buttonClass(onReset ? 'secondary' : 'primary')}>
             На главную
           </Link>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
