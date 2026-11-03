@@ -12,6 +12,7 @@ import Card from '@/components/Card';
 import PasswordInput from '@/components/forms/PasswordInput';
 import PageContainer from '@/components/layout/PageContainer';
 import { PAGE_TITLE } from '@/components/layout/PageHeader';
+import { safeNextPath } from '@/lib/safeNextPath';
 import { loginSchema, type LoginFormValues } from '@/lib/validation/auth';
 import type ApiError from '@/interfaces/GeneralInterfaces';
 
@@ -20,8 +21,7 @@ import type ApiError from '@/interfaces/GeneralInterfaces';
 // axios). Принимаем только внутренние пути: внешний URL в next был бы open redirect.
 // window.location вместо useSearchParams, чтобы не оборачивать страницу в Suspense.
 function getNextPath(): string {
-  const next = new URLSearchParams(window.location.search).get('next');
-  return next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
+  return safeNextPath(new URLSearchParams(window.location.search).get('next'), window.location.origin);
 }
 
 export default function LoginPage() {
