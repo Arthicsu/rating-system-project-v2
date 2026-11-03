@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { buttonClass } from '@/components/Button';
+import Card, { CARD_TITLE } from '@/components/Card';
 import EmptyRequests from '@/components/EmptyRequests';
 import Pagination from '@/components/Pagination';
 import StateFilter from '@/components/StateFilter';
@@ -17,9 +19,6 @@ const TAB_LABELS: Record<StatusTab, string> = {
   pending: 'На рассмотрении',
   rejected: 'Отклонённые',
 };
-
-export const LIST_CARD = 'rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5';
-export const LIST_TITLE = 'mb-3 text-sm font-semibold text-slate-700 sm:text-base';
 
 interface AchievementListProps {
   docs: Achievement[];
@@ -71,20 +70,17 @@ export default function AchievementList({ docs, categoryLabels, isOwner, onEdit,
 
   if (docs.length === 0) {
     return (
-      <section aria-labelledby="achievements-title" className={LIST_CARD}>
-        <h2 id="achievements-title" className={LIST_TITLE}>Достижения</h2>
+      <Card as="section" aria-labelledby="achievements-title">
+        <h2 id="achievements-title" className={`mb-3 ${CARD_TITLE}`}>Достижения</h2>
         <div className="py-6 text-center">
           <p className="text-base font-semibold text-slate-900">Пока нет достижений</p>
           {isOwner && (
-            <Link
-              href="/upload-achievement"
-              className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-sky-700 px-5 text-sm font-semibold text-white transition hover:bg-sky-800 motion-reduce:transition-none"
-            >
+            <Link href="/upload-achievement" className={`${buttonClass()} mt-4`}>
               Загрузить достижение
             </Link>
           )}
         </div>
-      </section>
+      </Card>
     );
   }
 
@@ -99,8 +95,8 @@ export default function AchievementList({ docs, categoryLabels, isOwner, onEdit,
   ];
 
   return (
-    <section aria-labelledby="achievements-title" className={LIST_CARD}>
-      <h2 id="achievements-title" className={LIST_TITLE}>Достижения</h2>
+    <Card as="section" aria-labelledby="achievements-title">
+      <h2 id="achievements-title" className={`mb-3 ${CARD_TITLE}`}>Достижения</h2>
       <TabsNav
         label="Статус заявок"
         panelId="achievements-panel"
@@ -153,6 +149,6 @@ export default function AchievementList({ docs, categoryLabels, isOwner, onEdit,
           </div>
         )}
       </div>
-    </section>
+    </Card>
   );
 }

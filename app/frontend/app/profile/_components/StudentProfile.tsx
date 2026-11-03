@@ -16,6 +16,7 @@ import SemesterHistoryTable from './SemesterHistoryTable';
 import AchievementList from './AchievementList';
 import ProfileSkeleton from './ProfileSkeleton';
 import PageContainer from '@/components/layout/PageContainer';
+import Card from '@/components/Card';
 
 /**
  * Профиль студента, собранный из подкомпонентов: шапка, диаграмма баллов,
@@ -60,38 +61,34 @@ export default function StudentProfile({ profile, isOwner, loading = false }: St
   if (!profile) {
     return (
       <PageContainer>
-        <div className="rounded-2xl border border-slate-100 bg-white p-4 sm:p-5">
+        <Card>
           <p className="text-center text-slate-500">Профиль не найден</p>
-        </div>
+        </Card>
       </PageContainer>
     );
   }
 
   return (
     <>
-      <PageContainer className="animate-reveal">
-        <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:p-5">
-          <ProfileHeaderCard
-            profile={profile}
-            onChangePassword={isOwner && !user?.is_employee ? () => setChangingPassword(true) : undefined}
-          />
-          <ScoreBreakdown radarLabels={radarLabels} radarData={radarData} isOwner={isOwner} />
-        </div>
+      <PageContainer className="animate-reveal space-y-4 sm:space-y-5">
+        <ProfileHeaderCard
+          profile={profile}
+          onChangePassword={isOwner && !user?.is_employee ? () => setChangingPassword(true) : undefined}
+        />
+        <ScoreBreakdown radarLabels={radarLabels} radarData={radarData} isOwner={isOwner} />
 
         <SemesterHistoryTable semesterHistory={semesterHistory} />
 
-        <div className="mt-6">
-          {/* useSearchParams в ленте требует Suspense; профиль и так рисуется только на клиенте. */}
-          <Suspense fallback={null}>
-            <AchievementList
-              docs={documents}
-              categoryLabels={radarLabels}
-              isOwner={isOwner}
-              onEdit={isOwner ? (d) => setEditingDoc(d) : undefined}
-              onDelete={isOwner ? (d) => setDeletingDoc(d) : undefined}
-            />
-          </Suspense>
-        </div>
+        {/* useSearchParams в ленте требует Suspense; профиль и так рисуется только на клиенте. */}
+        <Suspense fallback={null}>
+          <AchievementList
+            docs={documents}
+            categoryLabels={radarLabels}
+            isOwner={isOwner}
+            onEdit={isOwner ? (d) => setEditingDoc(d) : undefined}
+            onDelete={isOwner ? (d) => setDeletingDoc(d) : undefined}
+          />
+        </Suspense>
       </PageContainer>
 
       <ModalEditAchievement

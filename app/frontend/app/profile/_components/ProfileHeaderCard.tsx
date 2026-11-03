@@ -1,4 +1,6 @@
+import Card from '@/components/Card';
 import CountUp from '@/components/CountUp';
+import { PAGE_TITLE } from '@/components/layout/PageHeader';
 import type { Profile } from '@/interfaces/ProfileInterfaces';
 
 /**
@@ -13,9 +15,9 @@ export default function ProfileHeaderCard({
   onChangePassword?: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-1.5">
-        <h1 className="text-lg font-semibold text-slate-900 sm:text-xl md:text-2xl">
+        <h1 className={PAGE_TITLE}>
           {profile.full_name}
         </h1>
         <p className="text-xs text-slate-500 sm:text-sm">
@@ -55,6 +57,6 @@ export default function ProfileHeaderCard({
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

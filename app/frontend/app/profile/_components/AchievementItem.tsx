@@ -1,12 +1,22 @@
 import Link from 'next/link';
+import Button from '@/components/Button';
+import Card from '@/components/Card';
 import { useMySession } from '@/context/AuthContext';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
 import type { AchievementItemProps } from '@/interfaces/AchievementInterfaces';
 import { STATUS_BADGE } from '@/components/achievement/AchievementHeader';
 
-/** Карточка заявки; её же повторяет скелетон ленты. */
-export const ITEM_CARD =
-  'flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-4.5';
+/**
+ * Раскладка карточки заявки; её же повторяет скелетон ленты. Крупный текст - раскладка телефона на любой ширине:
+ * справа одной строкой метки и кнопки сжали бы текст заявки в узкий столбик.
+ */
+export const ITEM_LAYOUT =
+  'flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 low-vision:flex-col low-vision:items-stretch';
+
+/** Статус, балл и кнопки: на телефоне и крупным текстом - нижней строкой, на ПК - справа одной строкой. */
+export const ITEM_SIDE =
+  'flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 sm:ml-2 sm:flex-nowrap sm:border-0 sm:pt-0 ' +
+  'low-vision:ml-0 low-vision:flex-wrap low-vision:border-t low-vision:pt-3';
 
 export default function AchievementItem({ doc, onEdit, onDelete }: AchievementItemProps) {
   const { downloadFile } = useDownloadFile();
@@ -16,14 +26,14 @@ export default function AchievementItem({ doc, onEdit, onDelete }: AchievementIt
   const status = doc ? STATUS_BADGE[doc.status_display] : undefined;
   const receivedDateText = doc?.date_received ? new Date(doc.date_received).toLocaleDateString('ru-RU') : 'Не указана';
   const uploadedDateText = doc?.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('ru-RU') : 'Не указана';
-  
+
   if (!doc) {
     return null;
   }
 
   return (
     <>
-    <div className={ITEM_CARD}>
+    <Card padding="sm" className={ITEM_LAYOUT}>
       <div className="flex min-w-0 flex-1 items-start gap-3">
         <div className="mt-1 flex px-1.5 sm:px-2 lg:px-2 py-1.5 sm:py-2 lg:py-2 items-center justify-center rounded-full bg-sky-700 text-white">
           <i className={`fa-regular ${statusIcon} text-sm`} />
@@ -72,20 +82,19 @@ export default function AchievementItem({ doc, onEdit, onDelete }: AchievementIt
                   {file.original_file_name || `Файл ${index + 1}`}
                 </button>
               ))}
+            <Link
+              href={user?.is_employee ? `/staff-profile/requests/${doc.id}` : `/achievement/${doc.id}`}
+              className="inline-flex min-h-11 items-center text-2xs font-semibold text-sky-700 hover:text-sky-900 sm:min-h-6"
+            >
+              Подробнее
+            </Link>
           </div>
-
-          <Link
-            href={user?.is_employee ? `/staff-profile/requests/${doc.id}` : `/achievement/${doc.id}`}
-            className="mt-2 inline-flex items-center gap-1 text-2xs font-semibold text-sky-700 hover:text-sky-900"
-          >
-            Подробнее
-          </Link>
         </div>
       </div>
 
       {/* На телефоне статус, балл и кнопки - нижней строкой, чтобы текст занимал всю ширину карточки. */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 sm:ml-2 sm:flex-col sm:items-end sm:justify-start sm:border-0 sm:pt-0">
-        <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end">
+      <div className={ITEM_SIDE}>
+        <div className="flex flex-wrap items-center gap-1.5">
           {status && (
             <span className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}>
               {status.label}
@@ -96,33 +105,33 @@ export default function AchievementItem({ doc, onEdit, onDelete }: AchievementIt
           </div>
         </div>
         {(onEdit || onDelete) && (
-          <div className="ml-auto flex items-center gap-2 sm:gap-1.5">
+          <div className="ml-auto flex items-center gap-1.5">
             {onEdit && (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="icon"
                 onClick={() => onEdit(doc)}
                 aria-label="Редактировать достижение"
                 title="Редактировать"
-                className="cursor-pointer inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition sm:h-7 sm:w-7 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700"
               >
-                <i className="fa-solid fa-pen text-sm sm:text-xs" />
-              </button>
+                <i className="fa-solid fa-pen text-sm" aria-hidden="true" />
+              </Button>
             )}
             {onDelete && (
-              <button
-                type="button"
+              <Button
+                variant="danger-outline"
+                size="icon"
                 onClick={() => onDelete(doc)}
                 aria-label="Удалить достижение"
                 title="Удалить"
-                className="cursor-pointer inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition sm:h-7 sm:w-7 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
               >
-                <i className="fa-solid fa-trash text-sm sm:text-xs" />
-              </button>
+                <i className="fa-solid fa-trash text-sm" aria-hidden="true" />
+              </Button>
             )}
           </div>
         )}
       </div>
-    </div>
+    </Card>
     {doc?.status_display == 'rejected' && doc?.rejection_reason && (
       <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50/70 p-4">
         <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-rose-700">
