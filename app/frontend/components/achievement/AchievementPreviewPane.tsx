@@ -1,5 +1,7 @@
 'use client';
 
+import { buttonClass } from '@/components/Button';
+import Card from '@/components/Card';
 import FilePreviewPanel from '@/components/preview/FilePreviewPanel';
 import type { DocumentFileDto } from '@/lib/api';
 
@@ -22,7 +24,7 @@ export default function AchievementPreviewPane({
   const selectedFile = files[selectedIndex] ?? files[0] ?? null;
 
   return (
-    <div className="flex h-[80vh] min-h-[500px] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm lg:h-[calc(120vh-10rem)]">
+    <Card padding="none" className="flex h-[80vh] min-h-[500px] flex-col overflow-hidden lg:h-[calc(120vh-10rem)]">
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <i className="fa-solid fa-file-magnifying-glass text-sky-700" aria-hidden="true" />
@@ -33,7 +35,7 @@ export default function AchievementPreviewPane({
         <button
           type="button"
           onClick={onFullscreen}
-          className="inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
+          className={`${buttonClass('secondary', 'sm')} shrink-0`}
           aria-label="Открыть на весь экран"
         >
           <i className="fa-solid fa-expand" aria-hidden="true" />
@@ -73,6 +75,6 @@ export default function AchievementPreviewPane({
           <div className="flex flex-1 items-center justify-center p-6 text-sm text-slate-600">Нет прикреплённых файлов</div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

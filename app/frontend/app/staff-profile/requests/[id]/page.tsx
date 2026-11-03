@@ -83,7 +83,10 @@ function StaffRequest({ id }: { id: string }) {
               doc={doc}
               approvedLabel="Одобрено"
               title={
-                <Link href={`/profile/${doc.student_id}`} className="text-sky-700 hover:text-sky-900 hover:underline">
+                <Link
+                  href={`/profile/${doc.student_id}`}
+                  className="text-sky-700 underline-offset-2 hover:text-sky-900 hover:underline [[data-lv-scheme]_&]:underline"
+                >
                   {doc.student_name}
                 </Link>
               }

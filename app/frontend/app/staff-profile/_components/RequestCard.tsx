@@ -32,7 +32,8 @@ export function ActionButtons({
 }: Pick<RequestCardProps, 'doc' | 'actions' | 'onAction'> & { size?: ButtonSize }) {
   if (actions.length === 0) return null;
   return (
-    <div className="mt-2 flex gap-2">
+    // Не влезают в ряд (крупный шрифт) — кнопки встают друг под другом, а не рвут слова по буквам.
+    <div className="mt-2 flex flex-wrap gap-2">
       {actions.map((action) => (
         <Button
           key={action}

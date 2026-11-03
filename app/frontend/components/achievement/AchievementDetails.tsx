@@ -1,3 +1,4 @@
+import Card, { CARD_TITLE } from '@/components/Card';
 import type { PendingDocumentDto } from '@/lib/api';
 
 import CollapsibleText from './CollapsibleText';
@@ -23,8 +24,8 @@ export default function AchievementDetails({ doc }: { doc: PendingDocumentDto })
   ];
 
   return (
-    <section className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Достижение</h2>
+    <Card as="section">
+      <h2 className={`mb-2 ${CARD_TITLE}`}>Достижение</h2>
       <CollapsibleText text={doc.achievement || '—'} />
       <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
         {rows
@@ -36,7 +37,7 @@ export default function AchievementDetails({ doc }: { doc: PendingDocumentDto })
             </div>
           ))}
       </dl>
-    </section>
+    </Card>
   );
 }
 
@@ -44,7 +45,7 @@ export default function AchievementDetails({ doc }: { doc: PendingDocumentDto })
 export function ReasonNote({ title, text }: { title: string; text: string }) {
   return (
     <section className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 shadow-sm sm:p-5">
-      <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-rose-700">{title}</h2>
+      <h2 className="mb-1 text-base font-semibold text-rose-700">{title}</h2>
       <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-800">{text}</p>
     </section>
   );

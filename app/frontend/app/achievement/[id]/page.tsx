@@ -10,6 +10,7 @@ import { useDeleteAchievement } from '@/hooks/mutations/useAchievementMutations'
 import { useRedirectIfLoggedOut } from '@/hooks/useRedirectIfLoggedOut';
 import { useDownloadFile } from '@/hooks/useDownloadFile';
 import { apiErrorMessage } from '@/lib/apiError';
+import Button from '@/components/Button';
 import AchievementHeader from '@/components/achievement/AchievementHeader';
 import AchievementDetails, { ReasonNote } from '@/components/achievement/AchievementDetails';
 import AchievementFiles from '@/components/achievement/AchievementFiles';
@@ -90,22 +91,14 @@ export default function AchievementDetailPage() {
               actions={
                 canChange && (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => setEditing(true)}
-                      className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg bg-sky-700 px-4 text-sm font-semibold text-white transition hover:bg-sky-800"
-                    >
+                    <Button size="sm" onClick={() => setEditing(true)}>
                       <i className="fa-solid fa-pen" aria-hidden="true" />
                       Редактировать
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(true)}
-                      className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-rose-200 bg-white px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
-                    >
+                    </Button>
+                    <Button variant="danger-outline" size="sm" onClick={() => setConfirmDelete(true)}>
                       <i className="fa-solid fa-trash" aria-hidden="true" />
                       Удалить
-                    </button>
+                    </Button>
                   </>
                 )
               }

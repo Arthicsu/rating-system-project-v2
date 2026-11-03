@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Button from '@/components/Button';
 import { useFilePreview, getFilePreviewKind } from '@/hooks/useFilePreview';
 import Spinner from '@/components/Spinner';
 
@@ -56,13 +57,7 @@ export default function FilePreviewPanel({ fileId, fileName, isOpen, onDownload 
         ) : (
           <p className="text-sm text-rose-600">{error ?? 'Не удалось загрузить файл для предпросмотра'}</p>
         )}
-        <button
-          type="button"
-          onClick={onDownload}
-          className="cursor-pointer rounded-lg bg-sky-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-800"
-        >
-          Скачать файл
-        </button>
+        <Button onClick={onDownload}>Скачать файл</Button>
       </div>
     );
   }

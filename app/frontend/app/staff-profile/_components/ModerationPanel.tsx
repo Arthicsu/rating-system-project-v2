@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 
+import Card, { CARD_TITLE } from '@/components/Card';
 import type { Document, ReviewAction } from '@/interfaces/StaffInterfaces';
 import { ActionButtons } from './RequestCard';
 
@@ -23,11 +24,8 @@ export default function ModerationPanel({ doc, actions, onAction }: ModerationPa
 
   return (
     // На десктопе панель остаётся видна при прокрутке сведений; на телефоне — сразу под шапкой.
-    <section
-      aria-label="Решение по заявке"
-      className="z-10 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5 lg:sticky lg:top-24"
-    >
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-600">Решение</h2>
+    <Card as="section" aria-label="Решение по заявке" className="z-10 lg:sticky lg:top-24">
+      <h2 className={CARD_TITLE}>Решение</h2>
       {actions.length > 0 ? (
         <ActionButtons doc={doc} actions={actions} onAction={onAction} />
       ) : (
@@ -39,6 +37,6 @@ export default function ModerationPanel({ doc, actions, onAction }: ModerationPa
       >
         К списку заявок
       </Link>
-    </section>
+    </Card>
   );
 }
