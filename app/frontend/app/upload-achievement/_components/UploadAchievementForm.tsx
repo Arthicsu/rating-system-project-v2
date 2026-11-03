@@ -9,6 +9,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
 
+import Button from '@/components/Button';
+import Card from '@/components/Card';
+import PageHeader from '@/components/layout/PageHeader';
 import FileDropZone from '@/components/upload/FileDropZone';
 import UploadFormSkeleton from './UploadFormSkeleton';
 import AchievementFields, { FieldError, getCurrentScore } from '@/components/achievement/AchievementFields';
@@ -122,69 +125,57 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
 
   return (
     <>
-      <div className="mb-5 flex items-start justify-between gap-4 sm:items-stretch sm:gap-6">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl md:text-3xl">
-            Загрузка достижения для именной стипендии
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Опишите достижение: укажите параметры достижения и прикрепите
-            подтверждающий(-ие) документ(-ы).
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-col items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2 sm:px-5 sm:min-w-24">
-          <p className="text-2xs font-medium uppercase tracking-wide text-slate-500">
-            Баллы
-          </p>
-          <p className="text-2xl sm:text-3xl font-bold text-emerald-600 leading-tight">
-            {getCurrentScore(watch('subType'), watch('level'), watch('result')) ?? 0}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Загрузка достижения для именной стипендии"
+        description="Опишите достижение: укажите параметры достижения и прикрепите подтверждающий(-ие) документ(-ы)."
+        actions={
+          <div className="flex shrink-0 flex-col items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2 sm:px-5 sm:min-w-24">
+            <p className="text-2xs font-medium uppercase tracking-wide text-slate-500">
+              Баллы
+            </p>
+            <p className="text-2xl sm:text-3xl font-bold text-emerald-600 leading-tight">
+              {getCurrentScore(watch('subType'), watch('level'), watch('result')) ?? 0}
+            </p>
+          </div>
+        }
+      />
       {configLoading ? (
         <UploadFormSkeleton />
       ) : (
-        <div className="grid animate-reveal gap-6 rounded-2xl border border-slate-100 bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.16)] sm:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)] sm:p-5">
-          {/* Левая колонка: форма */}
+        <Card className="grid animate-reveal gap-x-6 gap-y-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          {/* Левая колонка: поля */}
           <div className="space-y-4">
-          {/* Номер зачетной */}
-          <div className="space-y-1.5">
-            <label htmlFor="record-book" className="text-xs font-medium text-slate-600">
-              Номер зачетной книги
-            </label>
-            <input
-              id="record-book"
-              className="w-full rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-600/0 transition"
-              type="text"
-              value={user.record_book || ''}
-              readOnly
-            />
+            {/* Номер зачетной */}
+            <div className="space-y-1.5">
+              <label htmlFor="record-book" className="block text-xs font-medium text-slate-600">
+                Номер зачетной книги
+              </label>
+              <input
+                id="record-book"
+                className="w-full rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm text-slate-900 shadow-sm outline-none ring-sky-600/0 transition"
+                type="text"
+                value={user.record_book || ''}
+                readOnly
+              />
+            </div>
+
+            <AchievementFields form={form} config={config} idPrefix="upload" />
           </div>
 
-          <AchievementFields form={form} config={config} idPrefix="upload" />
-
-          {/* Файлы */}
+          {/* Правая колонка: файлы */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-600">
+            <label className="block text-xs font-medium text-slate-600">
               Файлы (обязательно)
             </label>
             <FileDropZone files={files} setFiles={setFiles} />
             <FieldError message={errors.files?.message} />
           </div>
-        </div>
 
-        {/* Правая колонка: кнопка + QR */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
-          <div>
-            <button
-                type="button"
-                onClick={handleSubmit(onSubmit)}
-                disabled={uploadMutation.isPending}
-                className="cursor-pointer inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(52,211,153,0.45)] transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60 w-full sm:w-auto"
-              >
-                Загрузить
-              </button>
-          </div>
+          {/* Нижняя строка: кнопка + QR */}
+          <div className="flex justify-end border-t border-slate-100 pt-4 lg:col-span-2">
+            <Button onClick={handleSubmit(onSubmit)} disabled={uploadMutation.isPending} className="w-full sm:w-auto">
+              Загрузить
+            </Button>
 
           {/* <div className="flex items-center gap-3 sm:gap-4">
             <div className="flex-1">
@@ -214,8 +205,8 @@ export default function UploadAchievementForm({ user }: { user: AuthUser }) {
               </div>
             </div>
           </div> */}
-        </div>
-      </div>
+          </div>
+        </Card>
       )}
     </>
   );
