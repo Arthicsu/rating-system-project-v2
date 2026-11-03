@@ -3,8 +3,8 @@ import type { HTMLAttributes } from 'react';
 /** Заголовок карточки (h2). */
 export const CARD_TITLE = 'text-base font-semibold text-slate-900';
 
-/** Блок внутри карточки: плитки, списки, распределение баллов. */
-export const PANEL = 'rounded-xl bg-slate-50 p-3 sm:p-4';
+/** Блок внутри карточки: плитки, списки, распределение баллов. Прозрачную рамку красит контрастная схема - плитки не сливаются с карточкой. */
+export const PANEL = 'rounded-xl border border-transparent bg-slate-50 p-3 sm:p-4';
 
 export type CardPadding = 'md' | 'sm' | 'lg' | 'none';
 

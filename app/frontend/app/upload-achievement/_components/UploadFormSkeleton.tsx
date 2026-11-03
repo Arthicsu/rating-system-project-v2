@@ -50,7 +50,7 @@ export default function UploadFormSkeleton({ withHeader = false }: { withHeader?
           </div>
         </div>
       )}
-      <Card className="grid gap-x-6 gap-y-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <Card className="grid grid-cols-1 gap-x-6 gap-y-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="space-y-4">
           <Field label="w-40" input={RECORD} />
           <Field label="w-36" input={SELECT} />

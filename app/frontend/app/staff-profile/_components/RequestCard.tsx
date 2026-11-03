@@ -20,8 +20,9 @@ const ACTION_BUTTONS: Record<ReviewAction, { label: string; variant: ButtonVaria
   return: { label: 'Вернуть кафедре', variant: 'return' },
 };
 
-// Метка целиком в одну строку; переносится весь ряд меток, а не текст внутри метки.
-const BADGE = 'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold';
+// Метка целиком в одну строку; переносится весь ряд меток. Крупным шрифтом длинная метка шире карточки - переносится и текст.
+const BADGE =
+  'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold low-vision:whitespace-normal';
 
 /** Кнопки решений по заявке (карточка и страница заявки сотрудника). */
 export function ActionButtons({
@@ -86,9 +87,10 @@ export default function RequestCard({ doc, variant, actions, onAction }: Request
 
   return (
     <Card padding="sm" className="flex flex-col transition-shadow hover:shadow-md">
+      {/* Поля с отрицательными отступами: цель нажатия 44px на телефоне и 24px на ПК, а карточка не растёт. */}
       <Link
         href={`/profile/${doc.student_id}`}
-        className="self-start break-words text-sm font-semibold text-sky-700 underline-offset-2 hover:text-sky-900 hover:underline [[data-lv-scheme]_&]:underline"
+        className="relative -my-3 self-start break-words py-3 text-sm font-semibold text-sky-700 underline-offset-2 hover:text-sky-900 hover:underline sm:-my-0.5 sm:py-0.5 [[data-lv-scheme]_&]:underline"
       >
         {doc.student_name}
       </Link>
