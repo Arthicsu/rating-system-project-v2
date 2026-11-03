@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 
+import Button, { type ButtonSize, type ButtonVariant } from '@/components/Button';
+import Card from '@/components/Card';
 import type { Document, ReviewAction } from '@/interfaces/StaffInterfaces';
 
 interface RequestCardProps {
@@ -12,29 +14,36 @@ interface RequestCardProps {
   onAction: (action: ReviewAction, doc: Document) => void;
 }
 
-const ACTION_BUTTONS: Record<ReviewAction, { label: string; className: string }> = {
-  approve: { label: 'Одобрить', className: 'bg-emerald-700 hover:bg-emerald-800' },
-  reject: { label: 'Отклонить', className: 'bg-rose-600 hover:bg-rose-700' },
-  return: { label: 'Вернуть кафедре', className: 'bg-amber-700 hover:bg-amber-800' },
+const ACTION_BUTTONS: Record<ReviewAction, { label: string; variant: ButtonVariant }> = {
+  approve: { label: 'Одобрить', variant: 'approve' },
+  reject: { label: 'Отклонить', variant: 'danger' },
+  return: { label: 'Вернуть кафедре', variant: 'return' },
 };
 
 // Метка целиком в одну строку; переносится весь ряд меток, а не текст внутри метки.
 const BADGE = 'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold';
 
 /** Кнопки решений по заявке (карточка и страница заявки сотрудника). */
-export function ActionButtons({ doc, actions, onAction }: Pick<RequestCardProps, 'doc' | 'actions' | 'onAction'>) {
+export function ActionButtons({
+  doc,
+  actions,
+  onAction,
+  size = 'md',
+}: Pick<RequestCardProps, 'doc' | 'actions' | 'onAction'> & { size?: ButtonSize }) {
   if (actions.length === 0) return null;
   return (
-    <div className="mt-3 flex gap-2">
+    <div className="mt-2 flex gap-2">
       {actions.map((action) => (
-        <button
+        <Button
           key={action}
-          type="button"
+          variant={ACTION_BUTTONS[action].variant}
+          size={size}
+          // flex-auto: ширина по подписи — «Вернуть кафедре» не переносится рядом с короткой «Отклонить».
+          className="flex-auto"
           onClick={() => onAction(action, doc)}
-          className={`cursor-pointer min-h-11 flex-1 rounded-lg px-3 text-sm font-semibold text-white shadow-sm transition ${ACTION_BUTTONS[action].className}`}
         >
           {ACTION_BUTTONS[action].label}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -75,10 +84,10 @@ export default function RequestCard({ doc, variant, actions, onAction }: Request
   const uploaded = new Date(doc.uploaded_at).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' });
 
   return (
-    <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-[0_4px_12px_rgba(15,23,42,0.08)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.12)] transition-shadow">
+    <Card padding="sm" className="flex flex-col transition-shadow hover:shadow-md">
       <Link
         href={`/profile/${doc.student_id}`}
-        className="self-start break-words text-sm font-semibold text-sky-700 hover:text-sky-900 hover:underline"
+        className="self-start break-words text-sm font-semibold text-sky-700 underline-offset-2 hover:text-sky-900 hover:underline [[data-lv-scheme]_&]:underline"
       >
         {doc.student_name}
       </Link>
@@ -105,16 +114,16 @@ export default function RequestCard({ doc, variant, actions, onAction }: Request
       </div>
 
       <p className="mt-2 line-clamp-2 break-words text-sm text-slate-800">{doc.achievement}</p>
-      <p className="mt-1 text-xs text-slate-600">
-        {doc.level_display ? `${doc.level_display} · подана ${uploaded}` : `Подана ${uploaded}`}
-      </p>
 
       {variant === 'reviewed' && isRejected && doc.rejection_reason && (
         <p className="mt-1 line-clamp-2 break-words text-xs text-rose-700">Причина: {doc.rejection_reason}</p>
       )}
 
       {/* mt-auto: кнопки карточек одного ряда сетки стоят на одной линии. */}
-      <div className="mt-auto flex items-center justify-between pt-2">
+      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-1.5">
+        <p className="text-xs text-slate-600">
+          {doc.level_display ? `${doc.level_display} · подана ${uploaded}` : `Подана ${uploaded}`}
+        </p>
         {doc.files && doc.files.length > 0 && (
           <span className="text-xs text-slate-600">
             <i className="fa-solid fa-file mr-1" aria-hidden="true" />
@@ -123,13 +132,13 @@ export default function RequestCard({ doc, variant, actions, onAction }: Request
         )}
         <Link
           href={`/staff-profile/requests/${doc.id}`}
-          className="cursor-pointer ml-auto inline-flex min-h-11 items-center text-xs font-semibold text-sky-700 hover:text-sky-900"
+          className="ml-auto inline-flex min-h-11 items-center text-xs font-semibold text-sky-700 hover:text-sky-900 sm:min-h-6"
         >
           Подробнее
         </Link>
       </div>
 
-      <ActionButtons doc={doc} actions={actions} onAction={onAction} />
-    </div>
+      <ActionButtons doc={doc} actions={actions} onAction={onAction} size="sm" />
+    </Card>
   );
 }

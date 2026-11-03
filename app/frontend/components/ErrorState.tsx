@@ -8,6 +8,8 @@ type ErrorStateProps = {
   description?: string;
   message?: string;
   onReset?: () => void;
+  /** h2 — когда ошибка внутри страницы со своим h1 (вкладки кабинета). */
+  titleAs?: 'h1' | 'h2';
 };
 
 export default function ErrorState({
@@ -16,6 +18,7 @@ export default function ErrorState({
   description,
   message,
   onReset,
+  titleAs: Title = 'h1',
 }: ErrorStateProps) {
   const defaultMessages: Record<number, { title: string; description: string }> = {
     400: { title: 'Некорректный запрос', description: 'Проверьте введённые данные и попробуйте снова.' },
@@ -37,7 +40,7 @@ export default function ErrorState({
     <div className="flex items-center justify-center px-4 py-12 sm:py-16">
       <div className="w-full max-w-2xl rounded-2xl bg-white p-6 text-center shadow-[0_6px_20px_rgba(0,0,0,0.08)] sm:p-8">
         <p className="text-5xl font-bold text-sky-700 sm:text-9xl">{code}</p>
-        <h1 className="mt-3 text-xl font-semibold text-slate-800 sm:text-2xl">{displayTitle}</h1>
+        <Title className="mt-3 text-xl font-semibold text-slate-800 sm:text-2xl">{displayTitle}</Title>
         <p className="mt-2 text-sm text-slate-600 sm:text-base">{displayDescription}</p>
         {/* {message && (
           <p className="mt-2 text-xs text-red-500 sm:text-sm">{message}</p>

@@ -281,7 +281,7 @@ export default function StaffDashboard() {
 
         <div key={activeTab} role="tabpanel" id="staff-tabpanel" aria-labelledby={`tab-${activeTab}`} className="animate-rise">
         {activeTab === 'my-group' && (studentsErrorCode ? (
-          <ErrorState code={studentsErrorCode} onReset={() => { void studentsQuery.refetch(); }} />
+          <ErrorState titleAs="h2" code={studentsErrorCode} onReset={() => { void studentsQuery.refetch(); }} />
         ) : (
           <StudentsTab
             students={studentsData}
@@ -314,7 +314,7 @@ export default function StaffDashboard() {
         ))}
 
         {activeTab === 'pending-requests' && (pendingListErrorCode ? (
-          <ErrorState code={pendingListErrorCode} onReset={() => { void pendingListQuery.refetch(); }} />
+          <ErrorState titleAs="h2" code={pendingListErrorCode} onReset={() => { void pendingListQuery.refetch(); }} />
         ) : (
           <PendingRequestsTab
             docs={pendingDocsData}
@@ -339,7 +339,7 @@ export default function StaffDashboard() {
         ))}
 
         {activeTab === 'reviewed-requests' && (reviewedErrorCode ? (
-          <ErrorState code={reviewedErrorCode} onReset={() => { void reviewedQuery.refetch(); }} />
+          <ErrorState titleAs="h2" code={reviewedErrorCode} onReset={() => { void reviewedQuery.refetch(); }} />
         ) : (
           <ReviewedRequestsTab
             docs={reviewedDocsData}
@@ -361,7 +361,7 @@ export default function StaffDashboard() {
         ))}
 
         {activeTab === 'statistics' && (pendingErrorCode ? (
-          <ErrorState code={pendingErrorCode} onReset={() => { void pendingQuery.refetch(); }} />
+          <ErrorState titleAs="h2" code={pendingErrorCode} onReset={() => { void pendingQuery.refetch(); }} />
         ) : (
           <StatisticsTab
             stats={stats}

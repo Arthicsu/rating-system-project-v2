@@ -1,5 +1,8 @@
 'use client';
 
+import Button from '@/components/Button';
+import Card from '@/components/Card';
+
 interface EmptyRequestsProps {
   /** Включены таблетка состояния или поиск: «Ничего не найдено» и сброс. */
   filtered: boolean;
@@ -13,18 +16,14 @@ interface EmptyRequestsProps {
 /** Пустой список заявок: «всё рассмотрено» отличается от «ничего не нашлось по фильтру». */
 export default function EmptyRequests({ filtered, emptyText, context, onReset }: EmptyRequestsProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+    <Card padding="lg" className="text-center">
       <p className="text-base font-semibold text-slate-900">{filtered ? 'Ничего не найдено' : emptyText}</p>
       <p className="mt-1 text-sm text-slate-600">{context}</p>
       {filtered && (
-        <button
-          type="button"
-          onClick={onReset}
-          className="cursor-pointer mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-slate-100 px-5 text-sm font-semibold text-sky-700 transition hover:bg-slate-200"
-        >
+        <Button variant="secondary" className="mt-4" onClick={onReset}>
           Сбросить фильтры
-        </button>
+        </Button>
       )}
-    </div>
+    </Card>
   );
 }

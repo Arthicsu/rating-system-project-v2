@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { CARD_TITLE } from '@/components/Card';
 import SearchInput from '@/components/SearchInput';
 import Pagination from '@/components/Pagination';
 import RequestCard from './RequestCard';
@@ -71,10 +72,10 @@ export default function PendingRequestsTab({
     setSearchKey((k) => k + 1);
   };
   return (
-    <div className="mt-5 space-y-4 animate-fade-in">
+    <div className="mt-4 space-y-4 animate-fade-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
+          <h2 className={CARD_TITLE}>
             {title}: {currentGroupName}, {periodLabel}
           </h2>
           {hint && <p className="mt-1 text-xs text-slate-600 sm:text-sm">{hint}</p>}
@@ -91,7 +92,7 @@ export default function PendingRequestsTab({
       {loading && docs.length === 0 ? (
         <RequestCardsSkeleton />
       ) : docs && docs.length > 0 ? (
-        <div className={`stagger grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-300 ${loading ? 'opacity-40' : 'opacity-100'}`}>
+        <div className={`stagger grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 transition-opacity duration-300 ${loading ? 'opacity-40' : 'opacity-100'}`}>
           {docs.map((doc) => (
             <RequestCard
               key={doc.id}

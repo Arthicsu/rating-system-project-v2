@@ -1,4 +1,5 @@
 'use client';
+import Button from '@/components/Button';
 import ModalShell from '@/components/modals/ModalShell';
 import type { ModalRejectProps } from '@/interfaces/ModalInterfaces'
 
@@ -100,25 +101,17 @@ export default function ModalReject({
 
             <div className="mt-3 flex gap-2">
               {/* aria-disabled, а не disabled: кнопка в фокусе не теряет его на время сохранения. */}
-              <button
+              <Button
                 type="submit"
+                variant={isReturn ? 'return' : 'danger'}
                 aria-disabled={saving || !hasReason}
-                className={`cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full px-4 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 ${
-                  isReturn
-                    ? 'bg-amber-700 hover:bg-amber-800 focus:ring-amber-700'
-                    : 'bg-rose-600 hover:bg-rose-700 focus:ring-rose-600'
-                }`}
+                className="flex-1"
               >
                 {saving ? 'Сохраняем…' : isReturn ? 'Вернуть' : 'Отклонить'}
-              </button>
-              <button
-                type="button"
-                disabled={saving}
-                className="cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-slate-200 px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={close}
-              >
+              </Button>
+              <Button variant="secondary" disabled={saving} className="flex-1" onClick={close}>
                 Отмена
-              </button>
+              </Button>
             </div>
           </form>
         </>

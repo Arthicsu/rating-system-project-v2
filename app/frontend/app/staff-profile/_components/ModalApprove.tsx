@@ -1,4 +1,5 @@
 'use client';
+import Button from '@/components/Button';
 import ModalShell from '@/components/modals/ModalShell';
 import type { ModalApproveProps } from '@/interfaces/ModalInterfaces'
 
@@ -42,23 +43,18 @@ export default function ModalApprove({ isOpen, doc, saving, onClose, onConfirm }
           </p>
           <div className="mt-5 flex gap-2">
             {/* aria-disabled, а не disabled: кнопка в фокусе не теряет его на время сохранения. */}
-            <button
-              type="button"
+            <Button
+              variant="approve"
               autoFocus
               aria-disabled={saving}
-              className="cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:ring-offset-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+              className="flex-1"
               onClick={saving ? undefined : onConfirm}
             >
               {saving ? 'Сохраняем…' : 'Одобрить'}
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              className="cursor-pointer inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-slate-200 px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={close}
-            >
+            </Button>
+            <Button variant="secondary" disabled={saving} className="flex-1" onClick={close}>
               Отмена
-            </button>
+            </Button>
           </div>
         </>
       )}
