@@ -30,7 +30,7 @@ export default function ScoreBreakdown({ radarLabels, radarData, isOwner }: Scor
           <RadarChart labels={radarLabels} data={radarData} />
         </div>
 
-        {/* Колонка flex: кнопка - блок, а не строка текста; высота не зависит от межстрочного интервала. */}
+        {/* Колонка flex: кнопка в ней - блок, её высота не зависит от межстрочного интервала. */}
         <div className={`flex flex-col gap-2 ${PANEL}`}>
           {radarLabels.map((label: string, index: number) => (
             <div
