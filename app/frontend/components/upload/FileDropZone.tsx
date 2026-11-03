@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, DragEvent } from 'react';
+import { useId, useState, useRef, DragEvent } from 'react';
 import toast from '@/lib/toast';
 
 import {
@@ -32,6 +32,7 @@ const MAX_FILE_SIZE_MB = Math.round(MAX_FILE_SIZE / (1024 * 1024));
 
 export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, reservedBytes = 0, inputId }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const zoneId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Замена выбирает один файл через свой input: общий (с multiple) открывает и окно правки.
   const replaceInputRef = useRef<HTMLInputElement>(null);
@@ -122,17 +123,17 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
     setFiles(combinedFiles);
   };
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsDragging(true);
   };
 
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsDragging(false);
   };
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsDragging(false);
 
@@ -192,30 +193,33 @@ export default function FileDropZone({ files, setFiles, maxFiles = MAX_FILES, re
         onChange={handleReplaceChange}
       />
 
-      <div
+      <button
+        type="button"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`group relative flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-5 text-center transition-all duration-200
-          ${isDragging 
-            ? 'border-sky-500 bg-sky-50/50 scale-[0.99]' 
+        aria-labelledby={`${zoneId}-label`}
+        aria-describedby={`${zoneId}-hint`}
+        className={`group relative flex min-h-[140px] w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-5 text-center transition-all duration-200 focus-visible:border-sky-600 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2
+          ${isDragging
+            ? 'border-sky-500 bg-sky-50/50 scale-[0.99]'
             : 'border-slate-300 bg-slate-50 hover:border-sky-400 hover:bg-slate-100/70'
           }`}
       >
-        <div className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 transition-colors
+        <span className={`mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 transition-colors
           ${isDragging ? 'text-sky-700 bg-sky-50' : 'text-sky-700 group-hover:text-sky-700'}`}
         >
-          <i className={`fa-solid text-lg ${isDragging ? 'fa-file-arrow-up fa-bounce' : 'fa-cloud-arrow-up'}`} />
-        </div>
-        
-        <p className="text-xs font-medium text-slate-700">
+          <i className={`fa-solid text-lg ${isDragging ? 'fa-file-arrow-up fa-bounce' : 'fa-cloud-arrow-up'}`} aria-hidden="true" />
+        </span>
+
+        <span id={`${zoneId}-label`} className="block text-xs font-medium text-slate-700">
           Перетащите файлы сюда или <span className="text-sky-700 group-hover:text-sky-900 font-semibold">выберите на компьютере</span>
-        </p>
-        <p className="mt-1 text-xs text-sky-700 max-w-xs">
+        </span>
+        <span id={`${zoneId}-hint`} className="mt-1 block text-xs text-sky-700 max-w-xs">
           До {MAX_FILES}-х файлов по очереди или вместе. Общий размер до {MAX_TOTAL_SIZE_MB} МБ.
-        </p>
-      </div>
+        </span>
+      </button>
 
       {files.length > 0 && (
         <div className="space-y-2 animate-in fade-in duration-200">
