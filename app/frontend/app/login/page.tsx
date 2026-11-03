@@ -133,14 +133,14 @@ export default function LoginPage() {
           {/* Обе ссылки ведут на одну форму "пароль на почту" */}
           <p className="flex flex-wrap items-center justify-center gap-3">
             <Link
-              className="inline-block py-1 font-medium text-sky-700 underline underline-offset-2 hover:text-sky-900"
+              className="inline-flex min-h-11 items-center font-medium text-sky-700 underline underline-offset-2 hover:text-sky-900 sm:min-h-6"
               href="/reset-password?mode=register"
             >
               Регистрация
             </Link>
             <span className="h-5 w-px bg-slate-300" aria-hidden="true" />
             <Link
-              className="inline-block py-1 font-medium text-sky-700 underline underline-offset-2 hover:text-sky-900"
+              className="inline-flex min-h-11 items-center font-medium text-sky-700 underline underline-offset-2 hover:text-sky-900 sm:min-h-6"
               href="/reset-password"
             >
               Восстановить пароль

@@ -134,7 +134,7 @@ export default function RequestCard({ doc, variant, actions, onAction }: Request
         )}
         <Link
           href={`/staff-profile/requests/${doc.id}`}
-          className="ml-auto inline-flex min-h-11 items-center text-xs font-semibold text-sky-700 hover:text-sky-900 sm:min-h-6"
+          className="ml-auto inline-flex min-h-11 items-center text-xs font-semibold text-sky-700 underline-offset-2 hover:text-sky-900 sm:min-h-6 [[data-lv-scheme]_&]:underline"
         >
           Подробнее
         </Link>

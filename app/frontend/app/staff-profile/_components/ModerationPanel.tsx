@@ -33,7 +33,7 @@ export default function ModerationPanel({ doc, actions, onAction }: ModerationPa
       )}
       <Link
         href="/staff-profile?tab=pending-requests"
-        className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-sky-700 hover:text-sky-900"
+        className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-sky-700 underline-offset-2 hover:text-sky-900 [[data-lv-scheme]_&]:underline"
       >
         К списку заявок
       </Link>

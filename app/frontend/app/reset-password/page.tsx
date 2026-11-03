@@ -135,7 +135,7 @@ function ResetPasswordForm() {
         <div className="mt-6 flex justify-center">
           <Link
             href="/login"
-            className="cursor-pointer mt-1 text-center text-xs text-sky-700 underline underline-offset-2 hover:text-sky-800"
+            className="cursor-pointer mt-1 inline-flex min-h-11 items-center text-center text-xs text-sky-700 underline underline-offset-2 hover:text-sky-800 sm:min-h-6"
           >
             Вернуться ко входу
           </Link>

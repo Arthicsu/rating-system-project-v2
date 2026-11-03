@@ -23,8 +23,16 @@ function ItemSkeleton({ isOwner }: { isOwner: boolean }) {
           <div className="mt-2 flex flex-wrap items-center gap-2 text-2xs">
             <BoneLine className="w-36" />
             <BoneLine className="w-32" />
-            <span className="flex min-h-11 items-center sm:min-h-6">
-              <BoneLine className="w-16" />
+            <span className="flex items-center gap-1.5">
+              <span className="mr-1 flex min-h-11 items-center sm:min-h-6">
+                <BoneLine className="w-16" />
+              </span>
+              {isOwner && (
+                <>
+                  <Bone className={BUTTON_BONE.icon} />
+                  <Bone className={BUTTON_BONE.icon} />
+                </>
+              )}
             </span>
           </div>
         </div>
@@ -34,12 +42,6 @@ function ItemSkeleton({ isOwner }: { isOwner: boolean }) {
           <Bone className="h-[calc(1lh+0.5rem)] w-28 rounded-full text-xs" />
           <Bone className="h-[calc(1lh+0.5rem+2px)] w-12 rounded-full text-sm" />
         </div>
-        {isOwner && (
-          <div className="ml-auto flex items-center gap-1.5">
-            <Bone className={BUTTON_BONE.icon} />
-            <Bone className={BUTTON_BONE.icon} />
-          </div>
-        )}
       </div>
     </Card>
   );

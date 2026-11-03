@@ -42,7 +42,10 @@ export default function DocumentPage({
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
           {sections.map((section) => (
             <li key={section.id}>
-              <a href={`#${section.id}`} className="text-sky-700 underline-offset-2 hover:underline">
+              <a
+                href={`#${section.id}`}
+                className="inline-flex min-h-11 items-center text-sky-700 underline-offset-2 hover:underline sm:min-h-6 [[data-lv-scheme]_&]:underline"
+              >
                 {section.title}
               </a>
             </li>
@@ -66,7 +69,10 @@ export default function DocumentPage({
         <ul className="mt-2 space-y-1 text-sm">
           {POLICY_DOCUMENTS.filter((doc) => doc.href !== href).map((doc) => (
             <li key={doc.href}>
-              <Link href={doc.href} className="text-sky-700 underline-offset-2 hover:underline">
+              <Link
+                href={doc.href}
+                className="inline-flex min-h-11 items-center text-sky-700 underline-offset-2 hover:underline sm:min-h-6 [[data-lv-scheme]_&]:underline"
+              >
                 {doc.title}
               </Link>
             </li>

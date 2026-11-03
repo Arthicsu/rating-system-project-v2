@@ -13,7 +13,7 @@ import { STATUS_BADGE } from '@/components/achievement/AchievementHeader';
 export const ITEM_LAYOUT =
   'flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 low-vision:flex-col low-vision:items-stretch';
 
-/** Статус, балл и кнопки: на телефоне и крупным текстом - нижней строкой, на ПК - справа одной строкой. */
+/** Статус и балл: на телефоне и крупным текстом - нижней строкой, на ПК - справа одной строкой. */
 export const ITEM_SIDE =
   'flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 sm:ml-2 sm:flex-nowrap sm:border-0 sm:pt-0 ' +
   'low-vision:ml-0 low-vision:flex-wrap low-vision:border-t low-vision:pt-3';
@@ -82,17 +82,41 @@ export default function AchievementItem({ doc, onEdit, onDelete }: AchievementIt
                   {file.original_file_name || `Файл ${index + 1}`}
                 </button>
               ))}
-            <Link
-              href={user?.is_employee ? `/staff-profile/requests/${doc.id}` : `/achievement/${doc.id}`}
-              className="inline-flex min-h-11 items-center text-2xs font-semibold text-sky-700 hover:text-sky-900 sm:min-h-6"
-            >
-              Подробнее
-            </Link>
+            <span className="flex items-center gap-1.5">
+              <Link
+                href={user?.is_employee ? `/staff-profile/requests/${doc.id}` : `/achievement/${doc.id}`}
+                className="mr-1 inline-flex min-h-11 items-center text-2xs font-semibold text-sky-700 underline-offset-2 hover:text-sky-900 sm:min-h-6 [[data-lv-scheme]_&]:underline"
+              >
+                Подробнее
+              </Link>
+              {onEdit && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => onEdit(doc)}
+                  aria-label="Редактировать достижение"
+                  title="Редактировать"
+                >
+                  <i className="fa-solid fa-pen text-sm" aria-hidden="true" />
+                </Button>
+              )}
+              {onDelete && (
+                <Button
+                  variant="danger-outline"
+                  size="icon"
+                  onClick={() => onDelete(doc)}
+                  aria-label="Удалить достижение"
+                  title="Удалить"
+                >
+                  <i className="fa-solid fa-trash text-sm" aria-hidden="true" />
+                </Button>
+              )}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* На телефоне статус, балл и кнопки - нижней строкой, чтобы текст занимал всю ширину карточки. */}
+      {/* На телефоне статус и балл - нижней строкой, чтобы текст занимал всю ширину карточки. */}
       <div className={ITEM_SIDE}>
         <div className="flex flex-wrap items-center gap-1.5">
           {status && (
@@ -104,37 +128,11 @@ export default function AchievementItem({ doc, onEdit, onDelete }: AchievementIt
             +{doc?.score}
           </div>
         </div>
-        {(onEdit || onDelete) && (
-          <div className="ml-auto flex items-center gap-1.5">
-            {onEdit && (
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={() => onEdit(doc)}
-                aria-label="Редактировать достижение"
-                title="Редактировать"
-              >
-                <i className="fa-solid fa-pen text-sm" aria-hidden="true" />
-              </Button>
-            )}
-            {onDelete && (
-              <Button
-                variant="danger-outline"
-                size="icon"
-                onClick={() => onDelete(doc)}
-                aria-label="Удалить достижение"
-                title="Удалить"
-              >
-                <i className="fa-solid fa-trash text-sm" aria-hidden="true" />
-              </Button>
-            )}
-          </div>
-        )}
       </div>
     </Card>
     {doc?.status_display == 'rejected' && doc?.rejection_reason && (
       <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50/70 p-4">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-rose-700">
+        <p className="mb-1 text-sm font-semibold text-rose-700">
           Причина отклонения
         </p>
         <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">

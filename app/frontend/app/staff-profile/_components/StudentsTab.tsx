@@ -189,7 +189,9 @@ export default function StudentsTab({
           </table>
         </div>
 
+        {/* role="list": Safari с VoiceOver не считает списком <ol> без маркеров. */}
         <ol
+          role="list"
           start={firstPlace}
           aria-busy={loading}
           className={`stagger mt-1 divide-y divide-slate-100 transition-opacity duration-300 motion-reduce:transition-none sm:hidden ${dimmed}`}
