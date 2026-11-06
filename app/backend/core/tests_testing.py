@@ -53,3 +53,10 @@ class TestRunnerTests(SimpleTestCase):
         from backend.celery import celery_app
 
         self.assertTrue(celery_app.conf.task_always_eager)
+
+    def test_broker_transport_loads(self):
+        # Eager-задачи идут мимо брокера, поэтому загрузку его транспорта проверяем отдельно.
+        from backend.celery import celery_app
+
+        transport = celery_app.connection_for_write().get_transport_cls()
+        self.assertEqual(transport.driver_type, "redis")
